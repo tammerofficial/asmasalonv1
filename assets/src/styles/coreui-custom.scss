@@ -1,0 +1,166 @@
+// Asmaa Salon CoreUI Customizations
+// Primary color: #BBA07A
+
+$primary: #BBA07A;
+$primary-dark: #9a8563;
+$primary-light: #d4c4a8;
+
+// Override CoreUI variables (global theme mapping)
+:root {
+  /* CoreUI palette */
+  --cui-primary: var(--asmaa-primary);
+  --cui-primary-rgb: 187, 160, 122;
+  --cui-secondary: var(--asmaa-secondary);
+  --cui-success: var(--asmaa-success);
+  --cui-warning: var(--asmaa-warning);
+  --cui-danger: var(--asmaa-danger);
+
+  /* CoreUI surfaces & text */
+  --cui-body-bg: var(--bg-secondary);
+  --cui-body-color: var(--text-primary);
+  --cui-border-color: var(--border-color);
+  --cui-card-bg: var(--bg-primary);
+  --cui-card-cap-bg: var(--bg-secondary);
+  --cui-table-bg: var(--bg-primary);
+  --cui-emphasis-color: var(--text-primary);
+  --cui-secondary-color: var(--text-secondary);
+}
+
+// RTL Support
+[dir="rtl"] {
+  .c-sidebar {
+    right: 0;
+    left: auto;
+  }
+  
+  .c-main {
+    margin-right: 0;
+    margin-left: auto;
+  }
+  
+  .c-header-nav {
+    flex-direction: row-reverse;
+  }
+  
+  .c-card {
+    text-align: right;
+  }
+  
+  .c-table {
+    direction: rtl;
+  }
+  
+  .c-form-label {
+    text-align: right;
+  }
+  
+  .c-input-group {
+    flex-direction: row-reverse;
+  }
+  
+  .c-dropdown-menu {
+    text-align: right;
+  }
+}
+
+// Dark Mode Support
+.theme-dark {
+  /* Keep CoreUI variables bound to our theme vars */
+  --cui-body-bg: var(--bg-secondary);
+  --cui-body-color: var(--text-primary);
+  --cui-border-color: var(--border-color);
+  --cui-card-bg: var(--bg-primary);
+  --cui-card-cap-bg: var(--bg-secondary);
+  --cui-table-bg: var(--bg-primary);
+  
+  .c-card {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+  }
+  
+  .c-header {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+  }
+  
+  .c-table {
+    color: var(--text-primary);
+    
+    thead th {
+      background-color: var(--bg-tertiary);
+      border-color: var(--border-color);
+    }
+    
+    tbody tr {
+      border-color: var(--border-color);
+      
+      &:hover {
+        background-color: var(--bg-tertiary);
+      }
+    }
+  }
+  
+  .c-form-control {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    
+    &:focus {
+      background-color: var(--bg-primary);
+      border-color: var(--asmaa-primary);
+      color: var(--text-primary);
+    }
+  }
+  
+  .c-form-select {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+  }
+  
+  .c-dropdown-menu {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    
+    .c-dropdown-item {
+      color: var(--text-primary);
+      
+      &:hover {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+    }
+  }
+  
+  .c-btn {
+    &-primary {
+      background-color: var(--asmaa-primary);
+      border-color: var(--asmaa-primary);
+      
+      &:hover {
+        background-color: var(--asmaa-primary-dark);
+        border-color: var(--asmaa-primary-dark);
+      }
+    }
+    
+    &-secondary {
+      background-color: var(--bg-tertiary);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+      
+      &:hover {
+        background-color: var(--bg-primary);
+        border-color: var(--border-color-light);
+      }
+    }
+    
+    &-ghost {
+      color: var(--text-primary);
+      
+      &:hover {
+        background-color: var(--bg-tertiary);
+      }
+    }
+  }
+}
