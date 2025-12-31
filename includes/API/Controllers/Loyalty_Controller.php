@@ -153,7 +153,7 @@ class Loyalty_Controller extends Base_Controller
 
             // Update Apple Wallet pass
             try {
-                Apple_Wallet_Service::update_pass($customer_id);
+                Apple_Wallet_Service::update_loyalty_pass($customer_id);
             } catch (\Exception $e) {
                 // Log error but don't fail the transaction
                 error_log('Apple Wallet update failed: ' . $e->getMessage());
@@ -229,7 +229,7 @@ class Loyalty_Controller extends Base_Controller
 
             // Update Apple Wallet pass
             try {
-                Apple_Wallet_Service::update_pass($customer_id);
+                Apple_Wallet_Service::update_loyalty_pass($customer_id);
             } catch (\Exception $e) {
                 // Log error but don't fail the transaction
                 error_log('Apple Wallet update failed: ' . $e->getMessage());
@@ -300,7 +300,7 @@ class Loyalty_Controller extends Base_Controller
 
             // Update Apple Wallet pass
             try {
-                Apple_Wallet_Service::update_pass($customer_id);
+                Apple_Wallet_Service::update_loyalty_pass($customer_id);
             } catch (\Exception $e) {
                 // Log error but don't fail the transaction
                 error_log('Apple Wallet update failed: ' . $e->getMessage());

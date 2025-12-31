@@ -272,7 +272,7 @@ class Memberships_Controller extends Base_Controller
         
         // Update Apple Wallet pass
         try {
-            Apple_Wallet_Service::update_pass($customer_id);
+            Apple_Wallet_Service::update_membership_pass($customer_id);
         } catch (\Exception $e) {
             error_log('Apple Wallet update failed: ' . $e->getMessage());
         }

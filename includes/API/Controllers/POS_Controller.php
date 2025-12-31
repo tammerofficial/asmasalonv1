@@ -371,6 +371,8 @@ class POS_Controller extends Base_Controller
                 'payment_number' => $payment_number,
                 'customer_id' => $customer_id,
                 'total' => $total,
+                'prepaid_amount' => $prepaid_amount,
+                'prepaid_orders_count' => count($prepaid_orders ?? []),
             ], __('Order processed successfully', 'asmaa-salon'), 201);
         } catch (\Exception $e) {
             $wpdb->query('ROLLBACK');
@@ -714,7 +716,7 @@ class POS_Controller extends Base_Controller
             
             // Update Apple Wallet pass
             try {
-                \AsmaaSalon\Services\Apple_Wallet_Service::update_pass($customer_id);
+                \AsmaaSalon\Services\Apple_Wallet_Service::update_loyalty_pass($customer_id);
             } catch (\Exception $e) {
                 error_log('Apple Wallet update failed: ' . $e->getMessage());
             }

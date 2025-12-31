@@ -83,6 +83,15 @@ class Apple_Wallet_Controller extends Base_Controller
             ],
         ]);
 
+        // Get all customers with Apple Wallet passes
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/members', [
+            [
+                'methods' => 'GET',
+                'callback' => [$this, 'get_wallet_members'],
+                'permission_callback' => $this->permission_callback('asmaa_customers_view'),
+            ],
+        ]);
+
         register_rest_route($this->namespace, '/' . $this->rest_base . '/pass/(?P<serial_number>[^/]+)', [
             [
                 'methods' => 'GET',
@@ -368,6 +377,37 @@ class Apple_Wallet_Controller extends Base_Controller
             'pass_data' => $pass_data,
             'download_url' => rest_url('asmaa-salon/v1/apple-wallet/pass/' . $serial_number . '/download'),
         ]);
+    }
+
+    /**
+     * Get all customers who have at least one Apple Wallet pass
+     */
+    public function get_wallet_members(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        global $wpdb;
+        $passes_table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
+        $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
+        
+        $sql = "SELECT DISTINCT 
+                    u.ID as id, 
+                    u.display_name, 
+                    u.user_email,
+                    ext.loyalty_points,
+                    ext.total_visits,
+                    (SELECT COUNT(*) FROM {$passes_table} p2 WHERE p2.wc_customer_id = u.ID) as passes_count
+                FROM {$wpdb->users} u
+                INNER JOIN {$passes_table} p ON p.wc_customer_id = u.ID
+                LEFT JOIN {$extended_table} ext ON ext.wc_customer_id = u.ID
+                ORDER BY u.display_name ASC";
+                
+        $members = $wpdb->get_results($sql);
+        
+        // For each member, get their passes
+        foreach ($members as &$member) {
+            $member->passes = Apple_Wallet_Service::get_all_passes((int) $member->id);
+        }
+        
+        return $this->success_response($members);
     }
 
     /**
