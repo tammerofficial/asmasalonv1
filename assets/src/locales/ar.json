@@ -20,7 +20,14 @@
     "noBookingsFound": "لم يتم العثور على حجوزات",
     "createOrder": "إنشاء طلب",
     "allStocked": "جميع المواد متوفرة",
-    "noMaterialsNeedReorder": "لا توجد مواد تحتاج إعادة طلب في الوقت الحالي"
+    "noMaterialsNeedReorder": "لا توجد مواد تحتاج إعادة طلب في الوقت الحالي",
+    "chartsTitle": "الرسوم البيانية والتحليلات",
+    "chartsSubtitle": "تمثيل مرئي لبيانات عملك",
+    "salesLast7Days": "المبيعات آخر 7 أيام",
+    "revenue": "الإيرادات",
+    "orders": "الطلبات",
+    "bookingsStatus": "حالة الحجوزات",
+    "invoicesStatus": "حالة الفواتير"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
@@ -82,6 +89,11 @@
   },
   "booking": {
     "name": "الاسم",
+    "today": "اليوم",
+    "month": "الشهر",
+    "week": "الأسبوع",
+    "day": "اليوم",
+    "confirmed": "مؤكد",
     "daysOfWeek": {
       "sunday": "الأحد",
       "monday": "الاثنين",
@@ -147,7 +159,12 @@
     "total": "الإجمالي",
     "optional": "اختياري",
     "creating": "جاري الإنشاء...",
-    "saving": "جاري الحفظ..."
+    "saving": "جاري الحفظ...",
+    "saved": "تم الحفظ",
+    "error": "خطأ",
+    "tableView": "عرض الجدول",
+    "cardsView": "عرض البطاقات",
+    "ratings": "تقييمات"
   },
   "status": {
     "active": "نشط",
@@ -236,6 +253,7 @@
     "confirmed": "مؤكد",
     "completed": "مكتمل",
     "cancelled": "ملغي",
+    "noBookingsFound": "لم يتم العثور على حجوزات",
     "deleteConfirm": "هل أنت متأكد من حذف",
     "saveError": "خطأ في حفظ الحجز",
     "deleteError": "خطأ في حذف الحجز"
@@ -272,6 +290,10 @@
     "upcomingBookings": "الحجوزات القادمة",
     "inQueue": "في الطابور",
     "selectServiceFirst": "يرجى اختيار الخدمة أولاً",
+    "startServing": "بدء الخدمة",
+    "serving": "قيد الخدمة",
+    "completed": "مكتمل",
+    "cancelled": "ملغي",
     "totalToday": "إجمالي اليوم",
     "checkInTime": "وقت التسجيل",
     "ticketNumber": "رقم التذكرة",
@@ -506,13 +528,30 @@
     "selectCustomer": "اختر عميل",
     "invalidPoints": "قيمة نقاط غير صحيحة",
     "redeemedSuccess": "تم استبدال النقاط بنجاح ✅",
-    "redeemError": "حدث خطأ أثناء استبدال النقاط"
+    "redeemError": "حدث خطأ أثناء استبدال النقاط",
+    "passCreated": "تم إنشاء بطاقة Apple Wallet بنجاح",
+    "passError": "حدث خطأ في إنشاء بطاقة Apple Wallet",
+    "appleWallet": "Apple Wallet"
   },
   "memberships": {
     "title": "العضويات",
     "subtitle": "الباقات وعضويات العملاء",
     "customer": "العميل",
     "plan": "الباقة",
+    "plans": "الباقات",
+    "activePlans": "الباقات النشطة",
+    "members": "الأعضاء",
+    "assign": "إضافة عضوية",
+    "newPlan": "باقة جديدة",
+    "plansTab": "الباقات",
+    "membersTab": "الأعضاء",
+    "noPlans": "لا توجد باقات متاحة",
+    "price": "السعر",
+    "durationMonths": "المدة (بالشهور)",
+    "discount": "الخصم (%)",
+    "freeServices": "خدمات مجانية",
+    "pointsMultiplier": "مضاعف النقاط",
+    "months": "شهر",
     "startDate": "تاريخ البداية",
     "endDate": "تاريخ النهاية",
     "active": "نشط ✅",
@@ -527,17 +566,29 @@
     "renewed": "تم تجديد الباقة بنجاح ✅",
     "renewError": "حدث خطأ أثناء تجديد الباقة",
     "cancelConfirm": "هل تريد إلغاء الباقة؟",
-    "cancelled": "تم إلغاء الباقة"
+    "cancelled": "تم إلغاء الباقة",
+    "passCreated": "تم إنشاء بطاقة Apple Wallet بنجاح",
+    "passError": "حدث خطأ في إنشاء بطاقة Apple Wallet",
+    "selectCustomer": "يرجى اختيار عميلة"
   },
   "commissions": {
     "title": "العمولات",
     "subtitle": "عمولات الموظفات والمدفوعات",
     "pending": "معلقة ⏳",
     "paid": "مدفوعة ✅",
+    "approved": "موافق عليها",
     "staff": "الموظفة",
     "percentage": "النسبة",
     "amount": "المبلغ",
-    "date": "التاريخ"
+    "totalAmount": "إجمالي المبلغ",
+    "approveSelected": "الموافقة على المحدد",
+    "searchStaff": "البحث عن موظفة...",
+    "date": "التاريخ",
+    "appleWallet": "Apple Wallet",
+    "createAppleWallet": "إنشاء بطاقة Apple Wallet للعمولات",
+    "selectStaff": "اختر موظفة",
+    "passCreated": "تم إنشاء بطاقة العمولات بنجاح",
+    "passError": "حدث خطأ في إنشاء بطاقة العمولات"
   },
   "sales": {
     "title": "المبيعات",
@@ -579,7 +630,12 @@
     "noStaffOverrides": "لا توجد نسب مخصصة بعد",
     "overrides": "تخصيصات",
     "lastSaved": "آخر حفظ",
-    "saved": "تم حفظ الإعدادات ✅"
+    "saved": "تم حفظ الإعدادات ✅",
+    "appleWallet": "Apple Wallet",
+    "createAppleWallet": "إنشاء بطاقة Apple Wallet للبرامج",
+    "selectCustomer": "اختر عميلة",
+    "passCreated": "تم إنشاء بطاقة البرامج بنجاح",
+    "passError": "حدث خطأ في إنشاء بطاقة البرامج"
   },
   "reports": {
     "title": "التقارير",
@@ -893,5 +949,35 @@
     "noCapabilitiesDescription": "لا توجد صلاحيات مطابقة لخيارات الفلترة",
     "errorLoading": "خطأ في تحميل الأدوار",
     "errorLoadingCapabilities": "خطأ في تحميل الصلاحيات"
+  },
+  "settings": {
+    "woocommerce": {
+      "title": "تكامل WooCommerce",
+      "subtitle": "إدارة إعدادات تكامل WooCommerce",
+      "status": "حالة التكامل",
+      "active": "WooCommerce نشط",
+      "inactive": "WooCommerce غير نشط",
+      "connected": "WooCommerce مثبت ونشط",
+      "notConnected": "يرجى تثبيت وتفعيل إضافة WooCommerce",
+      "settings": "إعدادات المزامنة",
+      "enableIntegration": "تفعيل تكامل WooCommerce",
+      "syncOptions": "خيارات المزامنة",
+      "syncProducts": "مزامنة المنتجات",
+      "syncOrders": "مزامنة الطلبات",
+      "syncCustomers": "مزامنة العملاء",
+      "syncDirection": "اتجاه المزامنة",
+      "bidirectional": "ثنائي الاتجاه (كلا الجانبين)",
+      "asmaaToWc": "صالون أسماء → WooCommerce",
+      "wcToAsmaa": "WooCommerce → صالون أسماء",
+      "autoSync": "المزامنة التلقائية",
+      "enableAutoSync": "تفعيل المزامنة التلقائية",
+      "syncOnCreate": "المزامنة عند الإنشاء",
+      "syncOnUpdate": "المزامنة عند التحديث",
+      "info": "معلومات",
+      "note": "ملاحظة:",
+      "note1": "سيتم مزامنة المنتجات والطلبات والعملاء تلقائياً بناءً على إعداداتك",
+      "note2": "سجلات المزامنة متاحة في جدول قاعدة البيانات: asmaa_wc_sync_log",
+      "note3": "البيانات الموجودة لن يتم نقلها تلقائياً"
+    }
   }
 }

@@ -149,7 +149,22 @@
               </td>
               <td class="td-name">
                 <div class="customer-name-cell">
-                  <strong class="customer-name">{{ customer.name }}</strong>
+                  <div class="d-flex align-items-center gap-2">
+                    <strong class="customer-name">{{ customer.name }}</strong>
+                    <CButton
+                      v-if="customer.wc_customer_id"
+                      color="success"
+                      size="sm"
+                      variant="outline"
+                      :href="`/wp-admin/user-edit.php?user_id=${customer.wc_customer_id}`"
+                      target="_blank"
+                      :title="'WooCommerce Customer ID: ' + customer.wc_customer_id"
+                      class="wc-link-btn"
+                    >
+                      <CIcon icon="cil-cart" class="me-1" />
+                      WC
+                    </CButton>
+                  </div>
                   <small class="customer-location" v-if="customer.city">
                     <CIcon icon="cil-location-pin" class="location-icon" />
                     {{ customer.city }}

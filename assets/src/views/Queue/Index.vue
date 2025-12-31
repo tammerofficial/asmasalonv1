@@ -1528,13 +1528,13 @@ onUnmounted(() => {
 }
 
 .serving-row {
-  background-color: rgba(59, 130, 246, 0.08);
-  border-left: 3px solid #3b82f6;
+  background-color: rgba(166, 139, 91, 0.08);
+  border-left: 3px solid #8B7D6B;
 }
 
 [dir="rtl"] .serving-row {
   border-left: none;
-  border-right: 3px solid #3b82f6;
+  border-right: 3px solid #8B7D6B;
 }
 
 .completed-row {
@@ -1644,13 +1644,13 @@ onUnmounted(() => {
 }
 
 .status-badge.status-called {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.15) 100%);
-  color: #3b82f6;
-  border-color: rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, rgba(139, 125, 107, 0.2) 0%, rgba(139, 125, 107, 0.15) 100%);
+  color: #8B7D6B;
+  border-color: rgba(139, 125, 107, 0.4);
 }
 
 .status-badge.status-called .badge-icon {
-  color: #3b82f6;
+  color: #8B7D6B;
 }
 
 .status-badge.status-serving {

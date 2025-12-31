@@ -176,7 +176,22 @@
           <tbody>
             <tr v-for="order in orders" :key="order.id" class="table-row">
               <td class="td-order">
-                <strong class="order-number">#{{ order.order_number || order.id }}</strong>
+                <div class="d-flex align-items-center gap-2">
+                  <strong class="order-number">#{{ order.order_number || order.id }}</strong>
+                  <CButton
+                    v-if="order.wc_order_id"
+                    color="success"
+                    size="sm"
+                    variant="outline"
+                    :href="`/wp-admin/post.php?post=${order.wc_order_id}&action=edit`"
+                    target="_blank"
+                    :title="'WooCommerce Order #' + order.wc_order_id"
+                    class="wc-link-btn"
+                  >
+                    <CIcon icon="cil-cart" class="me-1" />
+                    WC
+                  </CButton>
+                </div>
               </td>
               <td class="td-customer">
                 <div class="order-customer-cell">
@@ -465,7 +480,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import {
   CButton,
   CTable,
@@ -615,6 +630,7 @@ const getPaymentStatusIcon = (status) => {
   };
   return icons[status] || 'cil-info';
 };
+
 
 const loadOrders = async () => {
   loading.value = true;

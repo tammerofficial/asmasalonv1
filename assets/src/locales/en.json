@@ -20,7 +20,14 @@
     "noBookingsFound": "No bookings found",
     "createOrder": "Create Order",
     "allStocked": "All Materials Stocked",
-    "noMaterialsNeedReorder": "No materials need reordering at this time"
+    "noMaterialsNeedReorder": "No materials need reordering at this time",
+    "chartsTitle": "Charts & Analytics",
+    "chartsSubtitle": "Visual representation of your business data",
+    "salesLast7Days": "Sales Last 7 Days",
+    "revenue": "Revenue",
+    "orders": "Orders",
+    "bookingsStatus": "Bookings Status",
+    "invoicesStatus": "Invoices Status"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -135,7 +142,12 @@
     "total": "Total",
     "optional": "optional",
     "creating": "Creating...",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "saved": "Saved",
+    "error": "Error",
+    "tableView": "Table View",
+    "cardsView": "Cards View",
+    "ratings": "ratings"
   },
   "status": {
     "active": "Active",
@@ -224,6 +236,7 @@
     "confirmed": "Confirmed",
     "completed": "Completed",
     "cancelled": "Cancelled",
+    "noBookingsFound": "No bookings found",
     "deleteConfirm": "Are you sure you want to delete",
     "saveError": "Error saving booking",
     "deleteError": "Error deleting booking"
@@ -285,7 +298,11 @@
     "errorCreatingTicket": "Error creating ticket",
     "upcomingBookings": "Upcoming Bookings",
     "inQueue": "In Queue",
-    "selectServiceFirst": "Please select a service first"
+    "selectServiceFirst": "Please select a service first",
+    "startServing": "Start Serving",
+    "serving": "Serving",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
   },
   "orders": {
     "title": "Orders",
@@ -475,13 +492,30 @@
     "selectCustomer": "Select customer",
     "invalidPoints": "Invalid points",
     "redeemedSuccess": "Points redeemed successfully",
-    "redeemError": "Error redeeming points"
+    "redeemError": "Error redeeming points",
+    "passCreated": "Apple Wallet pass created successfully",
+    "passError": "Error creating Apple Wallet pass",
+    "appleWallet": "Apple Wallet"
   },
   "memberships": {
     "title": "Memberships",
     "subtitle": "Plans and customer memberships",
     "customer": "Customer",
     "plan": "Plan",
+    "plans": "Plans",
+    "activePlans": "Active Plans",
+    "members": "Members",
+    "assign": "Assign Membership",
+    "newPlan": "New Plan",
+    "plansTab": "Plans",
+    "membersTab": "Members",
+    "noPlans": "No plans available",
+    "price": "Price",
+    "durationMonths": "Duration (months)",
+    "discount": "Discount (%)",
+    "freeServices": "Free Services",
+    "pointsMultiplier": "Points Multiplier",
+    "months": "months",
     "startDate": "Start Date",
     "endDate": "End Date",
     "active": "Active",
@@ -496,17 +530,29 @@
     "renewed": "Membership renewed successfully",
     "renewError": "Error renewing membership",
     "cancelConfirm": "Cancel this membership?",
-    "cancelled": "Membership cancelled"
+    "cancelled": "Membership cancelled",
+    "passCreated": "Apple Wallet pass created successfully",
+    "passError": "Error creating Apple Wallet pass",
+    "selectCustomer": "Please select a customer"
   },
   "commissions": {
     "title": "Commissions",
     "subtitle": "Staff commissions and payouts",
     "pending": "Pending",
     "paid": "Paid",
+    "approved": "Approved",
     "staff": "Staff",
     "percentage": "Rate",
     "amount": "Amount",
-    "date": "Date"
+    "totalAmount": "Total Amount",
+    "approveSelected": "Approve Selected",
+    "searchStaff": "Search staff...",
+    "date": "Date",
+    "appleWallet": "Apple Wallet",
+    "createAppleWallet": "Create Apple Wallet Commissions Pass",
+    "selectStaff": "Select Staff",
+    "passCreated": "Commissions pass created successfully",
+    "passError": "Error creating commissions pass"
   },
   "sales": {
     "title": "Sales",
@@ -548,7 +594,12 @@
     "noStaffOverrides": "No staff overrides yet",
     "overrides": "Overrides",
     "lastSaved": "Last saved",
-    "saved": "Settings saved"
+    "saved": "Settings saved",
+    "appleWallet": "Apple Wallet",
+    "createAppleWallet": "Create Apple Wallet Programs Pass",
+    "selectCustomer": "Select Customer",
+    "passCreated": "Programs pass created successfully",
+    "passError": "Error creating programs pass"
   },
   "reports": {
     "title": "Reports",
@@ -613,6 +664,11 @@
   "booking": {
     "title": "Booking Management",
     "subtitle": "Manage your appointments, services, and staff",
+    "today": "Today",
+    "month": "Month",
+    "week": "Week",
+    "day": "Day",
+    "confirmed": "Confirmed",
     "totalServices": "Total Services",
     "totalStaff": "Total Staff",
     "totalAppointments": "Total Appointments",
@@ -915,5 +971,35 @@
     "noCapabilitiesDescription": "No capabilities matched your filters",
     "errorLoading": "Error loading roles",
     "errorLoadingCapabilities": "Error loading capabilities"
+  },
+  "settings": {
+    "woocommerce": {
+      "title": "WooCommerce Integration",
+      "subtitle": "Manage WooCommerce integration settings",
+      "status": "Integration Status",
+      "active": "WooCommerce Active",
+      "inactive": "WooCommerce Not Active",
+      "connected": "WooCommerce is installed and active",
+      "notConnected": "Please install and activate WooCommerce plugin",
+      "settings": "Sync Settings",
+      "enableIntegration": "Enable WooCommerce Integration",
+      "syncOptions": "Sync Options",
+      "syncProducts": "Sync Products",
+      "syncOrders": "Sync Orders",
+      "syncCustomers": "Sync Customers",
+      "syncDirection": "Sync Direction",
+      "bidirectional": "Bidirectional (Both Ways)",
+      "asmaaToWc": "Asmaa Salon → WooCommerce",
+      "wcToAsmaa": "WooCommerce → Asmaa Salon",
+      "autoSync": "Auto Sync",
+      "enableAutoSync": "Enable Automatic Synchronization",
+      "syncOnCreate": "Sync on Create",
+      "syncOnUpdate": "Sync on Update",
+      "info": "Information",
+      "note": "Note:",
+      "note1": "Products, Orders, and Customers will be automatically synced based on your settings",
+      "note2": "Sync logs are available in the database table: asmaa_wc_sync_log",
+      "note3": "Existing data will not be migrated automatically"
+    }
   }
 }

@@ -6,6 +6,15 @@
       </template>
       <template #actions>
         <CButton
+          color="secondary"
+          variant="outline"
+          class="me-2 apple-wallet-btn"
+          @click="openAppleWalletModal"
+        >
+          <CIcon icon="cil-wallet" class="me-2" />
+          {{ t('programsSettings.appleWallet') || 'Apple Wallet' }}
+        </CButton>
+        <CButton
           color="primary"
           class="btn-primary-custom"
           :disabled="saving"
@@ -173,6 +182,34 @@
         </CCol>
       </CRow>
     </Card>
+    
+    <!-- Apple Wallet Modal -->
+    <CModal :visible="showAppleWalletModal" @close="closeAppleWalletModal" size="lg">
+      <CModalHeader>
+        <CModalTitle>
+          <CIcon icon="cil-wallet" class="me-2" />
+          {{ t('programsSettings.createAppleWallet') || 'Create Apple Wallet Pass' }}
+        </CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        <CFormSelect v-model="appleWalletForm.customer_id" :label="t('common.selectCustomer') || 'Select Customer'" class="mb-3">
+          <option value="">{{ t('common.selectCustomer') || 'Select Customer' }}</option>
+          <option v-for="customer in customers" :key="customer.id" :value="customer.id">
+            {{ customer.display_name || customer.user_email }}
+          </option>
+        </CFormSelect>
+      </CModalBody>
+      <CModalFooter>
+        <CButton color="secondary" @click="closeAppleWalletModal">
+          {{ t('common.cancel') }}
+        </CButton>
+        <CButton color="primary" @click="createAppleWalletPass" :disabled="creatingPass || !appleWalletForm.customer_id">
+          <CSpinner v-if="creatingPass" size="sm" class="me-2" />
+          <CIcon v-else icon="cil-wallet" class="me-2" />
+          {{ creatingPass ? t('common.creating') : t('common.create') }}
+        </CButton>
+      </CModalFooter>
+    </CModal>
   </div>
 </template>
 
@@ -185,6 +222,12 @@ import {
   CFormInput,
   CFormSelect,
   CFormSwitch,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
+  CSpinner,
 } from '@coreui/vue';
 import { CIcon } from '@coreui/icons-vue';
 import { useTranslation } from '@/composables/useTranslation';
@@ -199,6 +242,10 @@ const toast = useToast();
 
 const saving = ref(false);
 const lastSavedAt = ref(null);
+const showAppleWalletModal = ref(false);
+const creatingPass = ref(false);
+const customers = ref([]);
+const appleWalletForm = ref({ customer_id: '' });
 
 const settings = ref({
   loyalty: {

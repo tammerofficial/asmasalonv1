@@ -172,7 +172,22 @@
                 <span class="invoice-id-badge">#{{ invoice.id }}</span>
               </td>
               <td class="td-invoice">
-                <strong class="invoice-number">#{{ invoice.invoice_number || invoice.id }}</strong>
+                <div class="d-flex align-items-center gap-2">
+                  <strong class="invoice-number">#{{ invoice.invoice_number || invoice.id }}</strong>
+                  <CButton
+                    v-if="invoice.wc_order_id"
+                    color="success"
+                    size="sm"
+                    variant="outline"
+                    :href="`/wp-admin/post.php?post=${invoice.wc_order_id}&action=edit`"
+                    target="_blank"
+                    :title="'WooCommerce Order #' + invoice.wc_order_id"
+                    class="wc-link-btn"
+                  >
+                    <CIcon icon="cil-cart" class="me-1" />
+                    WC
+                  </CButton>
+                </div>
               </td>
               <td class="td-customer">
                 <div class="invoice-customer-cell">

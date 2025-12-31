@@ -1,5 +1,68 @@
+/* ==========================
+ * Google Fonts Import - Cairo (Arabic + English)
+ * ========================== */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+
 /* Asmaa Salon Global Styles */
 :root {
+  /* ==========================
+   * Typography System
+   * ========================== */
+  /* Unified Font Family - Supports Arabic & English */
+  --font-family-base: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'Courier New', 'Cairo', monospace;
+  
+  /* Font Sizes - Unified Scale */
+  --font-size-xs: 0.75rem;      /* 12px */
+  --font-size-sm: 0.875rem;     /* 14px */
+  --font-size-base: 1rem;       /* 16px */
+  --font-size-lg: 1.125rem;     /* 18px */
+  --font-size-xl: 1.25rem;      /* 20px */
+  --font-size-2xl: 1.5rem;      /* 24px */
+  --font-size-3xl: 1.875rem;    /* 30px */
+  --font-size-4xl: 2.25rem;     /* 36px */
+  --font-size-5xl: 3rem;        /* 48px */
+  
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  
+  /* Line Heights */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  /* Letter Spacing */
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+  
+  /* ==========================
+   * Spacing System
+   * ========================== */
+  --spacing-xs: 0.25rem;    /* 4px */
+  --spacing-sm: 0.5rem;     /* 8px */
+  --spacing-md: 0.75rem;    /* 12px */
+  --spacing-base: 1rem;     /* 16px */
+  --spacing-lg: 1.5rem;     /* 24px */
+  --spacing-xl: 2rem;       /* 32px */
+  --spacing-2xl: 3rem;      /* 48px */
+  --spacing-3xl: 4rem;      /* 64px */
+  
+  /* ==========================
+   * Border Radius
+   * ========================== */
+  --radius-sm: 0.25rem;     /* 4px */
+  --radius-md: 0.375rem;    /* 6px */
+  --radius-lg: 0.5rem;      /* 8px */
+  --radius-xl: 0.75rem;     /* 12px */
+  --radius-2xl: 1rem;      /* 16px */
+  --radius-full: 9999px;
+  
   /* ==========================
    * Primary Color Palette
    * ========================== */
@@ -97,10 +160,16 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  letter-spacing: var(--letter-spacing-normal);
   background: var(--bg-secondary);
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #asmaa-salon-vue-root {
@@ -159,3 +228,80 @@ body {
 /* LTR Utilities (default) */
 [dir="ltr"] .text-start { text-align: left !important; }
 [dir="ltr"] .text-end { text-align: right !important; }
+
+/* ==========================
+ * Typography Utilities
+ * ========================== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+h1 { font-size: var(--font-size-4xl); }
+h2 { font-size: var(--font-size-3xl); }
+h3 { font-size: var(--font-size-2xl); }
+h4 { font-size: var(--font-size-xl); }
+h5 { font-size: var(--font-size-lg); }
+h6 { font-size: var(--font-size-base); }
+
+p {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.text-xs { font-size: var(--font-size-xs); }
+.text-sm { font-size: var(--font-size-sm); }
+.text-base { font-size: var(--font-size-base); }
+.text-lg { font-size: var(--font-size-lg); }
+.text-xl { font-size: var(--font-size-xl); }
+.text-2xl { font-size: var(--font-size-2xl); }
+.text-3xl { font-size: var(--font-size-3xl); }
+.text-4xl { font-size: var(--font-size-4xl); }
+.text-5xl { font-size: var(--font-size-5xl); }
+
+.font-light { font-weight: var(--font-weight-light); }
+.font-normal { font-weight: var(--font-weight-normal); }
+.font-medium { font-weight: var(--font-weight-medium); }
+.font-semibold { font-weight: var(--font-weight-semibold); }
+.font-bold { font-weight: var(--font-weight-bold); }
+.font-extrabold { font-weight: var(--font-weight-extrabold); }
+
+.leading-tight { line-height: var(--line-height-tight); }
+.leading-normal { line-height: var(--line-height-normal); }
+.leading-relaxed { line-height: var(--line-height-relaxed); }
+
+/* ==========================
+ * Spacing Utilities
+ * ========================== */
+.m-xs { margin: var(--spacing-xs); }
+.m-sm { margin: var(--spacing-sm); }
+.m-md { margin: var(--spacing-md); }
+.m-base { margin: var(--spacing-base); }
+.m-lg { margin: var(--spacing-lg); }
+.m-xl { margin: var(--spacing-xl); }
+.m-2xl { margin: var(--spacing-2xl); }
+.m-3xl { margin: var(--spacing-3xl); }
+
+.p-xs { padding: var(--spacing-xs); }
+.p-sm { padding: var(--spacing-sm); }
+.p-md { padding: var(--spacing-md); }
+.p-base { padding: var(--spacing-base); }
+.p-lg { padding: var(--spacing-lg); }
+.p-xl { padding: var(--spacing-xl); }
+.p-2xl { padding: var(--spacing-2xl); }
+.p-3xl { padding: var(--spacing-3xl); }
+
+/* ==========================
+ * Border Radius Utilities
+ * ========================== */
+.rounded-sm { border-radius: var(--radius-sm); }
+.rounded-md { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+.rounded-xl { border-radius: var(--radius-xl); }
+.rounded-2xl { border-radius: var(--radius-2xl); }
+.rounded-full { border-radius: var(--radius-full); }

@@ -452,7 +452,7 @@
                   label="New This Month"
                   :value="customersStats.new_this_month || 0"
                   badge-variant="info"
-                  color="purple"
+                  color="gold"
                 >
                   <template #icon>
                     <CIcon icon="cil-plus" />
@@ -539,7 +539,7 @@
                   <td>
                     <CBadge :color="getRatingColor(staff.rating || 0)" class="rating-badge">
                       <CIcon icon="cil-star" class="me-1" />
-                      {{ (staff.rating || 0).toFixed(1) }}
+                      {{ Number(staff.rating || 0).toFixed(1) }}
                     </CBadge>
                   </td>
                 </tr>
@@ -598,7 +598,7 @@
                   label="Average Order"
                   :value="formatCurrency(dailySalesData.avg_order_value || 0)"
                   badge-variant="info"
-                  color="purple"
+                  color="gold"
                 >
                   <template #icon>
                     <CIcon icon="cil-chart" />
@@ -716,7 +716,7 @@
                 label="Avg Waiting Time"
                 :value="(queueStats.avg_waiting_time || 0) + ' min'"
                 badge-variant="info"
-                color="purple"
+                color="gold"
               >
                 <template #icon>
                   <CIcon icon="cil-clock" />

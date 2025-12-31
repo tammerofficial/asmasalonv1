@@ -214,7 +214,7 @@ defineExpose({
 }
 
 .sidebar-header {
-  padding: 28px 24px;
+  padding: var(--spacing-xl) var(--spacing-lg);
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-primary);
   display: flex;
@@ -242,39 +242,42 @@ defineExpose({
 }
 
 .sidebar-nav {
-  padding: 20px 12px;
+  padding: var(--spacing-xl) var(--spacing-md);
 }
 
 .nav-section-divider {
-  margin: 20px 16px 8px;
-  padding-top: 12px;
+  margin: var(--spacing-xl) var(--spacing-base) var(--spacing-sm);
+  padding-top: var(--spacing-md);
   border-top: 1px solid var(--border-color);
   transition: border-color 0.3s ease;
 }
 
 .nav-section-label {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-base);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: var(--letter-spacing-wide);
   color: var(--text-muted);
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
   transition: color 0.3s ease;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  margin-bottom: 4px;
+  gap: 12px;
+  padding: var(--spacing-md) var(--spacing-base);
+  margin-bottom: var(--spacing-xs);
   color: var(--text-primary);
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-base);
+  line-height: var(--line-height-normal);
   position: relative;
   overflow: hidden;
   opacity: 0.8;
@@ -325,9 +328,9 @@ defineExpose({
 .nav-item.router-link-active {
   background: rgba(187, 160, 122, 0.1);
   color: var(--asmaa-primary);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   opacity: 1;
-  box-shadow: 0 2px 8px rgba(187, 160, 122, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .nav-item.router-link-active::before {
@@ -342,8 +345,26 @@ defineExpose({
   flex-shrink: 0;
 }
 
+/* Add spacing between icon and text */
+[dir="rtl"] .nav-icon {
+  margin-left: 8px;
+}
+
+[dir="ltr"] .nav-icon {
+  margin-right: 8px;
+}
+
 .nav-item.router-link-active .nav-icon {
   filter: drop-shadow(0 2px 6px rgba(187, 160, 122, 0.6));
+}
+
+/* Add spacing between indicator bar and icon for active items */
+[dir="rtl"] .nav-item.router-link-active .nav-icon {
+  margin-right: 12px;
+}
+
+[dir="ltr"] .nav-item.router-link-active .nav-icon {
+  margin-left: 12px;
 }
 
 .nav-text {

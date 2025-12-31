@@ -13,6 +13,16 @@
           <CIcon icon="cil-settings" class="me-2" />
           {{ t('nav.programsSettings') }}
         </CButton>
+        <CButton 
+          color="success" 
+          variant="outline" 
+          class="me-2 apple-wallet-btn" 
+          @click="openAppleWalletModal"
+          v-if="selectedCustomerId"
+        >
+          <CIcon icon="cil-wallet" class="me-2" />
+          {{ t('loyalty.addToAppleWallet') || 'أضف إلى Apple Wallet' }}
+        </CButton>
         <CButton color="primary" class="btn-primary-custom" @click="openRedeemModal">
           <CIcon icon="cil-gift" class="me-2" />
           {{ t('loyalty.redeem') }}
@@ -182,6 +192,50 @@
       </template>
     </Card>
 
+    <!-- Apple Wallet Modal -->
+    <CModal :visible="showAppleWalletModal" @close="closeAppleWalletModal" size="lg">
+      <CModalHeader>
+        <CModalTitle>
+          <CIcon icon="cil-wallet" class="me-2" />
+          {{ t('loyalty.addToAppleWallet') || 'أضف إلى Apple Wallet' }}
+        </CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        <CRow class="g-3">
+          <CCol :md="12">
+            <CFormSelect 
+              v-model="appleWalletForm.customer_id" 
+              :label="t('loyalty.selectCustomer') || 'Select Customer'" 
+              class="filter-select"
+            >
+              <option value="">{{ t('common.select') }}</option>
+              <option v-for="c in customerOptions" :key="c.id" :value="String(c.id)">
+                {{ c.name }} ({{ c.phone || c.email }})
+              </option>
+            </CFormSelect>
+          </CCol>
+          <CCol :md="12" v-if="appleWalletForm.customer_id">
+            <div class="alert alert-info">
+              <CIcon icon="cil-info" class="me-2" />
+              {{ t('loyalty.appleWalletInfo') || 'سيتم إنشاء بطاقة Apple Wallet تحتوي على نقاط الولاء والعضوية و QR Code لسكان النقاط' }}
+            </div>
+          </CCol>
+        </CRow>
+      </CModalBody>
+      <CModalFooter>
+        <CButton color="secondary" @click="closeAppleWalletModal">{{ t('common.cancel') }}</CButton>
+        <CButton 
+          color="success" 
+          class="btn-primary-custom" 
+          :disabled="creatingPass || !appleWalletForm.customer_id" 
+          @click="createAppleWalletPass"
+        >
+          <CIcon icon="cil-wallet" class="me-2" />
+          {{ creatingPass ? (t('common.loading') || 'Loading...') : (t('loyalty.createPass') || 'إنشاء البطاقة') }}
+        </CButton>
+      </CModalFooter>
+    </CModal>
+
     <!-- Redeem Modal -->
     <CModal :visible="showRedeemModal" @close="closeRedeemModal" size="lg">
       <CModalHeader>
@@ -259,6 +313,13 @@ const loading = ref(false);
 const showRedeemModal = ref(false);
 const redeeming = ref(false);
 const customers = ref([]);
+const showAppleWalletModal = ref(false);
+const creatingPass = ref(false);
+const selectedCustomerId = ref(null);
+
+const appleWalletForm = ref({
+  customer_id: '',
+});
 
 const redeemForm = ref({
   customer_id: '',
@@ -438,6 +499,48 @@ const redeemPoints = async () => {
 
 const goToSettings = () => {
   router.push('/programs/settings');
+};
+
+const openAppleWalletModal = () => {
+  showAppleWalletModal.value = true;
+  appleWalletForm.value = { customer_id: selectedCustomerId.value || '' };
+  if (customers.value.length === 0) {
+    loadCustomers();
+  }
+};
+
+const closeAppleWalletModal = () => {
+  showAppleWalletModal.value = false;
+  creatingPass.value = false;
+  appleWalletForm.value = { customer_id: '' };
+};
+
+const createAppleWalletPass = async () => {
+  if (!appleWalletForm.value.customer_id) {
+    toast.error(t('loyalty.selectCustomer') || 'Select customer');
+    return;
+  }
+
+  creatingPass.value = true;
+  try {
+    const response = await api.post(`/apple-wallet/create/${appleWalletForm.value.customer_id}/loyalty`);
+    const data = response.data?.data || response.data || {};
+    
+    if (data.pass_url) {
+      // Open pass URL in new window (will trigger Apple Wallet on iOS)
+      window.open(data.pass_url, '_blank');
+      toast.success(t('loyalty.passCreated') || 'تم إنشاء البطاقة بنجاح');
+    } else {
+      toast.error(t('loyalty.passError') || 'حدث خطأ في إنشاء البطاقة');
+    }
+    
+    closeAppleWalletModal();
+  } catch (error) {
+    console.error('Error creating Apple Wallet pass:', error);
+    toast.error(error.response?.data?.message || t('loyalty.passError') || 'حدث خطأ في إنشاء البطاقة');
+  } finally {
+    creatingPass.value = false;
+  }
 };
 
 const typeClass = (type) => {

@@ -171,7 +171,22 @@
                 <span class="payment-id-badge">#{{ payment.id }}</span>
               </td>
               <td class="td-number">
-                <strong class="payment-number">#{{ payment.payment_number || payment.id }}</strong>
+                <div class="d-flex align-items-center gap-2">
+                  <strong class="payment-number">#{{ payment.payment_number || payment.id }}</strong>
+                  <CButton
+                    v-if="payment.wc_payment_id"
+                    color="success"
+                    size="sm"
+                    variant="outline"
+                    :href="`/wp-admin/post.php?post=${payment.wc_payment_id}&action=edit`"
+                    target="_blank"
+                    :title="'WooCommerce Order #' + payment.wc_payment_id"
+                    class="wc-link-btn"
+                  >
+                    <CIcon icon="cil-cart" class="me-1" />
+                    WC
+                  </CButton>
+                </div>
               </td>
               <td class="td-customer">
                 <div class="payment-customer-cell">

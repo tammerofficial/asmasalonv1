@@ -47,7 +47,7 @@
 
       <StatCard 
         label="Average Rating"
-        :value="stats.averageRating.toFixed(1)"
+        :value="Number(stats.averageRating || 0).toFixed(1)"
         :badge="stats.totalRatings + ' ratings'"
         badge-variant="info"
         color="gold"
@@ -188,7 +188,7 @@
                 <div class="rating-cell">
                   <CBadge class="unified-badge rating-badge">
                     <CIcon icon="cil-star" class="badge-icon" />
-                    <span>{{ (staff.rating || 0).toFixed(1) }}</span>
+                    <span>{{ Number(staff.rating || 0).toFixed(1) }}</span>
                   </CBadge>
                   <small class="ratings-count">
                     ({{ staff.total_ratings || 0 }} {{ t('common.ratings') || 'ratings' }})
@@ -304,7 +304,7 @@
               <CIcon icon="cil-star" class="stat-icon" />
               <div class="stat-content">
                 <div class="stat-label">Rating</div>
-                <div class="stat-value">{{ (viewingStaff.rating || 0).toFixed(1) }}</div>
+                <div class="stat-value">{{ Number(viewingStaff.rating || 0).toFixed(1) }}</div>
                 <div class="stat-subtext">({{ viewingStaff.total_ratings || 0 }} ratings)</div>
               </div>
             </div>

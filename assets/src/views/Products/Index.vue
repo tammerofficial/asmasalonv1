@@ -155,7 +155,18 @@
               </td>
               <td class="td-name">
                 <div class="product-name-cell">
-                  <strong class="product-name">{{ product.name_ar || product.name }}</strong>
+                  <div class="d-flex align-items-center gap-2">
+                    <strong class="product-name">{{ product.name_ar || product.name }}</strong>
+                    <CBadge 
+                      v-if="product.wc_product_id" 
+                      color="success" 
+                      class="wc-sync-badge"
+                      :title="'WooCommerce Product ID: ' + product.wc_product_id"
+                    >
+                      <CIcon icon="cil-cart" class="me-1" />
+                      WC
+                    </CBadge>
+                  </div>
                   <small class="product-category" v-if="product.category">
                     <CIcon icon="cil-tag" class="tag-icon" />
                     {{ product.category }}

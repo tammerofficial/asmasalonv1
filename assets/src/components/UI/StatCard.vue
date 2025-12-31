@@ -8,28 +8,80 @@
     @click="clickable && $emit('click')"
   >
     
-    <div class="stat-card-icon" v-if="$slots.icon">
-      <slot name="icon"></slot>
-    </div>
-    <!-- Logo Background - Letter A -->
-    <div class="stat-card-logo-bg">
-      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <text 
-          x="50%" 
-          y="50%" 
-          font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" 
-          font-size="220" 
-          font-weight="900" 
-          fill="rgba(255, 255, 255, 0.3)" 
-          text-anchor="middle" 
-          dominant-baseline="central"
-          letter-spacing="-18"
-          stroke="rgba(255, 255, 255, 0.2)"
+    <!-- Animated Chart Background -->
+    <div class="stat-card-chart-bg">
+      <svg class="chart-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color: rgba(255, 255, 255, 0.5); stop-opacity: 1" />
+            <stop offset="50%" style="stop-color: rgba(255, 255, 255, 0.3); stop-opacity: 1" />
+            <stop offset="100%" style="stop-color: rgba(255, 255, 255, 0.1); stop-opacity: 1" />
+          </linearGradient>
+          <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color: rgba(255, 255, 255, 0.15); stop-opacity: 1" />
+            <stop offset="100%" style="stop-color: rgba(255, 255, 255, 0); stop-opacity: 1" />
+          </linearGradient>
+        </defs>
+        
+        <!-- Area Chart Fill -->
+        <path 
+          class="chart-area"
+          d="M 20 160 Q 50 120, 80 140 T 140 100 T 180 80 L 180 200 L 20 200 Z"
+          fill="url(#areaGradient)"
+        />
+        
+        <!-- Main Line Chart -->
+        <path 
+          class="chart-line"
+          d="M 20 160 Q 50 120, 80 140 T 140 100 T 180 80"
+          fill="none"
+          stroke="url(#lineGradient)"
           stroke-width="3"
-          paint-order="stroke fill"
-        >
-          A
-        </text>
+          stroke-linecap="round"
+        />
+        
+        <!-- Secondary Line -->
+        <path 
+          class="chart-line chart-line-2"
+          d="M 20 180 Q 50 140, 80 160 T 140 120 T 180 100"
+          fill="none"
+          stroke="url(#lineGradient)"
+          stroke-width="2"
+          stroke-linecap="round"
+          opacity="0.6"
+        />
+        
+        <!-- Tertiary Line -->
+        <path 
+          class="chart-line chart-line-3"
+          d="M 10 150 Q 40 110, 70 130 T 130 90 T 170 70"
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.25)"
+          stroke-width="2"
+          stroke-linecap="round"
+          opacity="0.4"
+        />
+        
+        <!-- Animated Data Points -->
+        <circle class="chart-circle" cx="50" cy="120" r="4" fill="rgba(255, 255, 255, 0.7)" />
+        <circle class="chart-circle chart-circle-2" cx="100" cy="100" r="4" fill="rgba(255, 255, 255, 0.7)" />
+        <circle class="chart-circle chart-circle-3" cx="150" cy="80" r="4" fill="rgba(255, 255, 255, 0.7)" />
+        <circle class="chart-circle chart-circle-4" cx="80" cy="140" r="3" fill="rgba(255, 255, 255, 0.5)" />
+        <circle class="chart-circle chart-circle-5" cx="140" cy="100" r="3" fill="rgba(255, 255, 255, 0.5)" />
+        
+        <!-- Animated Wave Bottom -->
+        <path 
+          class="chart-wave"
+          d="M 0 190 Q 50 170, 100 190 T 200 190"
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.25)"
+          stroke-width="2"
+        />
+        
+        <!-- Floating Particles -->
+        <circle class="chart-particle" cx="30" cy="50" r="2" fill="rgba(255, 255, 255, 0.3)" />
+        <circle class="chart-particle chart-particle-2" cx="120" cy="40" r="2" fill="rgba(255, 255, 255, 0.3)" />
+        <circle class="chart-particle chart-particle-3" cx="170" cy="60" r="2" fill="rgba(255, 255, 255, 0.3)" />
       </svg>
     </div>
     
@@ -177,7 +229,7 @@ defineEmits(['click']);
 }
 
 .stat-card-purple {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #A68B5B 0%, #8B6F47 100%);
   color: white;
 }
 
@@ -192,7 +244,7 @@ defineEmits(['click']);
 }
 
 .stat-card-indigo {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #9C7A5B 0%, #8B6F47 100%);
   color: white;
 }
 
@@ -207,24 +259,161 @@ defineEmits(['click']);
 }
 
 
-/* Logo Background */
-.stat-card-logo-bg {
+/* Animated Chart Background */
+.stat-card-chart-bg {
   position: absolute;
   top: 0;
   right: 0;
-  width: 220px;
-  height: 220px;
-  opacity: 0.35;
-  pointer-events: none;
-  overflow: visible;
-  z-index: 0;
-  transform: translate(10%, -5%);
-}
-
-.stat-card-logo-bg svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+  opacity: 0.5;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+  transform: translate(10%, -8%) scale(1.15);
+}
+
+.chart-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+}
+
+/* Animated Area Fill */
+.chart-area {
+  animation: fadeArea 4s ease-in-out infinite;
+  opacity: 0;
+}
+
+@keyframes fadeArea {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Animated Line Chart */
+.chart-line {
+  animation: drawLine 3.5s ease-in-out infinite;
+  stroke-dasharray: 350;
+  stroke-dashoffset: 350;
+}
+
+.chart-line-2 {
+  animation: drawLine 3.5s ease-in-out infinite 0.7s;
+  stroke-dasharray: 350;
+  stroke-dashoffset: 350;
+}
+
+.chart-line-3 {
+  animation: drawLine 3.5s ease-in-out infinite 1.2s;
+  stroke-dasharray: 350;
+  stroke-dashoffset: 350;
+}
+
+@keyframes drawLine {
+  0% {
+    stroke-dashoffset: 350;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.7;
+  }
+}
+
+/* Animated Circles - Data Points */
+.chart-circle {
+  animation: pulseCircle 2.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.chart-circle-2 {
+  animation: pulseCircle 2.5s ease-in-out infinite 0.4s;
+}
+
+.chart-circle-3 {
+  animation: pulseCircle 2.5s ease-in-out infinite 0.8s;
+}
+
+.chart-circle-4 {
+  animation: pulseCircle 2.5s ease-in-out infinite 0.2s;
+}
+
+.chart-circle-5 {
+  animation: pulseCircle 2.5s ease-in-out infinite 0.6s;
+}
+
+@keyframes pulseCircle {
+  0%, 100% {
+    r: 3;
+    opacity: 0.5;
+  }
+  50% {
+    r: 5;
+    opacity: 0.9;
+  }
+}
+
+/* Animated Wave */
+.chart-wave {
+  animation: waveMove 5s ease-in-out infinite;
+  stroke-dasharray: 250;
+  stroke-dashoffset: 0;
+}
+
+@keyframes waveMove {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.2;
+  }
+  50% {
+    stroke-dashoffset: 125;
+    opacity: 0.4;
+  }
+  100% {
+    stroke-dashoffset: 250;
+    opacity: 0.2;
+  }
+}
+
+/* Floating Particles */
+.chart-particle {
+  animation: floatParticle 6s ease-in-out infinite;
+  opacity: 0;
+}
+
+.chart-particle-2 {
+  animation: floatParticle 6s ease-in-out infinite 2s;
+}
+
+.chart-particle-3 {
+  animation: floatParticle 6s ease-in-out infinite 4s;
+}
+
+@keyframes floatParticle {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-20px) translateX(10px);
+    opacity: 0.8;
+  }
+  75% {
+    opacity: 0.5;
+  }
 }
 
 /* Ensure all stat cards use gold color by default */

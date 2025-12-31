@@ -38,13 +38,18 @@ setDirection(currentLocale.value);
 
 export function useTranslation() {
   const t = (key) => {
+    if (!key) return '';
+    
     const keys = key.split('.');
     let value = messages[currentLocale.value];
     
     for (const k of keys) {
       value = value?.[k];
       if (value === undefined) {
-        console.warn(`Translation key not found: ${key}`);
+        // Only warn in development mode
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Translation key not found: ${key}`);
+        }
         return key;
       }
     }

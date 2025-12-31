@@ -145,6 +145,11 @@ const routes = [
     name: 'Roles',
     component: () => import('../views/Roles/Index.vue'),
   },
+  {
+    path: '/settings/woocommerce',
+    name: 'WooCommerceSettings',
+    component: () => import('../views/Settings/WooCommerce.vue'),
+  },
 ];
 
 const router = createRouter({

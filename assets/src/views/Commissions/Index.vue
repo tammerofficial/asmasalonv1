@@ -9,6 +9,10 @@
         <CIcon icon="cil-dollar" />
       </template>
       <template #actions>
+        <CButton color="secondary" variant="outline" class="me-2 apple-wallet-btn" @click="openAppleWalletModal">
+          <CIcon icon="cil-wallet" class="me-2" />
+          {{ t('commissions.appleWallet') || 'Apple Wallet' }}
+        </CButton>
         <CButton color="secondary" variant="outline" class="me-2 settings-btn" @click="goToSettings">
           <CIcon icon="cil-settings" class="me-2" />
           {{ t('nav.programsSettings') }}
@@ -215,6 +219,34 @@
         </div>
       </template>
     </Card>
+    
+    <!-- Apple Wallet Modal -->
+    <CModal :visible="showAppleWalletModal" @close="closeAppleWalletModal" size="lg">
+      <CModalHeader>
+        <CModalTitle>
+          <CIcon icon="cil-wallet" class="me-2" />
+          {{ t('commissions.createAppleWallet') || 'Create Apple Wallet Pass' }}
+        </CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        <CFormSelect v-model="appleWalletForm.staff_id" :label="t('commissions.selectStaff') || 'Select Staff'" class="mb-3">
+          <option value="">{{ t('commissions.selectStaff') || 'Select Staff' }}</option>
+          <option v-for="s in staffOptions" :key="s.id" :value="s.id">
+            {{ s.name }}
+          </option>
+        </CFormSelect>
+      </CModalBody>
+      <CModalFooter>
+        <CButton color="secondary" @click="closeAppleWalletModal">
+          {{ t('common.cancel') }}
+        </CButton>
+        <CButton color="primary" @click="createAppleWalletPass" :disabled="creatingPass || !appleWalletForm.staff_id">
+          <CSpinner v-if="creatingPass" size="sm" class="me-2" />
+          <CIcon v-else icon="cil-wallet" class="me-2" />
+          {{ creatingPass ? t('common.creating') : t('common.create') }}
+        </CButton>
+      </CModalFooter>
+    </CModal>
   </div>
 </template>
 
@@ -232,6 +264,12 @@ import {
   CInputGroupText,
   CRow,
   CCol,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
+  CSpinner,
 } from '@coreui/vue';
 import { CIcon } from '@coreui/icons-vue';
 import { useTranslation } from '@/composables/useTranslation';
@@ -253,6 +291,9 @@ const loading = ref(false);
 const selectedIds = ref([]);
 const selectAll = ref(false);
 const staff = ref([]);
+const showAppleWalletModal = ref(false);
+const creatingPass = ref(false);
+const appleWalletForm = ref({ staff_id: '' });
 
 const filters = ref({
   status: '',
@@ -435,6 +476,47 @@ const approveSelected = async () => {
 
 const goToSettings = () => {
   router.push('/programs/settings');
+};
+
+const openAppleWalletModal = () => {
+  showAppleWalletModal.value = true;
+  appleWalletForm.value = { staff_id: '' };
+  if (staff.value.length === 0) {
+    loadStaff();
+  }
+};
+
+const closeAppleWalletModal = () => {
+  showAppleWalletModal.value = false;
+  creatingPass.value = false;
+  appleWalletForm.value = { staff_id: '' };
+};
+
+const createAppleWalletPass = async () => {
+  if (!appleWalletForm.value.staff_id) {
+    toast.error(t('commissions.selectStaff') || 'Select staff');
+    return;
+  }
+
+  creatingPass.value = true;
+  try {
+    const response = await api.post(`/commissions/apple-wallet/${appleWalletForm.value.staff_id}`);
+    const data = response.data?.data || response.data || {};
+    
+    if (data.pass_url) {
+      window.open(data.pass_url, '_blank');
+      toast.success(t('commissions.passCreated') || 'تم إنشاء البطاقة بنجاح');
+    } else {
+      toast.error(t('commissions.passError') || 'حدث خطأ في إنشاء البطاقة');
+    }
+    
+    closeAppleWalletModal();
+  } catch (error) {
+    console.error('Error creating Apple Wallet pass:', error);
+    toast.error(error.response?.data?.message || t('commissions.passError') || 'حدث خطأ في إنشاء البطاقة');
+  } finally {
+    creatingPass.value = false;
+  }
 };
 
 const statusClass = (status) => {

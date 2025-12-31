@@ -440,7 +440,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import {
   CButton,
   CBadge,
@@ -461,6 +461,14 @@ import Card from '@/components/UI/Card.vue';
 import EmptyState from '@/components/UI/EmptyState.vue';
 import LoadingSpinner from '@/components/UI/LoadingSpinner.vue';
 import api, { clearCache } from '@/utils/api';
+import {
+  savePendingOrder,
+  getPendingOrders,
+  deletePendingOrder,
+  initializeCartSession,
+  getPendingOrdersCount,
+  syncPendingOrders,
+} from '@/services/posOfflineService';
 
 const { t } = useTranslation();
 const toast = useToast();
@@ -472,6 +480,11 @@ const selectedCustomerId = ref(null);
 const discount = ref(0);
 const paymentMethod = ref('cash');
 const processing = ref(false);
+
+// Offline support
+const isOnline = ref(navigator.onLine);
+const pendingOrdersCount = ref(0);
+const prepaidAmount = ref(0);
 
 // Products & Services
 const products = ref([]);
@@ -526,7 +539,7 @@ const subtotal = computed(() => {
 });
 
 const total = computed(() => {
-  return Math.max(0, subtotal.value - discount.value);
+  return Math.max(0, subtotal.value - discount.value - prepaidAmount.value);
 });
 
 // Methods
@@ -740,6 +753,9 @@ const processOrder = async () => {
     return;
   }
 
+  // Initialize cart session if not already done
+  const client_side_id = initializeCartSession();
+
   processing.value = true;
   try {
     const payload = {
@@ -754,34 +770,72 @@ const processOrder = async () => {
       })),
       payment_method: paymentMethod.value,
       discount: discount.value || 0,
+      client_side_id: client_side_id,
     };
 
-    const response = await api.post('/pos/process', payload);
-    
-    if (response.data?.success) {
-      const responsePayload = response.data?.data || {};
-      const orderNo = responsePayload.order_number || 'N/A';
-      const invNo = responsePayload.invoice_number || responsePayload.invoice_id || 'N/A';
+    // Check if online
+    if (!isOnline.value) {
+      // Save to IndexedDB
+      await savePendingOrder(payload, client_side_id);
+      toast.warning(t('pos.orderSavedOffline') || 'تم حفظ الطلب محلياً. سيتم المزامنة تلقائياً عند عودة الإنترنت.');
+      await updatePendingOrdersBadge();
       
-      // ✅ Backend now creates Payment automatically - no need for frontend workaround
-      toast.success(`${t('pos.orderProcessed')} ${orderNo} | Invoice: ${invNo}`);
-      
-      // Clear cart
+      // Clear cart but keep session
       cart.value = [];
       discount.value = 0;
-      calculateTotal();
+      
+      processing.value = false;
+      return;
+    }
 
-      // Stay on POS, just refresh data so invoice appears in invoices and payments pages
-      clearCache('/invoices');
-      clearCache('/payments');
-      await refreshData();
-    } else {
-      toast.error(response.data?.message || t('pos.errorProcessing'));
+    try {
+      const response = await api.post('/pos/process', payload);
+      
+      if (response.data?.success) {
+        const responsePayload = response.data?.data || {};
+        const orderNo = responsePayload.order_number || 'N/A';
+        const invNo = responsePayload.invoice_number || responsePayload.invoice_id || 'N/A';
+        
+        // ✅ Backend now creates Payment automatically - no need for frontend workaround
+        toast.success(`${t('pos.orderProcessed')} ${orderNo} | Invoice: ${invNo}`);
+        
+        // Clear session after successful order
+        sessionStorage.removeItem('pos_cart_session_id');
+        
+        // Clear cart
+        cart.value = [];
+        discount.value = 0;
+        calculateTotal();
+
+        // Stay on POS, just refresh data so invoice appears in invoices and payments pages
+        clearCache('/invoices');
+        clearCache('/payments');
+        await refreshData();
+        await updatePendingOrdersBadge();
+      } else {
+        toast.error(response.data?.message || t('pos.errorProcessing'));
+      }
+    } catch (error) {
+      console.error('Error processing order:', error);
+      
+      // If network error, save offline
+      if (!error.response || error.code === 'ERR_NETWORK') {
+        await savePendingOrder(payload, client_side_id);
+        toast.warning(t('pos.orderSavedOffline') || 'تم حفظ الطلب محلياً. سيتم المزامنة تلقائياً عند عودة الإنترنت.');
+        await updatePendingOrdersBadge();
+        
+        // Clear cart
+        cart.value = [];
+        discount.value = 0;
+      } else {
+        toast.error(error.response?.data?.message || t('pos.errorProcessing'));
+      }
+    } finally {
+      processing.value = false;
     }
   } catch (error) {
-    console.error('Error processing order:', error);
-    toast.error(error.response?.data?.message || t('pos.errorProcessing'));
-  } finally {
+    console.error('Error in processOrder:', error);
+    toast.error(t('pos.errorProcessing') || 'خطأ في معالجة الطلب');
     processing.value = false;
   }
 };
@@ -876,8 +930,88 @@ const refreshData = async () => {
   toast.success(t('pos.refresh') + ' - ' + t('common.refresh'));
 };
 
+// Update pending orders badge
+const updatePendingOrdersBadge = async () => {
+  try {
+    pendingOrdersCount.value = await getPendingOrdersCount();
+  } catch (error) {
+    console.error('Error getting pending orders count:', error);
+  }
+};
+
+// Sync pending orders when online
+const syncPendingOrdersHandler = async () => {
+  if (!isOnline.value) return;
+  
+  try {
+    const result = await syncPendingOrders(api);
+    if (result.synced > 0) {
+      toast.success(t('pos.ordersSynced', { count: result.synced }));
+      await updatePendingOrdersBadge();
+    }
+  } catch (error) {
+    console.error('Error syncing pending orders:', error);
+  }
+};
+
+// Load prepaid amount for selected customer
+const loadPrepaidAmount = async () => {
+  if (!selectedCustomerId.value) {
+    prepaidAmount.value = 0;
+    return;
+  }
+  
+  try {
+    const response = await api.get(`/pos/prepaid/${selectedCustomerId.value}`);
+    if (response.data?.success) {
+      prepaidAmount.value = response.data.data?.total_prepaid || 0;
+    }
+  } catch (error) {
+    console.error('Error loading prepaid amount:', error);
+    prepaidAmount.value = 0;
+  }
+};
+
+// Watch for customer selection to load prepaid
+import { watch } from 'vue';
+watch(selectedCustomerId, () => {
+  if (selectedCustomerId.value) {
+    loadPrepaidAmount();
+  } else {
+    prepaidAmount.value = 0;
+  }
+});
+
+// Network status listeners
+const handleOnline = () => {
+  isOnline.value = true;
+  syncPendingOrdersHandler();
+};
+
+const handleOffline = () => {
+  isOnline.value = false;
+  toast.warning(t('pos.offlineMode'));
+};
+
 onMounted(() => {
+  // Initialize cart session
+  initializeCartSession();
+  
+  // Update pending orders badge
+  updatePendingOrdersBadge();
+  
+  // Set up network listeners
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+  
   refreshData();
+  
+  // Auto-sync pending orders every 30 seconds if online
+  setInterval(() => {
+    if (isOnline.value && pendingOrdersCount.value > 0) {
+      syncPendingOrdersHandler();
+    }
+  }, 30000);
   
   // Auto-refresh active customers every 10 seconds
   setInterval(() => {

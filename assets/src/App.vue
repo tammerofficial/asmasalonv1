@@ -56,7 +56,9 @@ onMounted(() => {
   height: 100vh;
   background: var(--bg-secondary);
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
   transition: background-color 0.3s ease;
 }
 

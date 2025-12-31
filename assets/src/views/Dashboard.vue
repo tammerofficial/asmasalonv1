@@ -31,7 +31,7 @@
         :label="t('dashboard.totalCustomers')"
         :value="stats.customers || 0"
         :badge="t('common.active') + ' ' + t('nav.customers')"
-        badge-variant="success"
+        badge-variant="info"
         color="blue"
         :clickable="true"
         @click="$router.push('/customers')"
@@ -45,8 +45,8 @@
         :label="t('dashboard.todaysBookings')"
         :value="stats.bookingsToday || 0"
         badge="85%"
-        badge-variant="success"
-        color="green"
+        badge-variant="info"
+        color="gold"
         :clickable="true"
         @click="$router.push('/bookings')"
       >
@@ -71,8 +71,8 @@
         :label="t('dashboard.activeStaff')"
         :value="stats.activeStaff || 0"
         :badge="t('common.active')"
-        badge-variant="success"
-        color="purple"
+        badge-variant="info"
+        color="gold"
         :clickable="true"
         @click="$router.push('/staff')"
       >
@@ -114,7 +114,7 @@
         :value="stats.unpaidInvoices || 0"
         :badge="t('common.status')"
         badge-variant="warning"
-        color="indigo"
+        color="gold"
         :clickable="true"
         @click="$router.push('/invoices')"
       >
@@ -134,6 +134,22 @@
       >
         <template #icon>
           <CIcon icon="cil-list" />
+        </template>
+      </StatCard>
+
+      <!-- WooCommerce Sync Status Card -->
+      <StatCard 
+        v-if="stats.woocommerce?.active"
+        :label="t('settings.woocommerce.title') || 'WooCommerce'"
+        :value="stats.woocommerce?.enabled ? t('common.active') : t('common.inactive')"
+        :badge="stats.woocommerce?.synced_orders + ' ' + t('nav.orders')"
+        :badge-variant="stats.woocommerce?.enabled ? 'info' : 'secondary'"
+        color="gold"
+        :clickable="true"
+        @click="$router.push('/settings/woocommerce')"
+      >
+        <template #icon>
+          <CIcon icon="cil-cart" />
         </template>
       </StatCard>
     </div>
@@ -252,7 +268,7 @@
           v-else-if="!queueItems.length"
           :title="t('queue.noWaiting')"
           description=""
-          icon-color="green"
+          icon-color="gold"
         >
           <template #icon>
             <CIcon icon="cil-check-circle" size="3xl" />
@@ -276,7 +292,7 @@
                 {{ item.service_name }}
               </div>
             </div>
-            <CBadge :color="index === 0 ? 'success' : 'secondary'" class="queue-status-badge">
+            <CBadge :color="index === 0 ? 'warning' : 'secondary'" class="queue-status-badge">
               {{ index === 0 ? t('queue.next') : t('queue.waiting') }}
             </CBadge>
           </div>
@@ -299,7 +315,7 @@
         </button>
 
         <button class="quick-action-btn" @click="$router.push('/bookings?action=create')">
-          <div class="quick-action-icon green">
+          <div class="quick-action-icon gold">
             <CIcon icon="cil-calendar" />
           </div>
           <div class="quick-action-content">
@@ -310,7 +326,7 @@
         </button>
 
         <button class="quick-action-btn" @click="$router.push('/services?action=create')">
-          <div class="quick-action-icon purple">
+          <div class="quick-action-icon brown">
             <CIcon icon="cil-spreadsheet" />
           </div>
           <div class="quick-action-content">
@@ -610,7 +626,7 @@ const bookingsDoughnutData = computed(() => {
         backgroundColor: [
           cssVar('--asmaa-warning', '#f59e0b'),
           cssVar('--asmaa-primary', '#BBA07A'),
-          cssVar('--asmaa-success', '#22c55e'),
+          cssVar('--asmaa-primary-700', '#A68B5B'),
           cssVar('--asmaa-danger', '#ef4444'),
         ],
         borderColor: cssVar('--bg-primary', '#fff'),
@@ -626,7 +642,7 @@ const invoicesDoughnutData = computed(() => {
   const values = labels.map(k => Number(map[k] || 0));
   const palette = [
     cssVar('--asmaa-primary', '#BBA07A'),
-    cssVar('--asmaa-success', '#22c55e'),
+    cssVar('--asmaa-primary-700', '#A68B5B'),
     cssVar('--asmaa-warning', '#f59e0b'),
     cssVar('--asmaa-danger', '#ef4444'),
     cssVar('--asmaa-secondary', '#475569'),
@@ -868,12 +884,12 @@ watch(
 }
 
 .queue-item-next {
-  background: var(--asmaa-success-soft);
-  border-color: var(--asmaa-success-soft-border);
+  background: var(--asmaa-primary-soft);
+  border-color: var(--asmaa-primary-200);
 }
 
 .queue-position-next {
-  background: linear-gradient(135deg, var(--asmaa-success) 0%, hsl(142, 71%, 35%) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-700) 100%);
   color: white;
   font-weight: 800;
 }
@@ -959,13 +975,13 @@ watch(
   color: var(--asmaa-primary);
 }
 
-.quick-action-icon.green {
-  background: var(--asmaa-success-soft);
-  color: var(--asmaa-success);
+.quick-action-icon.gold {
+  background: var(--asmaa-primary-soft);
+  color: var(--asmaa-primary);
 }
 
-.quick-action-icon.purple {
-  background: var(--asmaa-primary-100);
+.quick-action-icon.brown {
+  background: var(--asmaa-primary-soft);
   color: var(--asmaa-primary-700);
 }
 

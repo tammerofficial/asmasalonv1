@@ -93,8 +93,9 @@ const toggleTheme = () => {
 .topbar-modern {
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  padding: 0.5rem 1rem;
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-sm) var(--spacing-base);
+  font-family: var(--font-family-base);
 }
 
 .topbar-modern :deep(.nav-link) {
@@ -108,17 +109,17 @@ const toggleTheme = () => {
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
 }
 
 .language-switcher {
-  margin: 0 0.5rem;
+  margin: 0 var(--spacing-sm);
 }
 
 .lang-buttons {
   display: flex;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 2px;
   gap: 2px;
 }
@@ -126,14 +127,16 @@ const toggleTheme = () => {
 .lang-btn {
   border: none;
   background: transparent;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 600;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-base);
   cursor: pointer;
   transition: all 0.2s;
   color: var(--text-secondary);
   min-width: 44px;
+  line-height: var(--line-height-normal);
 }
 
 .lang-btn:hover {
@@ -144,11 +147,11 @@ const toggleTheme = () => {
 .lang-btn.active {
   background: var(--bg-primary);
   color: var(--text-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .theme-toggle {
-  margin: 0 0.25rem;
+  margin: 0 var(--spacing-xs);
 }
 
 .theme-btn {

@@ -63,7 +63,7 @@
         :label="t('notifications.types.system')"
         :value="getTypeCount('system')"
         badge-variant="secondary"
-        color="purple"
+        color="gold"
         :clickable="true"
         @click="() => { typeFilter = 'system'; currentPage = 1; }"
       >

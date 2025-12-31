@@ -114,7 +114,7 @@
                 </div>
                 <div class="meta-row">
                   <CIcon icon="cil-star" class="meta-icon" />
-                  <span><strong>{{ (card.rating || 0).toFixed(1) }}</strong> rating</span>
+                  <span><strong>{{ Number(card.rating || 0).toFixed(1) }}</strong> rating</span>
                 </div>
                 <div class="meta-row">
                   <CIcon icon="cil-people" class="meta-icon" />
@@ -959,24 +959,30 @@ onMounted(() => {
 }
 
 .staff-name {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-base);
   margin: 0;
   color: var(--text-primary);
+  line-height: var(--line-height-normal);
 }
 
 .staff-role {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-base);
   color: var(--text-muted);
   margin: 0;
+  line-height: var(--line-height-normal);
 }
 
 .staff-card-body {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-base);
   color: var(--text-secondary);
+  line-height: var(--line-height-normal);
 }
 
 .meta-row {
@@ -993,17 +999,20 @@ onMounted(() => {
 }
 
 .meta-row strong {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-base);
   color: var(--text-primary);
 }
 
 .status-badge-modern {
   display: inline-flex;
   align-items: center;
-  font-size: 0.875rem;
-  padding: 0.375rem 0.75rem;
-  border-radius: 20px;
-  font-weight: 600;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-base);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
 }
 
 .staff-card-actions {
@@ -1076,9 +1085,9 @@ onMounted(() => {
 }
 
 .status-serving {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #A68B5B 0%, #8B6F47 100%);
   color: white;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(166, 139, 91, 0.3);
 }
 
 .status-completed {
@@ -1209,31 +1218,35 @@ onMounted(() => {
 }
 
 .ticket-number-cell {
-  font-weight: 700;
-  font-family: 'Courier New', monospace;
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
   color: var(--asmaa-primary);
-  font-size: 0.9375rem;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
 }
 
 .ticket-customer-name {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-base);
   color: var(--text-primary);
-  font-size: 0.9375rem;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
 }
 
 /* Queue List */
 .queue-list-container {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--spacing-md);
 }
 
 .queue-item {
-  border-radius: 12px;
-  padding: 1rem;
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-base);
   background: var(--bg-secondary);
   border: 2px solid var(--border-color);
   transition: all 0.3s;
+  font-family: var(--font-family-base);
 }
 
 .queue-item.urgent {
@@ -1263,8 +1276,8 @@ onMounted(() => {
 .ticket-badge {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
 .ticket-icon {
@@ -1274,10 +1287,11 @@ onMounted(() => {
 }
 
 .ticket-badge strong {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
   color: var(--text-primary);
-  font-family: 'Courier New', monospace;
+  line-height: var(--line-height-normal);
 }
 
 .queue-customer {
