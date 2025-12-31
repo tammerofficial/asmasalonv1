@@ -4,6 +4,8 @@ namespace AsmaaSalon\API\Controllers;
 
 use WP_REST_Request;
 use WP_REST_Response;
+use WP_Error;
+use AsmaaSalon\Services\Apple_Wallet_Service;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -31,6 +33,15 @@ class Programs_Settings_Controller extends Base_Controller
                 'methods'             => 'PUT',
                 'callback'            => [$this, 'update_settings'],
                 'permission_callback' => $this->permission_callback('asmaa_programs_settings_update'),
+            ],
+        ]);
+        
+        // Apple Wallet pass creation
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/apple-wallet/(?P<customer_id>\d+)', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'create_apple_wallet_pass'],
+                'permission_callback' => $this->permission_callback('asmaa_programs_settings_view'),
             ],
         ]);
     }
@@ -81,6 +92,21 @@ class Programs_Settings_Controller extends Base_Controller
                 'staff_overrides' => [],
             ],
         ];
+    }
+    
+    /**
+     * Create Apple Wallet pass for programs
+     */
+    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $customer_id = (int) $request->get_param('customer_id');
+        
+        try {
+            $result = Apple_Wallet_Service::create_programs_pass($customer_id);
+            return $this->success_response($result, __('Programs pass created successfully', 'asmaa-salon'), 201);
+        } catch (\Exception $e) {
+            return $this->error_response($e->getMessage(), 500);
+        }
     }
 }
 

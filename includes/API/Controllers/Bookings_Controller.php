@@ -45,15 +45,17 @@ class Bookings_Controller extends Base_Controller
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/start', [
             ['methods' => 'POST', 'callback' => [$this, 'start_booking'], 'permission_callback' => $this->permission_callback('asmaa_bookings_update')],
         ]);
+
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/convert-to-queue', [
+            ['methods' => 'POST', 'callback' => [$this, 'convert_to_queue'], 'permission_callback' => $this->permission_callback('asmaa_bookings_update')],
+        ]);
     }
 
     public function get_items(WP_REST_Request $request): WP_REST_Response
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_bookings';
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
         $services_table = $wpdb->prefix . 'asmaa_services';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
         $params = $this->get_pagination_params($request);
         $offset = ($params['page'] - 1) * $params['per_page'];
 
@@ -71,12 +73,12 @@ class Bookings_Controller extends Base_Controller
 
         $customer_id = $request->get_param('customer_id');
         if ($customer_id) {
-            $where[] = $wpdb->prepare('b.customer_id = %d', $customer_id);
+            $where[] = $wpdb->prepare('b.wc_customer_id = %d', $customer_id);
         }
 
         $staff_id = $request->get_param('staff_id');
         if ($staff_id) {
-            $where[] = $wpdb->prepare('b.staff_id = %d', $staff_id);
+            $where[] = $wpdb->prepare('b.wp_user_id = %d', $staff_id);
         }
 
         $where_clause = 'WHERE ' . implode(' AND ', $where);
@@ -84,13 +86,14 @@ class Bookings_Controller extends Base_Controller
 
         $items = $wpdb->get_results($wpdb->prepare(
             "SELECT b.*, 
-                    c.name as customer_name, 
-                    s.name as service_name, 
-                    st.name as staff_name
+                    u.display_name as customer_name,
+                    u.user_email as customer_email,
+                    s.name as service_name,
+                    st.display_name as staff_name
              FROM {$table} b
-             LEFT JOIN {$customers_table} c ON b.customer_id = c.id
+             LEFT JOIN {$wpdb->users} u ON b.wc_customer_id = u.ID
              LEFT JOIN {$services_table} s ON b.service_id = s.id
-             LEFT JOIN {$staff_table} st ON b.staff_id = st.id
+             LEFT JOIN {$wpdb->users} st ON b.wp_user_id = st.ID
              {$where_clause} 
              ORDER BY b.booking_date DESC, b.booking_time DESC 
              LIMIT %d OFFSET %d",
@@ -125,8 +128,8 @@ class Bookings_Controller extends Base_Controller
         $table = $wpdb->prefix . 'asmaa_bookings';
 
         $data = [
-            'customer_id' => (int) $request->get_param('customer_id'),
-            'staff_id' => $request->get_param('staff_id') ? (int) $request->get_param('staff_id') : null,
+            'wc_customer_id' => (int) $request->get_param('customer_id'),
+            'wp_user_id' => $request->get_param('staff_id') ? (int) $request->get_param('staff_id') : null,
             'service_id' => (int) $request->get_param('service_id'),
             'booking_date' => sanitize_text_field($request->get_param('booking_date')),
             'booking_time' => sanitize_text_field($request->get_param('booking_time')),
@@ -139,14 +142,14 @@ class Bookings_Controller extends Base_Controller
             'source' => sanitize_text_field($request->get_param('source')),
         ];
 
-        if (empty($data['customer_id']) || empty($data['service_id']) || empty($data['booking_date']) || empty($data['booking_time'])) {
+        if (empty($data['wc_customer_id']) || empty($data['service_id']) || empty($data['booking_date']) || empty($data['booking_time'])) {
             return $this->error_response(__('Customer, service, date and time are required', 'asmaa-salon'), 400);
         }
 
         // Check for conflicts
         $conflict = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE staff_id = %d AND booking_date = %s AND booking_time = %s AND status NOT IN ('cancelled', 'no_show') AND deleted_at IS NULL",
-            $data['staff_id'] ?: 0,
+            "SELECT id FROM {$table} WHERE wp_user_id = %d AND booking_date = %s AND booking_time = %s AND status NOT IN ('cancelled', 'no_show') AND deleted_at IS NULL",
+            $data['wp_user_id'] ?: 0,
             $data['booking_date'],
             $data['booking_time']
         ));
@@ -164,14 +167,14 @@ class Bookings_Controller extends Base_Controller
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $wpdb->insert_id));
         
         // Log activity
-        ActivityLogger::log_booking('created', $wpdb->insert_id, $data['customer_id'], ['status' => $data['status']]);
+        ActivityLogger::log_booking('created', $wpdb->insert_id, $data['wc_customer_id'], ['status' => $data['status']]);
 
         // Dashboard notification (admins)
         NotificationDispatcher::dashboard_admins('Dashboard.BookingCreated', [
             'event' => 'booking.created',
             'booking_id' => (int) $wpdb->insert_id,
-            'customer_id' => (int) $data['customer_id'],
-            'staff_id' => $data['staff_id'] ? (int) $data['staff_id'] : null,
+            'customer_id' => (int) $data['wc_customer_id'],
+            'staff_id' => $data['wp_user_id'] ? (int) $data['wp_user_id'] : null,
             'booking_date' => $data['booking_date'],
             'booking_time' => $data['booking_time'],
             'title_en' => 'New booking created',
@@ -186,7 +189,7 @@ class Bookings_Controller extends Base_Controller
         
         // Send booking confirmation notification
         if ($data['status'] === 'confirmed') {
-            NotificationDispatcher::booking_confirmation($data['customer_id'], [
+            NotificationDispatcher::booking_confirmation($data['wc_customer_id'], [
                 'booking_id' => $wpdb->insert_id,
                 'booking_date' => $data['booking_date'],
                 'booking_time' => $data['booking_time'],
@@ -212,7 +215,11 @@ class Bookings_Controller extends Base_Controller
 
         foreach ($fields as $field) {
             if ($request->has_param($field)) {
-                if (in_array($field, ['customer_id', 'staff_id', 'service_id'])) {
+                if ($field === 'customer_id') {
+                    $data['wc_customer_id'] = $request->get_param($field) ? (int) $request->get_param($field) : null;
+                } elseif ($field === 'staff_id') {
+                    $data['wp_user_id'] = $request->get_param($field) ? (int) $request->get_param($field) : null;
+                } elseif ($field === 'service_id') {
                     $data[$field] = $request->get_param($field) ? (int) $request->get_param($field) : null;
                 } elseif (in_array($field, ['price', 'discount', 'final_price'])) {
                     $data[$field] = (float) $request->get_param($field);
@@ -266,23 +273,29 @@ class Bookings_Controller extends Base_Controller
             'confirmed_at' => $now,
         ], ['id' => $id]);
 
-        // Update customer last_visit_at
-        if ($existing->customer_id) {
-            $customers_table = $wpdb->prefix . 'asmaa_customers';
-            $wpdb->update($customers_table, ['last_visit_at' => $now], ['id' => (int) $existing->customer_id]);
+        // Update customer last_visit_at in extended data
+        if ($existing->wc_customer_id) {
+            $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
+            $wpdb->query($wpdb->prepare(
+                "INSERT INTO {$extended_table} (wc_customer_id, last_visit_at) VALUES (%d, %s)
+                 ON DUPLICATE KEY UPDATE last_visit_at = %s",
+                (int) $existing->wc_customer_id,
+                $now,
+                $now
+            ));
         }
 
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
 
         // Log activity
-        ActivityLogger::log_booking('confirmed', $id, (int) $existing->customer_id, ['confirmed_at' => $now]);
+        ActivityLogger::log_booking('confirmed', $id, (int) $existing->wc_customer_id, ['confirmed_at' => $now]);
 
         // Dashboard notification (admins)
         NotificationDispatcher::dashboard_admins('Dashboard.BookingConfirmed', [
             'event' => 'booking.confirmed',
             'booking_id' => (int) $id,
-            'customer_id' => (int) $existing->customer_id,
-            'staff_id' => $existing->staff_id ? (int) $existing->staff_id : null,
+            'customer_id' => (int) $existing->wc_customer_id,
+            'staff_id' => $existing->wp_user_id ? (int) $existing->wp_user_id : null,
             'booking_date' => (string) $existing->booking_date,
             'booking_time' => (string) $existing->booking_time,
             'title_en' => 'Booking confirmed',
@@ -296,7 +309,7 @@ class Bookings_Controller extends Base_Controller
         ]);
         
         // Send confirmation notification
-        NotificationDispatcher::booking_confirmation((int) $existing->customer_id, [
+        NotificationDispatcher::booking_confirmation((int) $existing->wc_customer_id, [
             'booking_id' => $id,
             'booking_date' => $existing->booking_date,
             'booking_time' => $existing->booking_time,
@@ -323,8 +336,8 @@ class Bookings_Controller extends Base_Controller
         NotificationDispatcher::dashboard_admins('Dashboard.BookingCancelled', [
             'event' => 'booking.cancelled',
             'booking_id' => (int) $id,
-            'customer_id' => (int) $existing->customer_id,
-            'staff_id' => $existing->staff_id ? (int) $existing->staff_id : null,
+            'customer_id' => (int) $existing->wc_customer_id,
+            'staff_id' => $existing->wp_user_id ? (int) $existing->wp_user_id : null,
             'booking_date' => (string) $existing->booking_date,
             'booking_time' => (string) $existing->booking_time,
             'title_en' => 'Booking cancelled',
@@ -360,10 +373,10 @@ class Bookings_Controller extends Base_Controller
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
 
         // Log activity
-        ActivityLogger::log_booking('completed', $id, (int) $existing->customer_id, ['completed_at' => $now]);
+        ActivityLogger::log_booking('completed', $id, (int) $existing->wc_customer_id, ['completed_at' => $now]);
         
         // Send post-visit thank you notification
-        NotificationDispatcher::post_visit_thank_you((int) $existing->customer_id, [
+        NotificationDispatcher::post_visit_thank_you((int) $existing->wc_customer_id, [
             'booking_id' => $id,
             'service_name' => 'Service', // Could fetch from service_id
         ]);
@@ -386,5 +399,62 @@ class Bookings_Controller extends Base_Controller
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
 
         return $this->success_response($item, __('Booking started successfully', 'asmaa-salon'));
+    }
+
+    /**
+     * Convert booking to queue ticket
+     */
+    public function convert_to_queue(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'asmaa_bookings';
+        $id = (int) $request->get_param('id');
+
+        $booking = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND deleted_at IS NULL", $id));
+        if (!$booking) {
+            return $this->error_response(__('Booking not found', 'asmaa-salon'), 404);
+        }
+
+        // Check if already converted
+        if ($booking->queue_ticket_id) {
+            return $this->error_response(__('Booking already converted to queue ticket', 'asmaa-salon'), 400);
+        }
+
+        // Create queue ticket via Queue Controller
+        $queue_controller = new \AsmaaSalon\API\Controllers\Queue_Controller();
+        $queue_request = new WP_REST_Request('POST', '/asmaa-salon/v1/queue');
+        $queue_request->set_param('customer_id', (int) $booking->wc_customer_id);
+        $queue_request->set_param('booking_id', $id);
+        $queue_request->set_param('service_id', (int) $booking->service_id);
+        $queue_request->set_param('staff_id', $booking->wp_user_id ? (int) $booking->wp_user_id : null);
+        $queue_request->set_param('notes', sprintf(__('Converted from booking #%d', 'asmaa-salon'), $id));
+
+        $queue_response = $queue_controller->create_item($queue_request);
+
+        if (is_wp_error($queue_response)) {
+            return $queue_response;
+        }
+
+        $queue_data = $queue_response->get_data();
+        $queue_ticket_id = $queue_data['data']->id ?? null;
+
+        if ($queue_ticket_id) {
+            // Update booking with queue_ticket_id and status
+            $wpdb->update(
+                $table,
+                [
+                    'queue_ticket_id' => (int) $queue_ticket_id,
+                    'status' => 'arrived',
+                ],
+                ['id' => $id]
+            );
+
+            ActivityLogger::log_booking('converted_to_queue', $id, (int) $booking->wc_customer_id, [
+                'queue_ticket_id' => (int) $queue_ticket_id,
+            ]);
+        }
+
+        $updated_booking = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+        return $this->success_response($updated_booking, __('Booking converted to queue ticket successfully', 'asmaa-salon'));
     }
 }

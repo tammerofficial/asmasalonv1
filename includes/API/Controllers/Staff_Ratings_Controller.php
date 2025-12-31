@@ -49,12 +49,12 @@ class Staff_Ratings_Controller extends Base_Controller
 
         $staff_id = $request->get_param('staff_id');
         if ($staff_id) {
-            $where[] = $wpdb->prepare('staff_id = %d', (int) $staff_id);
+            $where[] = $wpdb->prepare('wp_user_id = %d', (int) $staff_id);
         }
 
         $customer_id = $request->get_param('customer_id');
         if ($customer_id) {
-            $where[] = $wpdb->prepare('customer_id = %d', (int) $customer_id);
+            $where[] = $wpdb->prepare('wc_customer_id = %d', (int) $customer_id);
         }
 
         $booking_id = $request->get_param('booking_id');
@@ -99,17 +99,16 @@ class Staff_Ratings_Controller extends Base_Controller
 
         try {
             $table = $wpdb->prefix . 'asmaa_staff_ratings';
-            $staff_table = $wpdb->prefix . 'asmaa_staff';
 
             $data = [
-                'staff_id'    => (int) $request->get_param('staff_id'),
-                'customer_id' => $request->get_param('customer_id') ? (int) $request->get_param('customer_id') : null,
+                'wp_user_id'    => (int) $request->get_param('staff_id'),
+                'wc_customer_id' => $request->get_param('customer_id') ? (int) $request->get_param('customer_id') : null,
                 'booking_id'  => $request->get_param('booking_id') ? (int) $request->get_param('booking_id') : null,
                 'rating'      => min(5, max(1, (int) $request->get_param('rating'))),
                 'comment'     => sanitize_textarea_field($request->get_param('comment')),
             ];
 
-            if (empty($data['staff_id']) || empty($data['rating'])) {
+            if (empty($data['wp_user_id']) || empty($data['rating'])) {
                 throw new \Exception(__('Staff ID and rating are required', 'asmaa-salon'));
             }
 
@@ -119,7 +118,7 @@ class Staff_Ratings_Controller extends Base_Controller
             }
 
             // Update staff aggregated stats
-            $this->update_staff_rating_stats($data['staff_id']);
+            $this->update_staff_rating_stats($data['wp_user_id']);
 
             $wpdb->query('COMMIT');
 
@@ -134,39 +133,51 @@ class Staff_Ratings_Controller extends Base_Controller
     /**
      * Update staff aggregated rating, total_ratings, and total_services.
      */
-    protected function update_staff_rating_stats(int $staff_id): void
+    protected function update_staff_rating_stats(int $wp_user_id): void
     {
         global $wpdb;
         $ratings_table = $wpdb->prefix . 'asmaa_staff_ratings';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
+        $extended_table = $wpdb->prefix . 'asmaa_staff_extended_data';
 
         // Calculate average rating
         $avg_rating = $wpdb->get_var($wpdb->prepare(
-            "SELECT AVG(rating) FROM {$ratings_table} WHERE staff_id = %d",
-            $staff_id
+            "SELECT AVG(rating) FROM {$ratings_table} WHERE wp_user_id = %d",
+            $wp_user_id
         ));
 
         // Count total ratings
         $total_ratings = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$ratings_table} WHERE staff_id = %d",
-            $staff_id
+            "SELECT COUNT(*) FROM {$ratings_table} WHERE wp_user_id = %d",
+            $wp_user_id
         ));
 
         // Count total services (from completed bookings or queue tickets)
         $bookings_table = $wpdb->prefix . 'asmaa_bookings';
         $total_services = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$bookings_table} WHERE staff_id = %d AND status = 'completed' AND deleted_at IS NULL",
-            $staff_id
+            "SELECT COUNT(*) FROM {$bookings_table} WHERE wp_user_id = %d AND status = 'completed' AND deleted_at IS NULL",
+            $wp_user_id
         ));
 
-        $wpdb->update(
-            $staff_table,
-            [
-                'rating'         => round((float) $avg_rating, 2),
-                'total_ratings'  => $total_ratings,
+        // Update extended data
+        $extended = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$extended_table} WHERE wp_user_id = %d", $wp_user_id));
+        if ($extended) {
+            $wpdb->update(
+                $extended_table,
+                [
+                    'rating'         => round((float) $avg_rating, 2),
+                    'total_ratings'  => $total_ratings,
+                    'total_services' => $total_services,
+                ],
+                ['wp_user_id' => $wp_user_id]
+            );
+        } else {
+            // Create extended data if doesn't exist
+            $wpdb->insert($extended_table, [
+                'wp_user_id' => $wp_user_id,
+                'rating' => round((float) $avg_rating, 2),
+                'total_ratings' => $total_ratings,
                 'total_services' => $total_services,
-            ],
-            ['id' => $staff_id]
-        );
+            ]);
+        }
     }
 }

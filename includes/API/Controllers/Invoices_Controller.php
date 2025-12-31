@@ -32,7 +32,6 @@ class Invoices_Controller extends Base_Controller
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_invoices';
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
         $params = $this->get_pagination_params($request);
         $offset = ($params['page'] - 1) * $params['per_page'];
 
@@ -41,7 +40,7 @@ class Invoices_Controller extends Base_Controller
         $search = sanitize_text_field((string) ($request->get_param('search') ?? ''));
         if ($search !== '') {
             $like = '%' . $wpdb->esc_like($search) . '%';
-            $where[] = $wpdb->prepare('(invoice_number LIKE %s OR c.name LIKE %s OR c.phone LIKE %s)', $like, $like, $like);
+            $where[] = $wpdb->prepare('(invoice_number LIKE %s OR u.display_name LIKE %s OR u.user_email LIKE %s)', $like, $like, $like);
         }
         
         $status = $request->get_param('status');
@@ -51,23 +50,28 @@ class Invoices_Controller extends Base_Controller
 
         $customer_id = $request->get_param('customer_id');
         if ($customer_id) {
-            $where[] = $wpdb->prepare('i.customer_id = %d', $customer_id);
+            $where[] = $wpdb->prepare('i.wc_customer_id = %d', $customer_id);
         }
 
         $where_clause = 'WHERE ' . implode(' AND ', $where);
         $total = (int) $wpdb->get_var(
             "SELECT COUNT(*)
              FROM {$table} i
-             LEFT JOIN {$customers_table} c ON i.customer_id = c.id
+             LEFT JOIN {$wpdb->users} u ON u.ID = i.wc_customer_id
              {$where_clause}"
         );
 
         $items = $wpdb->get_results($wpdb->prepare(
             "SELECT i.*,
-                    c.name AS customer_name,
-                    c.phone AS customer_phone
+                    u.display_name AS customer_name,
+                    u.user_email AS customer_email,
+                    CASE 
+                        WHEN i.wc_order_id IS NOT NULL THEN 1 
+                        ELSE 0 
+                    END AS is_synced_with_wc,
+                    i.wc_order_id
              FROM {$table} i
-             LEFT JOIN {$customers_table} c ON i.customer_id = c.id
+             LEFT JOIN {$wpdb->users} u ON u.ID = i.wc_customer_id
              {$where_clause}
              ORDER BY i.id DESC
              LIMIT %d OFFSET %d",
@@ -111,7 +115,7 @@ class Invoices_Controller extends Base_Controller
 
             $data = [
                 'order_id' => $request->get_param('order_id') ? (int) $request->get_param('order_id') : null,
-                'customer_id' => (int) $request->get_param('customer_id'),
+                'wc_customer_id' => (int) $request->get_param('customer_id'),
                 'invoice_number' => $invoice_number,
                 'issue_date' => sanitize_text_field($request->get_param('issue_date')) ?: date('Y-m-d'),
                 'due_date' => sanitize_text_field($request->get_param('due_date')),
@@ -125,7 +129,7 @@ class Invoices_Controller extends Base_Controller
                 'notes' => sanitize_textarea_field($request->get_param('notes')),
             ];
 
-            if (empty($data['customer_id']) || empty($data['total'])) {
+            if (empty($data['wc_customer_id']) || empty($data['total'])) {
                 throw new \Exception(__('Customer and total are required', 'asmaa-salon'));
             }
 
@@ -159,7 +163,7 @@ class Invoices_Controller extends Base_Controller
                 $payment_data = [
                     'payment_number' => $payment_number,
                     'invoice_id' => $invoice_id,
-                    'customer_id' => $data['customer_id'],
+                    'wc_customer_id' => $data['wc_customer_id'],
                     'order_id' => $data['order_id'],
                     'amount' => $data['total'],
                     'payment_method' => 'cash', // Default
@@ -184,6 +188,9 @@ class Invoices_Controller extends Base_Controller
             $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $invoice_id));
             $items_table = $wpdb->prefix . 'asmaa_invoice_items';
             $item->items = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$items_table} WHERE invoice_id = %d", $invoice_id));
+
+            // Auto-sync invoice to WooCommerce (always enabled)
+            \AsmaaSalon\Services\WooCommerce_Integration_Service::sync_invoice_to_wc($invoice_id);
 
             return $this->success_response($item, __('Invoice created successfully', 'asmaa-salon'), 201);
         } catch (\Exception $e) {
@@ -264,7 +271,7 @@ class Invoices_Controller extends Base_Controller
                     $payment_data = [
                         'payment_number' => $payment_number,
                         'invoice_id' => $id,
-                        'customer_id' => $existing->customer_id,
+                        'wc_customer_id' => $existing->wc_customer_id,
                         'order_id' => $existing->order_id,
                         'amount' => $existing->total,
                         'payment_method' => 'cash', // Default
@@ -288,6 +295,10 @@ class Invoices_Controller extends Base_Controller
             $wpdb->query('COMMIT');
 
             $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+
+            // Auto-sync invoice to WooCommerce (always enabled)
+            \AsmaaSalon\Services\WooCommerce_Integration_Service::sync_invoice_to_wc($id);
+
             return $this->success_response($item, __('Invoice updated successfully', 'asmaa-salon'));
 
         } catch (\Exception $e) {

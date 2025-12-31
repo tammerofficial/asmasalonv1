@@ -217,18 +217,27 @@ class AsmaaSalon_SystemChecker
         'asmaa_services',
         'asmaa_staff',
         'asmaa_bookings',
-        'asmaa_booking_settings',
+        'asmaa_booking_settings', // New table for structured settings
         'asmaa_orders',
         'asmaa_order_items',
-        'asmaa_queue',
+        'asmaa_queue_tickets', // Main queue table
+        'asmaa_queue', // Alias table for compatibility
         'asmaa_invoices',
+        'asmaa_invoice_items',
         'asmaa_payments',
         'asmaa_products',
         'asmaa_inventory_movements',
         'asmaa_loyalty_transactions',
-        'asmaa_memberships',
+        'asmaa_customer_memberships', // Main memberships table
+        'asmaa_memberships', // Alias table for compatibility
         'asmaa_membership_plans',
-        'asmaa_commissions',
+        'asmaa_membership_service_usage',
+        'asmaa_membership_extensions',
+        'asmaa_staff_commissions', // Main commissions table
+        'asmaa_commissions', // Alias table for compatibility
+        'asmaa_commission_settings',
+        'asmaa_pos_sessions',
+        'asmaa_activity_log',
         'asmaa_notifications',
         'asmaa_worker_calls',
         'asmaa_staff_ratings',

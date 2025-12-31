@@ -126,6 +126,12 @@ const routes = [
     component: () => import('../views/Display/StaffRoom.vue'),
   },
   {
+    path: '/display/worker-calls',
+    name: 'DisplayWorkerCalls',
+    component: () => import('../views/Display/WorkerCalls.vue'),
+    meta: { keepAlive: true },
+  },
+  {
     path: '/rating',
     name: 'Rating',
     component: () => import('../views/Rating.vue'),

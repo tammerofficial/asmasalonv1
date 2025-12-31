@@ -32,140 +32,281 @@ class Orders_Controller extends Base_Controller
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/complete', [
             ['methods' => 'POST', 'callback' => [$this, 'complete_order'], 'permission_callback' => $this->permission_callback('asmaa_orders_update')],
         ]);
+
     }
 
     public function get_items(WP_REST_Request $request): WP_REST_Response
     {
-        global $wpdb;
-        $table = $wpdb->prefix . 'asmaa_orders';
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
-        $order_items_table = $wpdb->prefix . 'asmaa_order_items';
-        $params = $this->get_pagination_params($request);
-        $offset = ($params['page'] - 1) * $params['per_page'];
-
-        // IMPORTANT: Always prefix columns with table alias to avoid ambiguity
-        // (e.g. both orders and customers have deleted_at).
-        $where = ['o.deleted_at IS NULL'];
-
-        $search = sanitize_text_field((string) ($request->get_param('search') ?? ''));
-        if ($search !== '') {
-            $like = '%' . $wpdb->esc_like($search) . '%';
-            $where[] = $wpdb->prepare('(o.order_number LIKE %s OR c.name LIKE %s OR c.phone LIKE %s)', $like, $like, $like);
+        if (!\AsmaaSalon\Services\WooCommerce_Integration_Service::is_woocommerce_active()) {
+            return $this->success_response([
+                'items' => [],
+                'pagination' => $this->build_pagination_meta(0, 1, 20),
+                'stats' => ['total' => 0, 'pending' => 0, 'completed' => 0, 'totalRevenue' => 0],
+            ]);
         }
+
+        try {
+            $params = $this->get_pagination_params($request);
+            
+            // 1. Get stats and total count efficiently using SQL if possible
+            // or use wc_get_orders with limited return for count
+            $status = $request->get_param('status');
+            $wc_status = 'any';
+            if ($status) {
+                $status_map = ['pending' => 'pending', 'completed' => 'completed', 'cancelled' => 'cancelled'];
+                $wc_status = $status_map[$status] ?? 'any';
+            }
+
+            $wc_args = [
+                'status' => $wc_status,
+                'limit' => $params['per_page'],
+                'offset' => ($params['page'] - 1) * $params['per_page'],
+                'orderby' => 'date',
+                'order' => 'DESC',
+                'paginate' => true, // This gives us total and total_pages
+            ];
+
+            // Apply filters
+            if ($request->get_param('customer_id')) {
+                $wc_args['customer_id'] = (int) $request->get_param('customer_id');
+            }
+
+            $date_from = $request->get_param('date_from');
+            $date_to = $request->get_param('date_to');
+            if ($date_from || $date_to) {
+                $wc_args['date_created'] = ($date_from ?: '') . '...' . ($date_to ?: '');
+            }
+
+            // Get paginated orders
+            $results = wc_get_orders($wc_args);
+            
+            if (is_wp_error($results)) {
+                throw new \Exception($results->get_error_message());
+            }
+
+            $wc_orders = [];
+            $total = 0;
+
+            if (is_object($results) && isset($results->orders)) {
+                $wc_orders = $results->orders;
+                $total = (int) $results->total;
+            } elseif (is_array($results)) {
+                 $wc_orders = $results;
+                 $total = count($results);
+            }
+
+            // Convert to our format
+            $items = [];
+            foreach ($wc_orders as $wc_order) {
+                if ($wc_order instanceof \WC_Order) {
+                    $items[] = $this->format_wc_order($wc_order);
+                }
+            }
+
+            // 2. Get Statistics (Optimized)
+            $stats = $this->get_optimized_stats($wc_args);
+
+            return $this->success_response([
+                'items' => $items,
+                'pagination' => $this->build_pagination_meta($total, $params['page'], $params['per_page']),
+                'stats' => $stats,
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Asmaa Salon API Error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            return $this->error_response($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get optimized stats without loading all order objects
+     */
+    protected function get_optimized_stats(array $filter_args): array
+    {
+        // 1. Check if we have filters other than status
+        $has_filters = false;
+        $filtered_args = $filter_args;
+        unset($filtered_args['limit'], $filtered_args['offset'], $filtered_args['paginate'], $filtered_args['status'], $filtered_args['orderby'], $filtered_args['order']);
         
-        $status = $request->get_param('status');
-        if ($status) {
-            $where[] = $wpdb->prepare('o.status = %s', $status);
+        if (!empty($filtered_args)) {
+            $has_filters = true;
         }
 
-        $payment_status = $request->get_param('payment_status');
-        if ($payment_status) {
-            $where[] = $wpdb->prepare('o.payment_status = %s', $payment_status);
+        if (!$has_filters) {
+            // Fast way using wc_orders_count
+            $counts = (array) wc_orders_count();
+            $pending = ($counts['pending'] ?? 0) + ($counts['processing'] ?? 0) + ($counts['on-hold'] ?? 0);
+            $completed = $counts['completed'] ?? 0;
+            $total = array_sum($counts);
+
+            // Revenue - for total overview, we can't easily get it without SQL or looping
+            // We'll only calculate it if requested or for a small set
+            $revenue = 0;
+            // For now, let's skip revenue in overview if it's too slow, or use a cached value
+            // But if the user wants it, we'll use a limited loop
+            $revenue_args = [
+                'status' => 'completed',
+                'limit' => 100, // Limit to last 100 orders for performance
+                'return' => 'ids',
+            ];
+            $ids = wc_get_orders($revenue_args);
+            if (is_array($ids)) {
+                foreach ($ids as $id) {
+                    $revenue += (float) get_post_meta($id, '_order_total', true);
+                }
+            }
+
+            return [
+                'total' => $total,
+                'pending' => $pending,
+                'completed' => $completed,
+                'totalRevenue' => $revenue,
+            ];
         }
 
-        $payment_method = $request->get_param('payment_method');
-        if ($payment_method) {
-            $where[] = $wpdb->prepare('o.payment_method = %s', sanitize_text_field((string) $payment_method));
+        // 2. Slow way with filters
+        $base_args = $filter_args;
+        unset($base_args['limit'], $base_args['offset'], $base_args['paginate'], $base_args['status']);
+        
+        // Total
+        $total_args = $base_args;
+        $total_args['paginate'] = true;
+        $total_args['limit'] = 1;
+        $total_res = wc_get_orders($total_args);
+        $total_count = is_object($total_res) ? ($total_res->total ?? 0) : 0;
+
+        // Pending
+        $pending_args = $base_args;
+        $pending_args['status'] = ['pending', 'processing', 'on-hold'];
+        $pending_args['paginate'] = true;
+        $pending_args['limit'] = 1;
+        $pending_res = wc_get_orders($pending_args);
+        $pending_count = is_object($pending_res) ? ($pending_res->total ?? 0) : 0;
+
+        // Completed
+        $completed_args = $base_args;
+        $completed_args['status'] = 'completed';
+        $completed_args['paginate'] = true;
+        $completed_args['limit'] = 1;
+        $completed_res = wc_get_orders($completed_args);
+        $completed_count = is_object($completed_res) ? ($completed_res->total ?? 0) : 0;
+
+        // Revenue (limited)
+        $revenue = 0;
+        if ($completed_count > 0) {
+            $revenue_args = $completed_args;
+            unset($revenue_args['paginate'], $revenue_args['limit']);
+            $revenue_args['return'] = 'ids';
+            $revenue_args['limit'] = 100; // Hard limit for performance
+            
+            $ids = wc_get_orders($revenue_args);
+            if (is_array($ids)) {
+                foreach ($ids as $id) {
+                    $revenue += (float) get_post_meta($id, '_order_total', true);
+                }
+            }
         }
 
-        $customer_id = $request->get_param('customer_id');
-        if ($customer_id) {
-            $where[] = $wpdb->prepare('o.customer_id = %d', $customer_id);
+        return [
+            'total' => $total_count,
+            'pending' => $pending_count,
+            'completed' => $completed_count,
+            'totalRevenue' => $revenue,
+        ];
+    }
+
+    /**
+     * Format WooCommerce order to our API format
+     */
+    protected function format_wc_order($wc_order): object
+    {
+        if (!$wc_order instanceof \WC_Order) {
+            return (object) [];
         }
 
-        $date_from = $request->get_param('date_from');
-        $date_to = $request->get_param('date_to');
-        if ($date_from && $date_to) {
-            $where[] = $wpdb->prepare('o.created_at BETWEEN %s AND %s', $date_from . ' 00:00:00', $date_to . ' 23:59:59');
-        } elseif ($date_from) {
-            $where[] = $wpdb->prepare('o.created_at >= %s', $date_from . ' 00:00:00');
-        } elseif ($date_to) {
-            $where[] = $wpdb->prepare('o.created_at <= %s', $date_to . ' 23:59:59');
+        $order_id = $wc_order->get_id();
+        $customer_id = $wc_order->get_customer_id();
+        
+        // Basic info
+        $customer_name = $wc_order->get_billing_first_name() . ' ' . $wc_order->get_billing_last_name();
+        $customer_phone = $wc_order->get_billing_phone();
+        
+        if (empty(trim($customer_name)) && $customer_id) {
+            $user = get_user_by('ID', $customer_id);
+            if ($user) $customer_name = $user->display_name;
         }
 
-        $where_clause = 'WHERE ' . implode(' AND ', $where);
-        $total = (int) $wpdb->get_var(
-            "SELECT COUNT(*)
-             FROM {$table} o
-             LEFT JOIN {$customers_table} c ON c.id = o.customer_id
-             {$where_clause}"
-        );
+        // Status mapping
+        $wc_status = $wc_order->get_status();
+        $status_map = [
+            'pending' => 'pending', 'processing' => 'pending', 'on-hold' => 'pending',
+            'completed' => 'completed', 'cancelled' => 'cancelled', 'refunded' => 'cancelled', 'failed' => 'cancelled',
+        ];
+        
+        $payment_status = $wc_order->is_paid() ? 'paid' : ($wc_order->get_total_paid() > 0 ? 'partial' : 'unpaid');
 
-        $items = $wpdb->get_results($wpdb->prepare(
-            "SELECT
-                o.*,
-                c.name AS customer_name,
-                c.phone AS customer_phone,
-                s.name AS staff_name,
-                COALESCE(oi_staff.staff_name, '') AS staff_name_from_items
-             FROM {$table} o
-             LEFT JOIN {$customers_table} c ON c.id = o.customer_id
-             LEFT JOIN {$staff_table} s ON s.id = o.staff_id
-             LEFT JOIN (
-                SELECT
-                    oi.order_id,
-                    SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT st.name ORDER BY st.id SEPARATOR ', '), ', ', 1) AS staff_name
-                FROM {$order_items_table} oi
-                LEFT JOIN {$staff_table} st ON st.id = oi.staff_id
-                WHERE oi.staff_id IS NOT NULL
-                GROUP BY oi.order_id
-             ) AS oi_staff ON oi_staff.order_id = o.id
-             {$where_clause}
-             ORDER BY o.id DESC
-             LIMIT %d OFFSET %d",
-            $params['per_page'],
-            $offset
-        ));
-
-        // Load order items for each order
-        foreach ($items as $item) {
-            $item->staff_name = !empty($item->staff_name) ? $item->staff_name : (!empty($item->staff_name_from_items) ? $item->staff_name_from_items : null);
-            unset($item->staff_name_from_items);
-
-            $item->items = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$order_items_table} WHERE order_id = %d", $item->id));
+        // Items
+        $items = [];
+        foreach ($wc_order->get_items() as $item_id => $item) {
+            // قراءة staff_id من Meta (hidden meta key)
+            $staff_id = $item->get_meta('_asmaa_staff_id');
+            
+            // تحديد نوع العنصر
+            $is_service = false;
+            if ($item instanceof \WC_Order_Item_Product) {
+                $product = $item->get_product();
+                $is_service = $product && $product->is_virtual();
+            }
+            
+            $qty = max(1, $item->get_quantity());
+            $items[] = (object) [
+                'id' => $item_id,
+                'item_type' => $is_service ? 'service' : 'product',
+                'item_name' => $item->get_name(),
+                'quantity' => $qty,
+                'unit_price' => (float) $item->get_subtotal() / $qty,
+                'total' => (float) $item->get_total(),
+                'staff_id' => $staff_id ? (int) $staff_id : null,
+            ];
         }
 
-        // Stats for the filtered dataset (not just current page)
-        $stats = $wpdb->get_row(
-            "SELECT
-                COUNT(*) AS total,
-                COALESCE(SUM(CASE WHEN o.status = 'pending' THEN 1 ELSE 0 END), 0) AS pending,
-                COALESCE(SUM(CASE WHEN o.status = 'completed' THEN 1 ELSE 0 END), 0) AS completed,
-                COALESCE(SUM(o.total), 0) AS total_revenue
-             FROM {$table} o
-             LEFT JOIN {$customers_table} c ON c.id = o.customer_id
-             {$where_clause}"
-        );
+        $date_created = $wc_order->get_date_created();
 
-        return $this->success_response([
+        return (object) [
+            'id' => $order_id,
+            'wc_order_id' => $order_id,
+            'order_number' => $wc_order->get_order_number(),
+            'wc_customer_id' => $customer_id,
+            'customer_name' => trim($customer_name) ?: __('Guest', 'asmaa-salon'),
+            'customer_phone' => $customer_phone,
+            'total' => (float) $wc_order->get_total(),
+            'status' => $status_map[$wc_status] ?? 'pending',
+            'payment_status' => $payment_status,
+            'payment_method' => $wc_order->get_payment_method_title(),
+            'created_at' => $date_created ? $date_created->date('Y-m-d H:i:s') : current_time('mysql'),
             'items' => $items,
-            'pagination' => $this->build_pagination_meta($total, $params['page'], $params['per_page']),
-            'stats' => [
-                'total' => (int) ($stats->total ?? 0),
-                'pending' => (int) ($stats->pending ?? 0),
-                'completed' => (int) ($stats->completed ?? 0),
-                'totalRevenue' => (float) ($stats->total_revenue ?? 0),
-            ],
-        ]);
+        ];
     }
 
     public function complete_order(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
-        global $wpdb;
-        $table = $wpdb->prefix . 'asmaa_orders';
-        $id = (int) $request->get_param('id');
+        if (!\AsmaaSalon\Services\WooCommerce_Integration_Service::is_woocommerce_active()) {
+            return $this->error_response(__('WooCommerce is not active', 'asmaa-salon'), 400);
+        }
 
-        $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND deleted_at IS NULL", $id));
-        if (!$existing) {
+        $id = (int) $request->get_param('id');
+        $wc_order = wc_get_order($id);
+
+        if (!$wc_order) {
             return $this->error_response(__('Order not found', 'asmaa-salon'), 404);
         }
 
-        $wpdb->update($table, ['status' => 'completed'], ['id' => $id]);
-        $updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+        $old_status = $wc_order->get_status();
+        $wc_order->update_status('completed', __('Order completed from Asmaa Salon', 'asmaa-salon'));
+        
+        $updated = $this->format_wc_order($wc_order);
 
-        ActivityLogger::log_order('completed', $id, (int) ($existing->customer_id ?? 0), [
-            'from' => (string) ($existing->status ?? ''),
+        ActivityLogger::log_order('completed', $id, $wc_order->get_customer_id(), [
+            'from' => $old_status,
             'to' => 'completed',
         ]);
 
@@ -174,114 +315,175 @@ class Orders_Controller extends Base_Controller
 
     public function get_item(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
-        global $wpdb;
-        $table = $wpdb->prefix . 'asmaa_orders';
+        if (!\AsmaaSalon\Services\WooCommerce_Integration_Service::is_woocommerce_active()) {
+            return $this->error_response(__('WooCommerce is not active', 'asmaa-salon'), 400);
+        }
+
         $id = (int) $request->get_param('id');
+        $wc_order = wc_get_order($id);
 
-        $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND deleted_at IS NULL", $id));
-
-        if (!$item) {
+        if (!$wc_order) {
             return $this->error_response(__('Order not found', 'asmaa-salon'), 404);
         }
 
-        // Load order items
-        $items_table = $wpdb->prefix . 'asmaa_order_items';
-        $item->items = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$items_table} WHERE order_id = %d", $id));
+        $item = $this->format_wc_order($wc_order);
 
         return $this->success_response($item);
     }
 
     public function create_item(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
+
         global $wpdb;
         $wpdb->query('START TRANSACTION');
 
         try {
-            $table = $wpdb->prefix . 'asmaa_orders';
-            $order_number = 'ORD-' . date('Ymd') . '-' . str_pad($wpdb->get_var("SELECT COUNT(*) + 1 FROM {$table}"), 4, '0', STR_PAD_LEFT);
+            $customer_id = (int) $request->get_param('customer_id');
+            $subtotal = (float) $request->get_param('subtotal');
+            $discount = (float) ($request->get_param('discount') ?? 0);
+            $tax = (float) ($request->get_param('tax') ?? 0);
+            $total = (float) $request->get_param('total');
+            $status = sanitize_text_field($request->get_param('status')) ?: 'pending';
+            $payment_status = sanitize_text_field($request->get_param('payment_status')) ?: 'unpaid';
+            $payment_method = sanitize_text_field($request->get_param('payment_method'));
+            $notes = sanitize_textarea_field($request->get_param('notes'));
+            $booking_id = $request->get_param('booking_id') ? (int) $request->get_param('booking_id') : null;
 
-            $data = [
-                'customer_id' => (int) $request->get_param('customer_id'),
-                'staff_id' => $request->get_param('staff_id') ? (int) $request->get_param('staff_id') : null,
-                'booking_id' => $request->get_param('booking_id') ? (int) $request->get_param('booking_id') : null,
-                'order_number' => $order_number,
-                'subtotal' => (float) $request->get_param('subtotal'),
-                'discount' => (float) $request->get_param('discount'),
-                'tax' => (float) $request->get_param('tax'),
-                'total' => (float) $request->get_param('total'),
-                'status' => sanitize_text_field($request->get_param('status')) ?: 'pending',
-                'payment_status' => sanitize_text_field($request->get_param('payment_status')) ?: 'unpaid',
-                'payment_method' => sanitize_text_field($request->get_param('payment_method')),
-                'notes' => sanitize_textarea_field($request->get_param('notes')),
-            ];
-
-            if (empty($data['customer_id']) || empty($data['total'])) {
+            if (empty($customer_id) || empty($total)) {
                 throw new \Exception(__('Customer and total are required', 'asmaa-salon'));
             }
 
-            $result = $wpdb->insert($table, $data);
-            if ($result === false) {
-                throw new \Exception(__('Failed to create order', 'asmaa-salon'));
+            // Create WooCommerce order directly
+            $wc_order = wc_create_order([
+                'customer_id' => $customer_id,
+                'status' => $status === 'completed' ? 'wc-completed' : ($status === 'cancelled' ? 'wc-cancelled' : 'wc-pending'),
+            ]);
+
+            if (is_wp_error($wc_order)) {
+                throw new \Exception($wc_order->get_error_message());
             }
 
-            $order_id = $wpdb->insert_id;
+            $wc_order_id = $wc_order->get_id();
+            $order_number = $wc_order->get_order_number();
 
-            // Create order items
+            // Add items to WooCommerce order
             $items = $request->get_param('items');
             $created_items = [];
             if ($items && is_array($items)) {
-                $items_table = $wpdb->prefix . 'asmaa_order_items';
                 foreach ($items as $item_data) {
-                    $wpdb->insert($items_table, [
-                        'order_id' => $order_id,
-                        'item_type' => sanitize_text_field($item_data['item_type']),
-                        'item_id' => (int) $item_data['item_id'],
-                        'item_name' => sanitize_text_field($item_data['item_name']),
-                        'quantity' => (int) $item_data['quantity'],
-                        'unit_price' => (float) $item_data['unit_price'],
-                        'discount' => (float) ($item_data['discount'] ?? 0),
-                        'total' => (float) $item_data['total'],
-                        'staff_id' => isset($item_data['staff_id']) ? (int) $item_data['staff_id'] : null,
+                    $item_type = sanitize_text_field($item_data['item_type']);
+                    $item_id = (int) $item_data['item_id'];
+                    $item_name = sanitize_text_field($item_data['item_name']);
+                    $quantity = (int) $item_data['quantity'];
+                    $unit_price = (float) $item_data['unit_price'];
+                    $item_total = (float) $item_data['total'];
+                    $staff_id = isset($item_data['staff_id']) ? (int) $item_data['staff_id'] : null;
+
+                    if ($item_type === 'product') {
+                        $wc_product = wc_get_product($item_id);
+                    if ($wc_product) {
+                        $wc_order->add_product($wc_product, $quantity, [
+                            'subtotal' => $unit_price * $quantity,
+                            'total' => $item_total,
+                        ]);
+                        
+                        // Get the last added item and save staff_id in meta
+                        $items = $wc_order->get_items();
+                        $last_item = end($items);
+                        if ($last_item && $staff_id) {
+                            $last_item->add_meta_data('_asmaa_staff_id', $staff_id);
+                            $last_item->save();
+                        }
+                    }
+                } else {
+                    // Add service as Virtual Product
+                    $service_product_id = \AsmaaSalon\Services\Product_Service::get_or_create_service_product(
+                        $item_id,
+                        $item_name,
+                        $unit_price
+                    );
+                    
+                    $wc_product = wc_get_product($service_product_id);
+                    if (!$wc_product) {
+                        throw new \Exception(__('Service product not found', 'asmaa-salon'));
+                    }
+                    
+                    // Add service as virtual product
+                    $wc_order->add_product($wc_product, $quantity, [
+                        'subtotal' => $unit_price * $quantity,
+                        'total' => $item_total,
                     ]);
+                    
+                    // Get the last added item and save staff_id in meta
+                    $items = $wc_order->get_items();
+                    $last_item = end($items);
+                    if ($last_item && $staff_id) {
+                        $last_item->add_meta_data('_asmaa_staff_id', $staff_id);
+                        $last_item->save();
+                    }
+                }
+
                     $created_items[] = (object) [
-                        'id'        => $wpdb->insert_id,
-                        'order_id'  => $order_id,
-                        'item_type' => sanitize_text_field($item_data['item_type']),
-                        'item_id'   => (int) $item_data['item_id'],
-                        'item_name' => sanitize_text_field($item_data['item_name']),
-                        'quantity'  => (int) $item_data['quantity'],
-                        'unit_price'=> (float) $item_data['unit_price'],
-                        'discount'  => (float) ($item_data['discount'] ?? 0),
-                        'total'     => (float) $item_data['total'],
-                        'staff_id'  => isset($item_data['staff_id']) ? (int) $item_data['staff_id'] : null,
+                        'id' => 0, // WC order items don't have our IDs
+                        'order_id' => $wc_order_id,
+                        'item_type' => $item_type,
+                        'item_id' => $item_id,
+                        'item_name' => $item_name,
+                        'quantity' => $quantity,
+                        'unit_price' => $unit_price,
+                        'discount' => (float) ($item_data['discount'] ?? 0),
+                        'total' => $item_total,
+                        'staff_id' => $staff_id,
                     ];
                 }
             }
 
-            // Auto-create staff commissions for service items based on settings and ratings
-            $this->create_staff_commissions_for_order($order_id, $data['booking_id'] ?: null, $created_items);
+            // Set order totals
+            $wc_order->set_subtotal($subtotal);
+            $wc_order->set_discount_total($discount);
+            $wc_order->set_total_tax($tax);
+            $wc_order->set_total($total);
+            $wc_order->set_payment_method($payment_method);
+            $wc_order->set_payment_method_title($payment_method);
+            
+            if ($payment_status === 'paid') {
+                $wc_order->payment_complete();
+            }
+            
+            if ($notes) {
+                $wc_order->add_order_note($notes);
+            }
+            
+            $wc_order->save();
+
+            // Auto-create staff commissions for service items
+            $this->create_staff_commissions_for_order($wc_order_id, $booking_id, $created_items);
 
             // Activity log
-            ActivityLogger::log_order('created', $order_id, $data['customer_id'], [
-                'status' => $data['status'],
-                'payment_status' => $data['payment_status'],
-                'total' => $data['total'],
+            ActivityLogger::log_order('created', $wc_order_id, $customer_id, [
+                'status' => $status,
+                'payment_status' => $payment_status,
+                'total' => $total,
                 'items_count' => count($created_items),
-                'booking_id' => $data['booking_id'],
+                'booking_id' => $booking_id,
+                'wc_order_id' => $wc_order_id,
             ]);
 
             // Dashboard notification (admins)
             NotificationDispatcher::dashboard_admins('Dashboard.OrderCreated', [
                 'event' => 'order.created',
-                'order_id' => (int) $order_id,
-                'order_number' => (string) $order_number,
-                'customer_id' => (int) $data['customer_id'],
-                'total' => (float) $data['total'],
-                'payment_status' => (string) $data['payment_status'],
+                'order_id' => $wc_order_id,
+                'order_number' => $order_number,
+                'customer_id' => $customer_id,
+                'total' => $total,
+                'payment_status' => $payment_status,
                 'title_en' => 'New order created',
-                'message_en' => sprintf('%s created (%.3f KWD)', (string) $order_number, (float) $data['total']),
-                'title_ar' => '🛒 تم إنشاء طلب جديد',
-                'message_ar' => sprintf('تم إنشاء %s بقيمة %.3f د.ك', (string) $order_number, (float) $data['total']),
+                'message_en' => sprintf('%s created (%.3f KWD)', $order_number, $total),
+                'title_ar' => 'تم إنشاء طلب جديد',
+                'message_ar' => sprintf('تم إنشاء %s بقيمة %.3f د.ك', $order_number, $total),
                 'action' => [
                     'route' => '/orders',
                 ],
@@ -290,9 +492,8 @@ class Orders_Controller extends Base_Controller
 
             $wpdb->query('COMMIT');
 
-            $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $order_id));
-            $items_table = $wpdb->prefix . 'asmaa_order_items';
-            $item->items = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$items_table} WHERE order_id = %d", $order_id));
+            // Format response
+            $item = $this->format_wc_order($wc_order);
 
             return $this->success_response($item, __('Order created successfully', 'asmaa-salon'), 201);
         } catch (\Exception $e) {
@@ -302,50 +503,78 @@ class Orders_Controller extends Base_Controller
     }
 
     /**
-     * Create staff commission records for order service items.
+     * Create staff commission records for order items based on Order Item Meta.
+     * Note: order_id is now wc_order_id (WooCommerce order ID)
      */
-    protected function create_staff_commissions_for_order(int $order_id, ?int $booking_id, array $items): void
+    protected function create_staff_commissions_for_order(int $wc_order_id, ?int $booking_id, array $items): void
     {
-        if (empty($items)) {
-            return;
+        // Use the new method that reads from WC Order directly
+        $this->calculate_order_commissions($wc_order_id, $booking_id);
+    }
+
+    /**
+     * Calculate order commissions based on Order Item Meta
+     */
+    protected function calculate_order_commissions(int $wc_order_id, ?int $booking_id = null): array
+    {
+        $wc_order = wc_get_order($wc_order_id);
+        if (!$wc_order) {
+            return [];
         }
-
+        
         global $wpdb;
-
-        $staff_table       = $wpdb->prefix . 'asmaa_staff';
-        $settings_table    = $wpdb->prefix . 'asmaa_commission_settings';
-        $ratings_table     = $wpdb->prefix . 'asmaa_staff_ratings';
         $commissions_table = $wpdb->prefix . 'asmaa_staff_commissions';
-
+        $extended_table = $wpdb->prefix . 'asmaa_staff_extended_data';
+        $ratings_table = $wpdb->prefix . 'asmaa_staff_ratings';
+        $commissions = [];
+        
+        // الحصول على إعدادات العمولات الافتراضية
+        $settings_table = $wpdb->prefix . 'asmaa_commission_settings';
         $settings = $wpdb->get_row("SELECT * FROM {$settings_table} ORDER BY id DESC LIMIT 1");
-
         $default_service_rate = $settings ? (float) $settings->service_commission_rate : 0.0;
-        $bonus_5_star         = $settings ? (float) $settings->rating_bonus_5_star : 0.0;
-        $bonus_4_star         = $settings ? (float) $settings->rating_bonus_4_star : 0.0;
-
-        foreach ($items as $item) {
-            // Only services have commission in this phase
-            if ($item->item_type !== 'service' || empty($item->staff_id)) {
+        $default_product_rate = $settings ? (float) ($settings->product_commission_rate ?? 0.0) : 0.0;
+        $bonus_5_star = $settings ? (float) $settings->rating_bonus_5_star : 0.0;
+        $bonus_4_star = $settings ? (float) $settings->rating_bonus_4_star : 0.0;
+        
+        foreach ($wc_order->get_items() as $item) {
+            $staff_id = $item->get_meta('_asmaa_staff_id');
+            
+            if (!$staff_id) {
+                continue; // تخطي العناصر بدون موظفة
+            }
+            
+            $item_total = (float) $item->get_total();
+            if ($item_total <= 0) {
                 continue;
             }
-
-            // Determine commission rate (staff-specific overrides default)
-            $staff = $wpdb->get_row($wpdb->prepare(
-                "SELECT commission_rate FROM {$staff_table} WHERE id = %d AND deleted_at IS NULL",
-                (int) $item->staff_id
+            
+            // تحديد نوع العنصر
+            $is_service = false;
+            if ($item instanceof \WC_Order_Item_Product) {
+                $product = $item->get_product();
+                $is_service = $product && $product->is_virtual();
+            }
+            
+            // جلب نسبة عمولة الموظفة (من الجدول الممتد أو الافتراضي)
+            $extended = $wpdb->get_row($wpdb->prepare(
+                "SELECT commission_rate FROM {$extended_table} WHERE wp_user_id = %d",
+                (int) $staff_id
             ));
-
-            $rate = $staff && $staff->commission_rate !== null
-                ? (float) $staff->commission_rate
-                : $default_service_rate;
-
+            
+            $rate = $extended && $extended->commission_rate !== null
+                ? (float) $extended->commission_rate
+                : ($is_service ? $default_service_rate : $default_product_rate);
+            
             if ($rate <= 0) {
                 continue;
             }
-
-            $base_amount       = (float) $item->total;
-            $commission_amount = round($base_amount * ($rate / 100), 3);
-
+            
+            $commission_amount = round($item_total * ($rate / 100), 3);
+            
+            if ($commission_amount <= 0) {
+                continue;
+            }
+            
             // Rating bonus based on booking rating (latest)
             $rating_bonus = 0.0;
             if ($booking_id) {
@@ -353,7 +582,7 @@ class Orders_Controller extends Base_Controller
                     "SELECT rating FROM {$ratings_table} WHERE booking_id = %d ORDER BY created_at DESC LIMIT 1",
                     (int) $booking_id
                 ));
-
+                
                 if ($rating) {
                     if ((int) $rating->rating === 5 && $bonus_5_star > 0) {
                         $rating_bonus = $bonus_5_star;
@@ -362,88 +591,126 @@ class Orders_Controller extends Base_Controller
                     }
                 }
             }
-
+            
             $final_amount = $commission_amount + $rating_bonus;
-
-            $wpdb->insert(
-                $commissions_table,
-                [
-                    'staff_id'         => (int) $item->staff_id,
-                    'order_id'         => $order_id,
-                    'order_item_id'    => $item->id,
-                    'booking_id'       => $booking_id ?: null,
-                    'base_amount'      => $base_amount,
-                    'commission_rate'  => $rate,
-                    'commission_amount'=> $commission_amount,
-                    'rating_bonus'     => $rating_bonus,
-                    'final_amount'     => $final_amount,
-                    'status'           => 'pending',
-                    'notes'            => sprintf(
-                        'Auto commission from order #%d for item %s',
-                        $order_id,
-                        $item->item_name
-                    ),
-                ]
-            );
+            
+            // تسجيل العمولة في الجدول
+            $wpdb->insert($commissions_table, [
+                'wp_user_id' => (int) $staff_id,
+                'order_id' => $wc_order_id,
+                'order_item_id' => $item->get_id(),
+                'booking_id' => $booking_id ?: null,
+                'base_amount' => $item_total,
+                'commission_rate' => $rate,
+                'commission_amount' => $commission_amount,
+                'rating_bonus' => $rating_bonus,
+                'final_amount' => $final_amount,
+                'status' => 'pending',
+                'notes' => sprintf(
+                    'Auto commission from WC order #%d for %s: %s',
+                    $wc_order_id,
+                    $is_service ? 'service' : 'product',
+                    $item->get_name()
+                ),
+            ]);
+            
+            $commissions[] = [
+                'staff_id' => (int) $staff_id,
+                'item_id' => $item->get_id(),
+                'amount' => $final_amount,
+            ];
         }
+        
+        return $commissions;
     }
 
     public function update_item(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
-        global $wpdb;
-        $table = $wpdb->prefix . 'asmaa_orders';
-        $id = (int) $request->get_param('id');
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
 
-        $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND deleted_at IS NULL", $id));
-        if (!$existing) {
+        $id = (int) $request->get_param('id');
+        $wc_order = wc_get_order($id);
+
+        if (!$wc_order) {
             return $this->error_response(__('Order not found', 'asmaa-salon'), 404);
         }
 
-        $data = [];
-        $fields = ['status', 'payment_status', 'payment_method', 'notes'];
+        $customer_id = $wc_order->get_customer_id();
+        $changed = [];
 
-        foreach ($fields as $field) {
-            if ($request->has_param($field)) {
-                if ($field === 'notes') {
-                    $data[$field] = sanitize_textarea_field($request->get_param($field));
-                } else {
-                    $data[$field] = sanitize_text_field($request->get_param($field));
-                }
-            }
+        // Update status
+        if ($request->has_param('status')) {
+            $status = sanitize_text_field($request->get_param('status'));
+            $wc_status = $status === 'completed' ? 'wc-completed' : ($status === 'cancelled' ? 'wc-cancelled' : 'wc-pending');
+            $wc_order->set_status($wc_status);
+            $changed[] = 'status';
         }
 
-        if (empty($data)) {
+        // Update payment status
+        if ($request->has_param('payment_status')) {
+            $payment_status = sanitize_text_field($request->get_param('payment_status'));
+            if ($payment_status === 'paid' && !$wc_order->is_paid()) {
+                $wc_order->payment_complete();
+            }
+            $changed[] = 'payment_status';
+        }
+
+        // Update payment method
+        if ($request->has_param('payment_method')) {
+            $payment_method = sanitize_text_field($request->get_param('payment_method'));
+            $wc_order->set_payment_method($payment_method);
+            $wc_order->set_payment_method_title($payment_method);
+            $changed[] = 'payment_method';
+        }
+
+        // Update notes
+        if ($request->has_param('notes')) {
+            $notes = sanitize_textarea_field($request->get_param('notes'));
+            $wc_order->add_order_note($notes);
+            $changed[] = 'notes';
+        }
+
+        if (empty($changed)) {
             return $this->error_response(__('No data to update', 'asmaa-salon'), 400);
         }
 
-        $wpdb->update($table, $data, ['id' => $id]);
-        $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+        $wc_order->save();
 
-        ActivityLogger::log_order('updated', $id, (int) $existing->customer_id, [
-            'changed' => array_keys($data),
-            'status' => $item->status ?? null,
-            'payment_status' => $item->payment_status ?? null,
-            'total' => $item->total ?? null,
+        ActivityLogger::log_order('updated', $id, $customer_id, [
+            'changed' => $changed,
+            'status' => $wc_order->get_status(),
+            'payment_status' => $wc_order->is_paid() ? 'paid' : 'unpaid',
+            'total' => (float) $wc_order->get_total(),
+            'wc_order_id' => $id,
         ]);
+
+        $item = $this->format_wc_order($wc_order);
 
         return $this->success_response($item, __('Order updated successfully', 'asmaa-salon'));
     }
 
     public function delete_item(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
-        global $wpdb;
-        $table = $wpdb->prefix . 'asmaa_orders';
-        $id = (int) $request->get_param('id');
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
 
-        $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND deleted_at IS NULL", $id));
-        if (!$existing) {
+        $id = (int) $request->get_param('id');
+        $wc_order = wc_get_order($id);
+
+        if (!$wc_order) {
             return $this->error_response(__('Order not found', 'asmaa-salon'), 404);
         }
 
-        $wpdb->update($table, ['deleted_at' => current_time('mysql')], ['id' => $id]);
+        $customer_id = $wc_order->get_customer_id();
 
-        ActivityLogger::log_order('deleted', $id, (int) $existing->customer_id, [
-            'soft_delete' => true,
+        // Move to trash (WooCommerce way)
+        $wc_order->delete();
+
+        ActivityLogger::log_order('deleted', $id, $customer_id, [
+            'wc_order_id' => $id,
         ]);
 
         return $this->success_response(null, __('Order deleted successfully', 'asmaa-salon'));

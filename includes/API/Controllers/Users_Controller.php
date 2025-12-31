@@ -106,10 +106,18 @@ class Users_Controller extends Base_Controller
                 'asmaa_receptionist',
                 'asmaa_cashier',
                 'asmaa_staff',
+                'editor',
+                'author',
+                'huda_admin',
+                'huda_production',
+                'huda_tailor',
+                'huda_accountant',
+                'workshop_supervisor',
+                'customer_service_employee'
             ];
         } elseif ($scope === 'customers') {
-            // Default WP role for customers in this site
-            $args['role__in'] = ['subscriber'];
+            // WooCommerce customer role
+            $args['role__in'] = ['customer'];
         } elseif (!empty($role)) {
             // Exact role filter
             $args['role'] = $role;

@@ -113,6 +113,33 @@
         </div>
       </Card>
 
+      <Card :title="t('loyalty.appleWallet') || 'Apple Wallet Passes'" icon="cil-wallet" class="section-card">
+        <div class="wallet-passes-grid">
+          <div class="wallet-pass-item">
+            <div class="pass-info">
+              <CIcon icon="cil-star" class="me-2" />
+              <strong>{{ t('loyalty.title') }}</strong>
+            </div>
+            <CButton color="secondary" variant="outline" size="sm" @click="createTypedPass('loyalty')" :disabled="creatingPass">
+              <CSpinner v-if="creatingPass && activePassType === 'loyalty'" size="sm" class="me-1" />
+              <CIcon v-else icon="cil-wallet" class="me-1" />
+              {{ t('common.create') }}
+            </CButton>
+          </div>
+          <div class="wallet-pass-item" v-if="currentMembership">
+            <div class="pass-info">
+              <CIcon icon="cil-credit-card" class="me-2" />
+              <strong>{{ t('memberships.title') }}</strong>
+            </div>
+            <CButton color="secondary" variant="outline" size="sm" @click="createTypedPass('membership')" :disabled="creatingPass">
+              <CSpinner v-if="creatingPass && activePassType === 'membership'" size="sm" class="me-1" />
+              <CIcon v-else icon="cil-wallet" class="me-1" />
+              {{ t('common.create') }}
+            </CButton>
+          </div>
+        </div>
+      </Card>
+
       <Card :title="t('customers.todayDetails') || 'Today Details'" icon="cil-calendar" class="section-card">
         <div class="today-header">
           <div class="today-date">
@@ -255,7 +282,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { CButton, CTable, CBadge, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CFormSelect, CFormInput, CFormCheck, CRow, CCol } from '@coreui/vue';
+import { CButton, CTable, CBadge, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CFormSelect, CFormInput, CFormCheck, CRow, CCol, CSpinner } from '@coreui/vue';
 import { CIcon } from '@coreui/icons-vue';
 import { useTranslation } from '@/composables/useTranslation';
 import { useToast } from '@/composables/useToast';
@@ -278,6 +305,8 @@ const showAssignModal = ref(false);
 const assigning = ref(false);
 const showRenewModal = ref(false);
 const renewing = ref(false);
+const creatingPass = ref(false);
+const activePassType = ref('');
 
 const assignForm = ref({ membership_plan_id: '', duration_months: 1, auto_renew: false });
 const renewForm = ref({ months: 1, amount_paid: 0 });
@@ -406,6 +435,31 @@ const cancelMembership = async () => {
   }
 };
 
+const createTypedPass = async (type) => {
+  if (!profile.value?.customer?.id) return;
+  
+  creatingPass.value = true;
+  activePassType.value = type;
+  try {
+    const customerId = profile.value.customer.id;
+    const response = await api.post(`/apple-wallet/create/${customerId}/${type}`);
+    const data = response.data?.data || response.data || {};
+    
+    if (data.pass_url) {
+      window.open(data.pass_url, '_blank');
+      toast.success(t('loyalty.passCreated') || 'Pass created successfully');
+    } else {
+      toast.error(t('loyalty.passError') || 'Error creating pass');
+    }
+  } catch (error) {
+    console.error('Error creating Apple Wallet pass:', error);
+    toast.error(error.response?.data?.message || t('loyalty.passError') || 'Error creating pass');
+  } finally {
+    creatingPass.value = false;
+    activePassType.value = '';
+  }
+};
+
 onMounted(() => {
   loadProfile();
   loadPlans();
@@ -442,6 +496,27 @@ onMounted(() => {
 .unified-amount{color:var(--asmaa-primary);font-weight:800;}
 .unified-badge{display:inline-flex;align-items:center;gap:0.375rem;padding:0.5rem 0.75rem;border-radius:8px;font-size:0.8125rem;font-weight:600;background:linear-gradient(135deg, rgba(187,160,122,0.15) 0%, rgba(187,160,122,0.1) 100%);color:var(--asmaa-primary);border:1px solid rgba(187,160,122,0.3);}
 .badge-icon{width:14px;height:14px;color:currentColor;}
+
+.wallet-passes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.wallet-pass-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+.pass-info {
+  display: flex;
+  align-items: center;
+  color: var(--text-primary);
+}
+
 .badge-product{background:linear-gradient(135deg, var(--asmaa-secondary-soft) 0%, hsla(218, 13%, 28%, 0.10) 100%);color:var(--asmaa-secondary);border-color:var(--asmaa-secondary-soft-border);}
 .badge-service{background:linear-gradient(135deg, var(--asmaa-success-soft) 0%, hsla(142, 71%, 45%, 0.10) 100%);color:var(--asmaa-success);border-color:var(--asmaa-success-soft-border);}
 .badge-earned{background:linear-gradient(135deg, var(--asmaa-success-soft) 0%, hsla(142, 71%, 45%, 0.10) 100%);color:var(--asmaa-success);border-color:var(--asmaa-success-soft-border);}

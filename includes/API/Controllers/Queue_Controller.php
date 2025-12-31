@@ -54,9 +54,7 @@ class Queue_Controller extends Base_Controller
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_queue_tickets';
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
         $services_table = $wpdb->prefix . 'asmaa_services';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
         $params = $this->get_pagination_params($request);
         $offset = ($params['page'] - 1) * $params['per_page'];
 
@@ -72,13 +70,14 @@ class Queue_Controller extends Base_Controller
 
         $items = $wpdb->get_results($wpdb->prepare(
             "SELECT q.*, 
-                    c.name as customer_name, 
+                    u.display_name as customer_name,
+                    u.user_email as customer_email,
                     s.name as service_name, 
-                    st.name as staff_name
+                    st.display_name as staff_name
              FROM {$table} q
-             LEFT JOIN {$customers_table} c ON q.customer_id = c.id
+             LEFT JOIN {$wpdb->users} u ON q.wc_customer_id = u.ID
              LEFT JOIN {$services_table} s ON q.service_id = s.id
-             LEFT JOIN {$staff_table} st ON q.staff_id = st.id
+             LEFT JOIN {$wpdb->users} st ON q.wp_user_id = st.ID
              {$where_clause} 
              ORDER BY q.created_at ASC 
              LIMIT %d OFFSET %d",
@@ -115,11 +114,14 @@ class Queue_Controller extends Base_Controller
         // Generate ticket number
         $ticket_number = 'T-' . date('Ymd') . '-' . str_pad($wpdb->get_var("SELECT COUNT(*) + 1 FROM {$table}"), 4, '0', STR_PAD_LEFT);
 
+        $booking_id = $request->get_param('booking_id') ? (int) $request->get_param('booking_id') : null;
+        
         $data = [
             'ticket_number' => $ticket_number,
-            'customer_id' => $request->get_param('customer_id') ? (int) $request->get_param('customer_id') : null,
+            'wc_customer_id' => $request->get_param('customer_id') ? (int) $request->get_param('customer_id') : null,
+            'booking_id' => $booking_id,
             'service_id' => $request->get_param('service_id') ? (int) $request->get_param('service_id') : null,
-            'staff_id' => $request->get_param('staff_id') ? (int) $request->get_param('staff_id') : null,
+            'wp_user_id' => $request->get_param('staff_id') ? (int) $request->get_param('staff_id') : null,
             'status' => 'waiting',
             'notes' => sanitize_textarea_field($request->get_param('notes')),
             'check_in_at' => current_time('mysql'),
@@ -135,20 +137,19 @@ class Queue_Controller extends Base_Controller
 
         // Create initial worker call entry so that it appears immediately in Staff Room
         $worker_calls_table = $wpdb->prefix . 'asmaa_worker_calls';
-        $staff_id           = $data['staff_id'] ?: null;
+        $staff_id           = $data['wp_user_id'] ?: null;
 
         // Get customer name for worker call
         $customer_name = null;
-        if ($data['customer_id']) {
-            $customers_table = $wpdb->prefix . 'asmaa_customers';
-            $customer = $wpdb->get_row($wpdb->prepare("SELECT name FROM {$customers_table} WHERE id = %d", (int) $data['customer_id']));
-            $customer_name = $customer ? $customer->name : null;
+        if ($data['wc_customer_id']) {
+            $user = get_user_by('ID', (int) $data['wc_customer_id']);
+            $customer_name = $user ? ($user->display_name ?: $user->user_login) : null;
         }
 
         $wpdb->insert(
             $worker_calls_table,
             [
-                'staff_id'      => $staff_id ?: 0,
+                'wp_user_id'      => $staff_id ?: 0,
                 'ticket_id'     => $ticket_id,
                 'customer_name' => $customer_name,
                 'status'        => 'pending',
@@ -157,16 +158,18 @@ class Queue_Controller extends Base_Controller
         );
 
         // Link booking to queue ticket if booking_id is provided
-        $booking_id = $request->get_param('booking_id');
         if ($booking_id) {
             $bookings_table = $wpdb->prefix . 'asmaa_bookings';
             $wpdb->update($bookings_table, ['queue_ticket_id' => $ticket_id], ['id' => (int) $booking_id]);
+            
+            // Update booking status to 'arrived' when converted to queue
+            $wpdb->update($bookings_table, ['status' => 'arrived'], ['id' => (int) $booking_id]);
         }
 
-        ActivityLogger::log_queue_ticket('created', $ticket_id, (int) ($data['customer_id'] ?: 0), [
+        ActivityLogger::log_queue_ticket('created', $ticket_id, (int) ($data['wc_customer_id'] ?: 0), [
             'status' => $data['status'],
             'service_id' => $data['service_id'],
-            'staff_id' => $data['staff_id'],
+            'staff_id' => $data['wp_user_id'],
             'booking_id' => $booking_id ? (int) $booking_id : null,
         ]);
 
@@ -200,7 +203,7 @@ class Queue_Controller extends Base_Controller
         $wpdb->update($table, $data, ['id' => $id]);
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
 
-        ActivityLogger::log_queue_ticket('updated', $id, (int) ($existing->customer_id ?: 0), [
+        ActivityLogger::log_queue_ticket('updated', $id, (int) ($existing->wc_customer_id ?: 0), [
             'changed' => array_keys($data),
             'status' => $item->status ?? null,
         ]);
@@ -221,7 +224,7 @@ class Queue_Controller extends Base_Controller
 
         $wpdb->update($table, ['deleted_at' => current_time('mysql')], ['id' => $id]);
 
-        ActivityLogger::log_queue_ticket('deleted', $id, (int) ($existing->customer_id ?: 0), [
+        ActivityLogger::log_queue_ticket('deleted', $id, (int) ($existing->wc_customer_id ?: 0), [
             'soft_delete' => true,
         ]);
 
@@ -260,7 +263,7 @@ class Queue_Controller extends Base_Controller
             'called_at' => current_time('mysql'),
         ], ['id' => $id]);
 
-        ActivityLogger::log_queue_ticket('called', $id, (int) ($existing->customer_id ?: 0), [
+        ActivityLogger::log_queue_ticket('called', $id, (int) ($existing->wc_customer_id ?: 0), [
             'called_at' => current_time('mysql'),
         ]);
 
@@ -285,9 +288,9 @@ class Queue_Controller extends Base_Controller
             'serving_started_at' => $now,
         ], ['id' => $id]);
 
-        ActivityLogger::log_queue_ticket('serving_started', $id, (int) ($existing->customer_id ?: 0), [
+        ActivityLogger::log_queue_ticket('serving_started', $id, (int) ($existing->wc_customer_id ?: 0), [
             'serving_started_at' => $now,
-            'staff_id' => $existing->staff_id ?? null,
+            'staff_id' => $existing->wp_user_id ?? null,
         ]);
 
         // Update related booking status to in_progress if linked
@@ -325,7 +328,7 @@ class Queue_Controller extends Base_Controller
             'completed_at' => $now,
         ], ['id' => $id]);
 
-        ActivityLogger::log_queue_ticket('completed', $id, (int) ($existing->customer_id ?: 0), [
+        ActivityLogger::log_queue_ticket('completed', $id, (int) ($existing->wc_customer_id ?: 0), [
             'completed_at' => $now,
         ]);
 
@@ -381,9 +384,9 @@ class Queue_Controller extends Base_Controller
             'called_at' => $now,
         ], ['id' => $ticket_id]);
 
-        ActivityLogger::log_queue_ticket('called_next', $ticket_id, (int) ($ticket->customer_id ?: 0), [
+        ActivityLogger::log_queue_ticket('called_next', $ticket_id, (int) ($ticket->wc_customer_id ?: 0), [
             'called_at' => $now,
-            'staff_id' => $ticket->staff_id ?: null,
+            'staff_id' => $ticket->wp_user_id ?: null,
         ]);
 
         // Update or create worker call
@@ -400,14 +403,13 @@ class Queue_Controller extends Base_Controller
         } else {
             // Get customer name
             $customer_name = null;
-            if ($ticket->customer_id) {
-                $customers_table = $wpdb->prefix . 'asmaa_customers';
-                $customer = $wpdb->get_row($wpdb->prepare("SELECT name FROM {$customers_table} WHERE id = %d", (int) $ticket->customer_id));
-                $customer_name = $customer ? $customer->name : null;
+            if ($ticket->wc_customer_id) {
+                $user = get_user_by('ID', (int) $ticket->wc_customer_id);
+                $customer_name = $user ? ($user->display_name ?: $user->user_login) : null;
             }
 
             $wpdb->insert($worker_calls_table, [
-                'staff_id'      => $ticket->staff_id ?: 0,
+                'wp_user_id'      => $ticket->wp_user_id ?: 0,
                 'ticket_id'     => $ticket_id,
                 'customer_name' => $customer_name,
                 'status'        => 'customer_called',
@@ -417,5 +419,58 @@ class Queue_Controller extends Base_Controller
 
         $updated_ticket = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $ticket_id));
         return $this->success_response($updated_ticket, __('Next ticket called successfully', 'asmaa-salon'));
+    }
+
+    /**
+     * Create queue ticket from booking
+     */
+    public function create_from_booking(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        global $wpdb;
+        $bookings_table = $wpdb->prefix . 'asmaa_bookings';
+        $booking_id = (int) $request->get_param('booking_id');
+
+        $booking = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$bookings_table} WHERE id = %d AND deleted_at IS NULL",
+            $booking_id
+        ));
+
+        if (!$booking) {
+            return $this->error_response(__('Booking not found', 'asmaa-salon'), 404);
+        }
+
+        // Check if already converted
+        if ($booking->queue_ticket_id) {
+            return $this->error_response(__('Booking already converted to queue ticket', 'asmaa-salon'), 400);
+        }
+
+        // Create queue ticket with booking data
+        $ticket_request = new WP_REST_Request('POST', $this->namespace . '/queue');
+        $ticket_request->set_param('customer_id', (int) $booking->wc_customer_id);
+        $ticket_request->set_param('booking_id', $booking_id);
+        $ticket_request->set_param('service_id', (int) $booking->service_id);
+        $ticket_request->set_param('staff_id', $booking->wp_user_id ? (int) $booking->wp_user_id : null);
+        $ticket_request->set_param('notes', sprintf(__('Converted from booking #%d', 'asmaa-salon'), $booking_id));
+
+        $response = $this->create_item($ticket_request);
+
+        if (!is_wp_error($response)) {
+            $response_data = $response->get_data();
+            $ticket_id = $response_data['data']->id ?? null;
+
+            if ($ticket_id) {
+                // Update booking with queue_ticket_id and status
+                $wpdb->update(
+                    $bookings_table,
+                    [
+                        'queue_ticket_id' => (int) $ticket_id,
+                        'status' => 'arrived',
+                    ],
+                    ['id' => $booking_id]
+                );
+            }
+        }
+
+        return $response;
     }
 }

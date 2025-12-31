@@ -54,6 +54,10 @@ class Reports_Controller extends Base_Controller
         register_rest_route($this->namespace, '/' . $this->rest_base . '/commissions', [
             ['methods' => 'GET', 'callback' => [$this, 'get_commissions_report'], 'permission_callback' => $this->permission_callback('asmaa_reports_view')],
         ]);
+
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/booking-efficiency', [
+            ['methods' => 'GET', 'callback' => [$this, 'get_booking_efficiency'], 'permission_callback' => $this->permission_callback('asmaa_reports_view')],
+        ]);
     }
 
     private function get_grouping(string $start_date, string $end_date): array
@@ -88,36 +92,65 @@ class Reports_Controller extends Base_Controller
         $start_date = sanitize_text_field((string) ($request->get_param('start_date') ?: date('Y-m-01')));
         $end_date = sanitize_text_field((string) ($request->get_param('end_date') ?: date('Y-m-d')));
 
-        $orders_table = $wpdb->prefix . 'asmaa_orders';
-        $order_items_table = $wpdb->prefix . 'asmaa_order_items';
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
+        
         $bookings_table = $wpdb->prefix . 'asmaa_bookings';
         $invoices_table = $wpdb->prefix . 'asmaa_invoices';
         $payments_table = $wpdb->prefix . 'asmaa_payments';
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
+        $extended_customers_table = $wpdb->prefix . 'asmaa_customer_extended_data';
         $loyalty_table = $wpdb->prefix . 'asmaa_loyalty_transactions';
         $commissions_table = $wpdb->prefix . 'asmaa_staff_commissions';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
         $queue_table = $wpdb->prefix . 'asmaa_queue_tickets';
 
         $grouping = $this->get_grouping($start_date, $end_date);
         $fmt = $grouping['format'];
 
-        // 1) Sales trend (orders + revenue + paid)
-        $sales_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT
-                DATE_FORMAT(created_at, %s) AS p,
-                COUNT(*) AS orders,
-                COALESCE(SUM(total), 0) AS revenue,
-                COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN total ELSE 0 END), 0) AS paid
-             FROM {$orders_table}
-             WHERE created_at BETWEEN %s AND %s
-               AND deleted_at IS NULL
-             GROUP BY p
-             ORDER BY p ASC",
-            $fmt,
-            $start_date . ' 00:00:00',
-            $end_date . ' 23:59:59'
-        ));
+        // 1) Sales trend (orders + revenue + paid) - from WooCommerce
+        $wc_orders = wc_get_orders([
+            'limit' => 200, // Reasonable limit for trend analysis
+            'status' => 'any',
+            'date_created' => strtotime($start_date) . '...' . strtotime($end_date . ' 23:59:59'),
+            'return' => 'objects',
+        ]);
+        
+        // Group by period
+        $sales_by_period = [];
+        foreach ($wc_orders as $order) {
+            $date = $order->get_date_created()->date('Y-m-d');
+            $period = $grouping['group'] === 'month' 
+                ? date('Y-m', strtotime($date))
+                : $date;
+            
+            if (!isset($sales_by_period[$period])) {
+                $sales_by_period[$period] = [
+                    'orders' => 0,
+                    'revenue' => 0.0,
+                    'paid' => 0.0,
+                ];
+            }
+            
+            $total = (float) $order->get_total();
+            $sales_by_period[$period]['orders']++;
+            $sales_by_period[$period]['revenue'] += $total;
+            if ($order->is_paid()) {
+                $sales_by_period[$period]['paid'] += $total;
+            }
+        }
+        
+        // Convert to arrays
+        $sales_labels = [];
+        $sales_orders = [];
+        $sales_revenue = [];
+        $sales_paid = [];
+        ksort($sales_by_period);
+        foreach ($sales_by_period as $period => $data) {
+            $sales_labels[] = $period;
+            $sales_orders[] = $data['orders'];
+            $sales_revenue[] = $data['revenue'];
+            $sales_paid[] = $data['paid'];
+        }
         $sales_labels = [];
         $sales_orders = [];
         $sales_revenue = [];
@@ -194,51 +227,57 @@ class Reports_Controller extends Base_Controller
             $payments_total_count += (int) ($r->c ?? 0);
         }
 
-        // 5) Top services/products from POS order items (range)
-        $top_services_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT
-                oi.item_name,
-                COALESCE(SUM(oi.quantity), 0) AS qty,
-                COALESCE(SUM(oi.total), 0) AS revenue
-             FROM {$order_items_table} oi
-             JOIN {$orders_table} o ON o.id = oi.order_id
-             WHERE o.created_at BETWEEN %s AND %s
-               AND o.deleted_at IS NULL
-               AND oi.item_type = 'service'
-             GROUP BY oi.item_id, oi.item_name
-             ORDER BY revenue DESC
-             LIMIT 10",
-            $start_date . ' 00:00:00',
-            $end_date . ' 23:59:59'
-        ));
+        // 5) Top services/products from WooCommerce orders (range)
+        $top_services_data = [];
+        $top_products_data = [];
+        
+        foreach ($wc_orders as $order) {
+            // Get fees (services)
+            foreach ($order->get_fees() as $fee) {
+                $name = $fee->get_name();
+                $total = (float) $fee->get_total();
+                
+                if (!isset($top_services_data[$name])) {
+                    $top_services_data[$name] = ['qty' => 0, 'revenue' => 0.0];
+                }
+                $top_services_data[$name]['qty']++;
+                $top_services_data[$name]['revenue'] += $total;
+            }
+            
+            // Get products
+            foreach ($order->get_items() as $item) {
+                $name = $item->get_name();
+                $qty = (int) $item->get_quantity();
+                $total = (float) $item->get_total();
+                
+                if (!isset($top_products_data[$name])) {
+                    $top_products_data[$name] = ['qty' => 0, 'revenue' => 0.0];
+                }
+                $top_products_data[$name]['qty'] += $qty;
+                $top_products_data[$name]['revenue'] += $total;
+            }
+        }
+        
+        // Sort and limit
+        uasort($top_services_data, function($a, $b) {
+            return $b['revenue'] <=> $a['revenue'];
+        });
+        uasort($top_products_data, function($a, $b) {
+            return $b['revenue'] <=> $a['revenue'];
+        });
+        
         $top_services_labels = [];
         $top_services_revenue = [];
-        foreach ($top_services_rows as $r) {
-            $top_services_labels[] = (string) ($r->item_name ?? '');
-            $top_services_revenue[] = (float) ($r->revenue ?? 0);
+        foreach (array_slice($top_services_data, 0, 10, true) as $name => $data) {
+            $top_services_labels[] = $name;
+            $top_services_revenue[] = $data['revenue'];
         }
-
-        $top_products_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT
-                oi.item_name,
-                COALESCE(SUM(oi.quantity), 0) AS qty,
-                COALESCE(SUM(oi.total), 0) AS revenue
-             FROM {$order_items_table} oi
-             JOIN {$orders_table} o ON o.id = oi.order_id
-             WHERE o.created_at BETWEEN %s AND %s
-               AND o.deleted_at IS NULL
-               AND oi.item_type = 'product'
-             GROUP BY oi.item_id, oi.item_name
-             ORDER BY revenue DESC
-             LIMIT 10",
-            $start_date . ' 00:00:00',
-            $end_date . ' 23:59:59'
-        ));
+        
         $top_products_labels = [];
         $top_products_revenue = [];
-        foreach ($top_products_rows as $r) {
-            $top_products_labels[] = (string) ($r->item_name ?? '');
-            $top_products_revenue[] = (float) ($r->revenue ?? 0);
+        foreach (array_slice($top_products_data, 0, 10, true) as $name => $data) {
+            $top_products_labels[] = $name;
+            $top_products_revenue[] = $data['revenue'];
         }
 
         // 6) Loyalty trend (earned vs redeemed)
@@ -270,14 +309,14 @@ class Reports_Controller extends Base_Controller
             $loyalty_total_redeemed += $redeemed;
         }
 
-        // 7) New customers trend
+        // 7) New customers trend (from WordPress user registration)
         $customers_rows = $wpdb->get_results($wpdb->prepare(
             "SELECT
-                DATE_FORMAT(created_at, %s) AS p,
-                COUNT(*) AS c
-             FROM {$customers_table}
-             WHERE created_at BETWEEN %s AND %s
-               AND deleted_at IS NULL
+                DATE_FORMAT(u.user_registered, %s) AS p,
+                COUNT(DISTINCT u.ID) AS c
+             FROM {$wpdb->users} u
+             INNER JOIN {$extended_customers_table} ext ON ext.wc_customer_id = u.ID
+             WHERE u.user_registered BETWEEN %s AND %s
              GROUP BY p
              ORDER BY p ASC",
             $fmt,
@@ -296,13 +335,13 @@ class Reports_Controller extends Base_Controller
 
         // 8) Commissions by staff (range)
         $comm_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT s.id,
-                    s.name,
+            "SELECT u.ID as id,
+                    u.display_name as name,
                     COALESCE(SUM(sc.final_amount), 0) AS total_commission
              FROM {$commissions_table} sc
-             JOIN {$staff_table} s ON s.id = sc.staff_id
+             JOIN {$wpdb->users} u ON u.ID = sc.wp_user_id
              WHERE sc.created_at BETWEEN %s AND %s
-             GROUP BY s.id, s.name
+             GROUP BY u.ID, u.display_name
              ORDER BY total_commission DESC
              LIMIT 12",
             $start_date . ' 00:00:00',
@@ -402,26 +441,49 @@ class Reports_Controller extends Base_Controller
 
     public function get_sales_report(WP_REST_Request $request): WP_REST_Response
     {
-        global $wpdb;
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
         
         $start_date = $request->get_param('start_date') ?: date('Y-m-01');
         $end_date = $request->get_param('end_date') ?: date('Y-m-d');
         
-        $orders_table = $wpdb->prefix . 'asmaa_orders';
+        // Get WooCommerce orders
+        $wc_orders = wc_get_orders([
+            'limit' => 500, // Reasonable limit
+            'status' => 'any',
+            'date_created' => strtotime($start_date) . '...' . strtotime($end_date . ' 23:59:59'),
+            'return' => 'objects',
+        ]);
         
-        $results = $wpdb->get_results($wpdb->prepare(
-            "SELECT 
-                DATE(created_at) as date,
-                COUNT(*) as total_orders,
-                SUM(total) as total_revenue,
-                SUM(CASE WHEN payment_status = 'paid' THEN total ELSE 0 END) as paid_amount
-            FROM {$orders_table}
-            WHERE created_at BETWEEN %s AND %s AND deleted_at IS NULL
-            GROUP BY DATE(created_at)
-            ORDER BY date DESC",
-            $start_date . ' 00:00:00',
-            $end_date . ' 23:59:59'
-        ));
+        // Group by date
+        $results_by_date = [];
+        foreach ($wc_orders as $order) {
+            $date = $order->get_date_created()->date('Y-m-d');
+            $total = (float) $order->get_total();
+            $is_paid = $order->is_paid();
+            
+            if (!isset($results_by_date[$date])) {
+                $results_by_date[$date] = [
+                    'date' => $date,
+                    'total_orders' => 0,
+                    'total_revenue' => 0.0,
+                    'paid_amount' => 0.0,
+                ];
+            }
+            
+            $results_by_date[$date]['total_orders']++;
+            $results_by_date[$date]['total_revenue'] += $total;
+            if ($is_paid) {
+                $results_by_date[$date]['paid_amount'] += $total;
+            }
+        }
+        
+        // Convert to array and sort
+        $results = array_values($results_by_date);
+        usort($results, function($a, $b) {
+            return strcmp($b['date'], $a['date']);
+        });
 
         return $this->success_response([
             'period' => ['start' => $start_date, 'end' => $end_date],
@@ -459,19 +521,43 @@ class Reports_Controller extends Base_Controller
     {
         global $wpdb;
         
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
+        $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
+        
+        // Get total customers (WordPress users with 'customer' role)
+        $user_counts = count_users();
+        $total = $user_counts['avail_roles']['customer'] ?? 0;
+        
+        // Active customers
+        $active = $total;
+        
+        // New this month (from WordPress user registration)
+        $new_this_month = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT u.ID) 
+             FROM {$wpdb->users} u
+             INNER JOIN {$extended_table} ext ON ext.wc_customer_id = u.ID
+             WHERE MONTH(u.user_registered) = %d AND YEAR(u.user_registered) = %d",
+            date('n'),
+            date('Y')
+        ));
+        
+        // Top customers by total_spent
+        $top_customers = $wpdb->get_results(
+            "SELECT 
+                u.ID as id,
+                u.display_name as name,
+                ext.total_spent,
+                ext.total_visits
+             FROM {$wpdb->users} u
+             INNER JOIN {$extended_table} ext ON ext.wc_customer_id = u.ID
+             ORDER BY ext.total_spent DESC
+             LIMIT 10"
+        );
         
         $stats = [
-            'total' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$customers_table} WHERE deleted_at IS NULL"),
-            'active' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$customers_table} WHERE is_active = 1 AND deleted_at IS NULL"),
-            'new_this_month' => (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$customers_table} WHERE MONTH(created_at) = %d AND YEAR(created_at) = %d AND deleted_at IS NULL",
-                date('n'),
-                date('Y')
-            )),
-            'top_customers' => $wpdb->get_results(
-                "SELECT id, name, total_spent, total_visits FROM {$customers_table} WHERE deleted_at IS NULL ORDER BY total_spent DESC LIMIT 10"
-            ),
+            'total' => $total,
+            'active' => $active,
+            'new_this_month' => $new_this_month,
+            'top_customers' => $top_customers,
         ];
 
         return $this->success_response($stats);
@@ -481,13 +567,14 @@ class Reports_Controller extends Base_Controller
     {
         global $wpdb;
         
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
+        $extended_table = $wpdb->prefix . 'asmaa_staff_extended_data';
         
         $results = $wpdb->get_results(
-            "SELECT id, name, total_services, total_revenue, rating, total_ratings 
-             FROM {$staff_table} 
-             WHERE deleted_at IS NULL AND is_active = 1 
-             ORDER BY total_revenue DESC"
+            "SELECT u.ID as id, u.display_name as name, ext.total_services, ext.total_revenue, ext.rating, ext.total_ratings 
+             FROM {$wpdb->users} u
+             INNER JOIN {$extended_table} ext ON ext.wp_user_id = u.ID
+             WHERE ext.is_active = 1 
+             ORDER BY ext.total_revenue DESC"
         );
 
         return $this->success_response($results);
@@ -497,10 +584,13 @@ class Reports_Controller extends Base_Controller
     {
         global $wpdb;
         
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
+        
+        $extended_customers_table = $wpdb->prefix . 'asmaa_customer_extended_data';
+        $extended_staff_table = $wpdb->prefix . 'asmaa_staff_extended_data';
         $bookings_table = $wpdb->prefix . 'asmaa_bookings';
-        $orders_table = $wpdb->prefix . 'asmaa_orders';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
         $services_table = $wpdb->prefix . 'asmaa_services';
         $invoices_table = $wpdb->prefix . 'asmaa_invoices';
         $queue_table = $wpdb->prefix . 'asmaa_queue_tickets';
@@ -510,52 +600,87 @@ class Reports_Controller extends Base_Controller
         $last_7_start = date('Y-m-d', strtotime($today . ' -6 days'));
         $last_30_start = date('Y-m-d', strtotime($today . ' -29 days'));
 
-        // Sales stats (for Sales page)
-        $today_orders = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$orders_table} WHERE DATE(created_at) = %s AND deleted_at IS NULL",
-            $today
-        ));
-        $today_sales = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(total), 0) FROM {$orders_table} WHERE DATE(created_at) = %s AND deleted_at IS NULL",
-            $today
-        ));
+        // Sales stats (for Sales page) - from WooCommerce
+        $today_res = wc_get_orders([
+            'limit' => 100, // Reasonable for today's orders
+            'status' => 'any',
+            'date_created' => strtotime($today) . '...' . strtotime($today . ' 23:59:59'),
+            'paginate' => true,
+        ]);
+        $today_orders = (int) ($today_res->total ?? 0);
+        $today_sales = 0.0;
+        if (isset($today_res->orders)) {
+            foreach ($today_res->orders as $order) {
+                $today_sales += (float) $order->get_total();
+            }
+        }
 
-        $month_orders = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$orders_table} WHERE DATE(created_at) >= %s AND deleted_at IS NULL",
-            $this_month_start
-        ));
-        $month_sales = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(total), 0) FROM {$orders_table} WHERE DATE(created_at) >= %s AND deleted_at IS NULL",
-            $this_month_start
-        ));
-        $avg_order = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(AVG(total), 0) FROM {$orders_table} WHERE DATE(created_at) >= %s AND deleted_at IS NULL",
-            $this_month_start
-        ));
+        $month_res = wc_get_orders([
+            'limit' => 100, // Limit objects for performance
+            'status' => 'any',
+            'date_created' => strtotime($this_month_start) . '...' . time(),
+            'paginate' => true,
+        ]);
+        $month_orders = (int) ($month_res->total ?? 0);
+        $month_sales = 0.0;
+        // If more than 100 orders, we'd ideally use SQL for revenue, but for now we'll just sum what we got
+        if (isset($month_res->orders)) {
+            foreach ($month_res->orders as $order) {
+                $month_sales += (float) $order->get_total();
+            }
+        }
+        $avg_order = $month_orders > 0 ? ($month_sales / $month_orders) : 0.0;
 
         $top_customer = $wpdb->get_row(
-            "SELECT name, total_spent
-             FROM {$customers_table}
-             WHERE deleted_at IS NULL
-             ORDER BY total_spent DESC
+            "SELECT u.display_name as name, ext.total_spent
+             FROM {$wpdb->users} u
+             INNER JOIN {$extended_customers_table} ext ON ext.wc_customer_id = u.ID
+             ORDER BY ext.total_spent DESC
              LIMIT 1"
         );
         
+        // Faster counts
+        $pending_res = wc_get_orders(['limit' => 1, 'status' => ['pending', 'processing'], 'paginate' => true]);
+        $all_orders_res = wc_get_orders(['limit' => 1, 'status' => 'any', 'paginate' => true]);
+        $user_counts = count_users();
+        
+        // Count staff from roles
+        $staff_roles = [
+            'asmaa_staff', 'asmaa_manager', 'asmaa_admin', 'asmaa_super_admin',
+            'asmaa_accountant', 'asmaa_receptionist', 'asmaa_cashier',
+            'administrator', 'editor', 'author',
+            'huda_admin', 'huda_production', 'huda_tailor', 'huda_accountant',
+            'workshop_supervisor', 'customer_service_employee'
+        ];
+        $total_staff = 0;
+        foreach ($staff_roles as $role) {
+            $total_staff += $user_counts['avail_roles'][$role] ?? 0;
+        }
+        
+        // For active staff, we'll subtract those explicitly marked as inactive
+        $inactive_staff_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$extended_staff_table} WHERE is_active = 0");
+        $active_staff = max(0, $total_staff - $inactive_staff_count);
+
         $stats = [
-            'customers' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$customers_table} WHERE deleted_at IS NULL"),
+            'customers' => (int) ($user_counts['avail_roles']['customer'] ?? 0),
             'bookingsToday' => (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM {$bookings_table} WHERE booking_date = %s AND deleted_at IS NULL",
                 $today
             )),
-            'monthlyRevenue' => (float) $wpdb->get_var($wpdb->prepare(
-                "SELECT COALESCE(SUM(total), 0) FROM {$orders_table} WHERE DATE(created_at) >= %s AND deleted_at IS NULL",
-                $this_month_start
-            )),
-            'activeStaff' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$staff_table} WHERE is_active = 1 AND deleted_at IS NULL"),
+            'monthlyRevenue' => (float) $month_sales, // Use the one calculated from WC
+            'activeStaff' => $active_staff,
             'totalServices' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$services_table} WHERE is_active = 1 AND deleted_at IS NULL"),
-            'pendingOrders' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$orders_table} WHERE status = 'pending' AND deleted_at IS NULL"),
+            'pendingOrders' => (int) ($pending_res->total ?? 0),
             'unpaidInvoices' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$invoices_table} WHERE status IN ('sent', 'overdue', 'partial') AND deleted_at IS NULL"),
             'queueWaiting' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$queue_table} WHERE status IN ('waiting', 'called') AND deleted_at IS NULL"),
+
+            // WooCommerce Integration Info
+            'woocommerce' => [
+                'active' => \AsmaaSalon\Services\WooCommerce_Integration_Service::is_woocommerce_active(),
+                'products_count' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}asmaa_product_extended_data"),
+                'orders_count' => (int) ($all_orders_res->total ?? 0),
+                'customers_count' => (int) ($user_counts['avail_roles']['customer'] ?? 0),
+            ],
 
             // Sales page fields
             'today_sales' => $today_sales,
@@ -568,26 +693,24 @@ class Reports_Controller extends Base_Controller
         ];
 
         // Charts data (safe additive fields)
-        // 1) Sales last 7 days (revenue + orders)
-        $sales_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT
-                DATE(created_at) AS d,
-                COUNT(*) AS orders,
-                COALESCE(SUM(total), 0) AS revenue
-             FROM {$orders_table}
-             WHERE DATE(created_at) BETWEEN %s AND %s
-               AND deleted_at IS NULL
-             GROUP BY DATE(created_at)
-             ORDER BY d ASC",
-            $last_7_start,
-            $today
-        ));
+        // 1) Sales last 7 days (revenue + orders) - from WooCommerce
+        $last_7_res = wc_get_orders([
+            'limit' => 200, // Reasonable for 7 days
+            'status' => 'any',
+            'date_created' => strtotime($last_7_start) . '...' . strtotime($today . ' 23:59:59'),
+            'return' => 'objects',
+        ]);
+        
         $sales_map = [];
-        foreach ($sales_rows as $r) {
-            $sales_map[(string) ($r->d ?? '')] = [
-                'orders' => (int) ($r->orders ?? 0),
-                'revenue' => (float) ($r->revenue ?? 0),
-            ];
+        if (is_array($last_7_res)) {
+            foreach ($last_7_res as $order) {
+                $d = $order->get_date_created()->date('Y-m-d');
+                if (!isset($sales_map[$d])) {
+                    $sales_map[$d] = ['orders' => 0, 'revenue' => 0.0];
+                }
+                $sales_map[$d]['orders']++;
+                $sales_map[$d]['revenue'] += (float) $order->get_total();
+            }
         }
         $sales_labels = [];
         $sales_orders = [];
@@ -595,8 +718,8 @@ class Reports_Controller extends Base_Controller
         for ($i = 0; $i < 7; $i++) {
             $d = date('Y-m-d', strtotime($last_7_start . " +{$i} days"));
             $sales_labels[] = $d;
-            $sales_orders[] = (int) (($sales_map[$d]['orders'] ?? 0));
-            $sales_revenue[] = (float) (($sales_map[$d]['revenue'] ?? 0));
+            $sales_orders[] = (int) ($sales_map[$d]['orders'] ?? 0);
+            $sales_revenue[] = (float) ($sales_map[$d]['revenue'] ?? 0);
         }
 
         // 2) Bookings status (last 30 days)
@@ -654,22 +777,37 @@ class Reports_Controller extends Base_Controller
 
     public function get_daily_sales(WP_REST_Request $request): WP_REST_Response
     {
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
+        
         global $wpdb;
-        $orders_table = $wpdb->prefix . 'asmaa_orders';
         $payments_table = $wpdb->prefix . 'asmaa_payments';
 
         $date = $request->get_param('date') ?: date('Y-m-d');
 
-        // Get today's stats
-        $today_stats = $wpdb->get_row($wpdb->prepare(
-            "SELECT 
-                COUNT(*) as total_orders,
-                COALESCE(SUM(total), 0) as total_revenue,
-                COALESCE(AVG(total), 0) as avg_order_value
-            FROM {$orders_table}
-            WHERE DATE(created_at) = %s AND deleted_at IS NULL",
-            $date
-        ));
+        // Get today's stats from WooCommerce
+        $wc_res = wc_get_orders([
+            'limit' => 200, // Reasonable for one day
+            'status' => 'any',
+            'date_created' => strtotime($date) . '...' . strtotime($date . ' 23:59:59'),
+            'paginate' => true,
+        ]);
+        
+        $total_orders = (int) ($wc_res->total ?? 0);
+        $total_revenue = 0.0;
+        if (isset($wc_res->orders)) {
+            foreach ($wc_res->orders as $order) {
+                $total_revenue += (float) $order->get_total();
+            }
+        }
+        $avg_order_value = $total_orders > 0 ? ($total_revenue / $total_orders) : 0.0;
+        
+        $today_stats = (object) [
+            'total_orders' => $total_orders,
+            'total_revenue' => $total_revenue,
+            'avg_order_value' => $avg_order_value,
+        ];
 
         // Payment method breakdown
         $payment_methods = $wpdb->get_results($wpdb->prepare(
@@ -685,17 +823,29 @@ class Reports_Controller extends Base_Controller
 
         // Yesterday comparison
         $yesterday = date('Y-m-d', strtotime($date . ' -1 day'));
-        $yesterday_revenue = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(total), 0) FROM {$orders_table} WHERE DATE(created_at) = %s AND deleted_at IS NULL",
-            $yesterday
-        ));
+        $yesterday_wc_orders = wc_get_orders([
+            'limit' => -1,
+            'status' => 'any',
+            'date_created' => strtotime($yesterday) . '...' . strtotime($yesterday . ' 23:59:59'),
+            'return' => 'objects',
+        ]);
+        $yesterday_revenue = 0.0;
+        foreach ($yesterday_wc_orders as $order) {
+            $yesterday_revenue += (float) $order->get_total();
+        }
 
         // Last week same day
         $last_week = date('Y-m-d', strtotime($date . ' -7 days'));
-        $last_week_revenue = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(total), 0) FROM {$orders_table} WHERE DATE(created_at) = %s AND deleted_at IS NULL",
-            $last_week
-        ));
+        $last_week_wc_orders = wc_get_orders([
+            'limit' => -1,
+            'status' => 'any',
+            'date_created' => strtotime($last_week) . '...' . strtotime($last_week . ' 23:59:59'),
+            'return' => 'objects',
+        ]);
+        $last_week_revenue = 0.0;
+        foreach ($last_week_wc_orders as $order) {
+            $last_week_revenue += (float) $order->get_total();
+        }
 
         $today_revenue = (float) ($today_stats->total_revenue ?? 0);
 
@@ -721,7 +871,7 @@ class Reports_Controller extends Base_Controller
     public function get_staff_performance(WP_REST_Request $request): WP_REST_Response
     {
         global $wpdb;
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
+        $extended_staff_table = $wpdb->prefix . 'asmaa_staff_extended_data';
         $bookings_table = $wpdb->prefix . 'asmaa_bookings';
         $commissions_table = $wpdb->prefix . 'asmaa_staff_commissions';
 
@@ -738,17 +888,18 @@ class Reports_Controller extends Base_Controller
 
         $results = $wpdb->get_results(
             "SELECT 
-                s.id,
-                s.name,
+                u.ID as id,
+                u.display_name as name,
                 COUNT(DISTINCT b.id) as services_count,
                 COALESCE(SUM(b.final_price), 0) as revenue,
-                s.rating,
+                ext.rating,
                 COALESCE(SUM(sc.final_amount), 0) as total_commissions
-            FROM {$staff_table} s
-            LEFT JOIN {$bookings_table} b ON s.id = b.staff_id AND b.status = 'completed' AND b.deleted_at IS NULL {$date_filter}
-            LEFT JOIN {$commissions_table} sc ON s.id = sc.staff_id AND sc.status = 'pending'
-            WHERE s.deleted_at IS NULL AND s.is_active = 1
-            GROUP BY s.id, s.name, s.rating
+            FROM {$wpdb->users} u
+            INNER JOIN {$extended_staff_table} ext ON ext.wp_user_id = u.ID
+            LEFT JOIN {$bookings_table} b ON ext.wp_user_id = b.wp_user_id AND b.status = 'completed' AND b.deleted_at IS NULL {$date_filter}
+            LEFT JOIN {$commissions_table} sc ON ext.wp_user_id = sc.wp_user_id AND sc.status = 'pending'
+            WHERE ext.is_active = 1
+            GROUP BY u.ID, u.display_name, ext.rating
             ORDER BY revenue DESC"
         );
 
@@ -793,7 +944,6 @@ class Reports_Controller extends Base_Controller
     {
         global $wpdb;
         $commissions_table = $wpdb->prefix . 'asmaa_staff_commissions';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
 
         $start_date = $request->get_param('start_date');
         $end_date = $request->get_param('end_date');
@@ -804,24 +954,24 @@ class Reports_Controller extends Base_Controller
             $where[] = $wpdb->prepare("DATE_FORMAT(sc.created_at, '%%Y-%%m') BETWEEN %s AND %s", $start_date, $end_date);
         }
         if ($staff_id) {
-            $where[] = $wpdb->prepare("sc.staff_id = %d", (int) $staff_id);
+            $where[] = $wpdb->prepare("sc.wp_user_id = %d", (int) $staff_id);
         }
 
         $where_clause = 'WHERE ' . implode(' AND ', $where);
 
         $results = $wpdb->get_results(
             "SELECT 
-                s.id as staff_id,
-                s.name as staff_name,
+                u.ID as staff_id,
+                u.display_name as staff_name,
                 COUNT(sc.id) as total_services,
                 COALESCE(SUM(sc.base_amount), 0) as total_revenue,
                 COALESCE(SUM(sc.commission_amount), 0) as base_commission,
                 COALESCE(SUM(sc.rating_bonus), 0) as total_bonuses,
                 COALESCE(SUM(sc.final_amount), 0) as total_commission
-            FROM {$staff_table} s
-            JOIN {$commissions_table} sc ON s.id = sc.staff_id
+            FROM {$wpdb->users} u
+            JOIN {$commissions_table} sc ON u.ID = sc.wp_user_id
             {$where_clause}
-            GROUP BY s.id, s.name
+            GROUP BY u.ID, u.display_name
             ORDER BY total_commission DESC"
         );
 
@@ -830,5 +980,146 @@ class Reports_Controller extends Base_Controller
             'end_date' => $end_date,
             'data' => $results,
         ]);
+    }
+
+    /**
+     * Get booking efficiency report
+     * Compares booking scheduled time with actual arrival time
+     */
+    public function get_booking_efficiency(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        global $wpdb;
+        
+        try {
+            $bookings_table = $wpdb->prefix . 'asmaa_bookings';
+            $queue_table = $wpdb->prefix . 'asmaa_queue_tickets';
+            
+            $date_from = $request->get_param('date_from') ?: date('Y-m-d', strtotime('-30 days'));
+            $date_to = $request->get_param('date_to') ?: date('Y-m-d');
+            $staff_id = $request->get_param('staff_id') ? (int) $request->get_param('staff_id') : null;
+            
+            // Get bookings that were converted to queue tickets
+            $query = "
+                SELECT 
+                    b.id as booking_id,
+                    b.wc_customer_id,
+                    b.wp_user_id as staff_id,
+                    b.booking_date,
+                    b.booking_time,
+                    b.status as booking_status,
+                    q.id as queue_ticket_id,
+                    q.check_in_at,
+                    q.serving_started_at,
+                    q.completed_at,
+                    TIMESTAMPDIFF(MINUTE, 
+                        CONCAT(b.booking_date, ' ', b.booking_time),
+                        q.check_in_at
+                    ) as delay_minutes
+                FROM {$bookings_table} b
+                INNER JOIN {$queue_table} q ON q.booking_id = b.id
+                WHERE b.deleted_at IS NULL
+                AND q.deleted_at IS NULL
+                AND b.booking_date BETWEEN %s AND %s
+            ";
+            
+            $params = [$date_from, $date_to];
+            
+            if ($staff_id) {
+                $query .= " AND b.wp_user_id = %d";
+                $params[] = $staff_id;
+            }
+            
+            $query .= " ORDER BY b.booking_date DESC, b.booking_time DESC";
+            
+            $bookings = $wpdb->get_results($wpdb->prepare($query, $params));
+            
+            // Calculate statistics
+            $total_bookings = count($bookings);
+            $on_time = 0;
+            $late = 0;
+            $early = 0;
+            $total_delay = 0;
+            $total_early = 0;
+            $staff_stats = [];
+            
+            foreach ($bookings as $booking) {
+                $delay = (int) $booking->delay_minutes;
+                
+                if ($delay > 0) {
+                    $late++;
+                    $total_delay += $delay;
+                } elseif ($delay < 0) {
+                    $early++;
+                    $total_early += abs($delay);
+                } else {
+                    $on_time++;
+                }
+                
+                // Staff statistics
+                $staff_id_key = (int) $booking->staff_id;
+                if (!isset($staff_stats[$staff_id_key])) {
+                    $staff_stats[$staff_id_key] = [
+                        'staff_id' => $staff_id_key,
+                        'total' => 0,
+                        'on_time' => 0,
+                        'late' => 0,
+                        'early' => 0,
+                        'total_delay' => 0,
+                        'total_early' => 0,
+                    ];
+                }
+                
+                $staff_stats[$staff_id_key]['total']++;
+                if ($delay > 0) {
+                    $staff_stats[$staff_id_key]['late']++;
+                    $staff_stats[$staff_id_key]['total_delay'] += $delay;
+                } elseif ($delay < 0) {
+                    $staff_stats[$staff_id_key]['early']++;
+                    $staff_stats[$staff_id_key]['total_early'] += abs($delay);
+                } else {
+                    $staff_stats[$staff_id_key]['on_time']++;
+                }
+            }
+            
+            // Get staff names
+            foreach ($staff_stats as $staff_id_key => &$stats) {
+                $user = get_user_by('ID', $staff_id_key);
+                $stats['staff_name'] = $user ? ($user->display_name ?: $user->user_login) : "Staff #{$staff_id_key}";
+            }
+            
+            $data = [
+                'period' => [
+                    'from' => $date_from,
+                    'to' => $date_to,
+                ],
+                'summary' => [
+                    'total_bookings' => $total_bookings,
+                    'on_time' => $on_time,
+                    'late' => $late,
+                    'early' => $early,
+                    'on_time_percentage' => $total_bookings > 0 ? round(($on_time / $total_bookings) * 100, 2) : 0,
+                    'average_delay' => $late > 0 ? round($total_delay / $late, 2) : 0,
+                    'average_early' => $early > 0 ? round($total_early / $early, 2) : 0,
+                ],
+                'staff_performance' => array_values($staff_stats),
+                'bookings' => array_map(function($b) {
+                    return [
+                        'booking_id' => (int) $b->booking_id,
+                        'queue_ticket_id' => (int) $b->queue_ticket_id,
+                        'customer_id' => (int) $b->wc_customer_id,
+                        'staff_id' => (int) $b->staff_id,
+                        'scheduled_time' => $b->booking_date . ' ' . $b->booking_time,
+                        'arrival_time' => $b->check_in_at,
+                        'delay_minutes' => (int) $b->delay_minutes,
+                        'serving_started_at' => $b->serving_started_at,
+                        'completed_at' => $b->completed_at,
+                    ];
+                }, $bookings),
+            ];
+            
+            return $this->success_response($data);
+        } catch (\Exception $e) {
+            return $this->error_response($e->getMessage(), 500);
+        }
     }
 }

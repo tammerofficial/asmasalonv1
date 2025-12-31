@@ -4,8 +4,8 @@ namespace AsmaaSalon\API\Controllers;
 
 use WP_REST_Request;
 use WP_REST_Response;
-
 use WP_Error;
+use AsmaaSalon\Services\Apple_Wallet_Service;
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -45,6 +45,15 @@ class Memberships_Controller extends Base_Controller
 
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/renew', [
             ['methods' => 'POST', 'callback' => [$this, 'renew_membership'], 'permission_callback' => $this->permission_callback('asmaa_memberships_renew')],
+        ]);
+        
+        // Apple Wallet pass creation
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/apple-wallet/(?P<customer_id>\d+)', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'create_apple_wallet_pass'],
+                'permission_callback' => $this->permission_callback('asmaa_memberships_view'),
+            ],
         ]);
     }
 
@@ -167,7 +176,6 @@ class Memberships_Controller extends Base_Controller
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_customer_memberships';
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
         $plans_table = $wpdb->prefix . 'asmaa_membership_plans';
         $params = $this->get_pagination_params($request);
         $offset = ($params['page'] - 1) * $params['per_page'];
@@ -176,7 +184,7 @@ class Memberships_Controller extends Base_Controller
         
         $customer_id = $request->get_param('customer_id');
         if ($customer_id) {
-            $where[] = $wpdb->prepare('m.customer_id = %d', $customer_id);
+            $where[] = $wpdb->prepare('m.wc_customer_id = %d', $customer_id);
         }
 
         $status = $request->get_param('status');
@@ -187,20 +195,17 @@ class Memberships_Controller extends Base_Controller
         $search = $request->get_param('search');
         if ($search) {
             $like = '%' . $wpdb->esc_like((string) $search) . '%';
-            $where[] = $wpdb->prepare('(c.name LIKE %s OR c.phone LIKE %s)', $like, $like);
+            $where[] = $wpdb->prepare('m.wc_customer_id IN (SELECT ID FROM {$wpdb->users} WHERE display_name LIKE %s OR user_email LIKE %s)', $like, $like);
         }
 
-        // Exclude deleted customers
-        $where[] = 'c.deleted_at IS NULL';
-
         $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} m LEFT JOIN {$customers_table} c ON c.id = m.customer_id LEFT JOIN {$plans_table} p ON p.id = m.membership_plan_id {$where_clause}");
+        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} m LEFT JOIN {$plans_table} p ON p.id = m.membership_plan_id {$where_clause}");
 
         $items = $wpdb->get_results($wpdb->prepare(
             "SELECT
                 m.*,
-                c.name AS customer_name,
-                c.phone AS customer_phone,
+                u.display_name AS customer_name,
+                u.user_email AS customer_email,
                 p.name AS plan_name,
                 p.name_ar AS plan_name_ar,
                 p.duration_months AS plan_duration_months,
@@ -209,7 +214,7 @@ class Memberships_Controller extends Base_Controller
                 p.points_multiplier,
                 p.priority_booking
             FROM {$table} m
-            LEFT JOIN {$customers_table} c ON c.id = m.customer_id
+            LEFT JOIN {$wpdb->users} u ON u.ID = m.wc_customer_id
             LEFT JOIN {$plans_table} p ON p.id = m.membership_plan_id
             {$where_clause}
             ORDER BY m.created_at DESC
@@ -248,7 +253,7 @@ class Memberships_Controller extends Base_Controller
         $end_date = date('Y-m-d', strtotime("+{$duration_months} months"));
 
         $data = [
-            'customer_id' => $customer_id,
+            'wc_customer_id' => $customer_id,
             'membership_plan_id' => $plan_id,
             'start_date' => $start_date,
             'end_date' => $end_date,
@@ -264,6 +269,14 @@ class Memberships_Controller extends Base_Controller
         }
 
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $wpdb->insert_id));
+        
+        // Update Apple Wallet pass
+        try {
+            Apple_Wallet_Service::update_pass($customer_id);
+        } catch (\Exception $e) {
+            error_log('Apple Wallet update failed: ' . $e->getMessage());
+        }
+        
         return $this->success_response($item, __('Membership created successfully', 'asmaa-salon'), 201);
     }
 
@@ -307,6 +320,15 @@ class Memberships_Controller extends Base_Controller
 
         $wpdb->update($table, $data, ['id' => $id]);
         $item = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
+
+        // Update Apple Wallet pass
+        if ($item && isset($item->wc_customer_id)) {
+            try {
+                Apple_Wallet_Service::update_pass((int) $item->wc_customer_id);
+            } catch (\Exception $e) {
+                error_log('Apple Wallet update failed: ' . $e->getMessage());
+            }
+        }
 
         return $this->success_response($item, __('Membership updated successfully', 'asmaa-salon'));
     }
@@ -361,9 +383,34 @@ class Memberships_Controller extends Base_Controller
             $wpdb->query('COMMIT');
 
             $updated = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$memberships_table} WHERE id = %d", $id));
+            
+            // Update Apple Wallet pass
+            if ($updated && isset($updated->wc_customer_id)) {
+                try {
+                    Apple_Wallet_Service::update_pass((int) $updated->wc_customer_id);
+                } catch (\Exception $e) {
+                    error_log('Apple Wallet update failed: ' . $e->getMessage());
+                }
+            }
+            
             return $this->success_response($updated, __('Membership renewed successfully', 'asmaa-salon'));
         } catch (\Exception $e) {
             $wpdb->query('ROLLBACK');
+            return $this->error_response($e->getMessage(), 500);
+        }
+    }
+    
+    /**
+     * Create Apple Wallet pass for membership
+     */
+    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $customer_id = (int) $request->get_param('customer_id');
+        
+        try {
+            $result = Apple_Wallet_Service::create_membership_pass($customer_id);
+            return $this->success_response($result, __('Membership pass created successfully', 'asmaa-salon'), 201);
+        } catch (\Exception $e) {
             return $this->error_response($e->getMessage(), 500);
         }
     }

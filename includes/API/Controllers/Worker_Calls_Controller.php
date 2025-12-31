@@ -67,9 +67,7 @@ class Worker_Calls_Controller extends Base_Controller
 
         $table_calls     = $wpdb->prefix . 'asmaa_worker_calls';
         $table_queue     = $wpdb->prefix . 'asmaa_queue_tickets';
-        $table_customers = $wpdb->prefix . 'asmaa_customers';
         $table_services  = $wpdb->prefix . 'asmaa_services';
-        $table_staff     = $wpdb->prefix . 'asmaa_staff';
 
         $params = $this->get_pagination_params($request);
         $offset = ($params['page'] - 1) * $params['per_page'];
@@ -79,12 +77,15 @@ class Worker_Calls_Controller extends Base_Controller
         $staffId = $request->get_param('staff_id');
         $date    = $request->get_param('date');
 
-        if ($status) {
+        // Filter by active statuses if 'active' is requested
+        if ($status === 'active') {
+            $where[] = "w.status IN ('pending', 'staff_called', 'customer_called', 'accepted')";
+        } elseif ($status) {
             $where[] = $wpdb->prepare('w.status = %s', $status);
         }
 
         if ($staffId) {
-            $where[] = $wpdb->prepare('w.staff_id = %d', (int) $staffId);
+            $where[] = $wpdb->prepare('w.wp_user_id = %d', (int) $staffId);
         }
 
         // By default limit to today (salon daily board)
@@ -103,20 +104,22 @@ class Worker_Calls_Controller extends Base_Controller
                 w.*,
                 q.ticket_number,
                 q.status        AS queue_status,
-                c.name          AS customer_name,
-                c.phone         AS customer_phone,
+                u.display_name AS customer_name,
+                u.user_email   AS customer_email,
                 s.name          AS service_name,
-                st.name         AS staff_name,
-                st.position     AS staff_position,
-                st.rating       AS staff_rating,
-                st.total_services AS staff_total_services
+                st.display_name AS staff_name,
+                COALESCE(ext.chair_number, 0) AS staff_chair_number,
+                ext.position     AS staff_position,
+                ext.rating       AS staff_rating,
+                ext.total_services AS staff_total_services
              FROM {$table_calls} w
              LEFT JOIN {$table_queue} q ON w.ticket_id = q.id
-             LEFT JOIN {$table_customers} c ON q.customer_id = c.id
+             LEFT JOIN {$wpdb->users} u ON q.wc_customer_id = u.ID
              LEFT JOIN {$table_services} s ON q.service_id = s.id
-             LEFT JOIN {$table_staff} st ON w.staff_id = st.id
+             LEFT JOIN {$wpdb->users} st ON w.wp_user_id = st.ID
+             LEFT JOIN {$wpdb->prefix}asmaa_staff_extended_data ext ON ext.wp_user_id = w.wp_user_id
              {$whereClause}
-             ORDER BY w.created_at DESC
+             ORDER BY COALESCE(w.called_at, w.created_at) DESC, w.created_at DESC
              LIMIT %d OFFSET %d",
             $params['per_page'],
             $offset
@@ -179,7 +182,7 @@ class Worker_Calls_Controller extends Base_Controller
         NotificationDispatcher::dashboard_admins('Dashboard.WorkerCallCustomerCalled', [
             'event' => 'worker_call.customer_called',
             'worker_call_id' => (int) $id,
-            'staff_id' => $call->staff_id ? (int) $call->staff_id : null,
+            'staff_id' => $call->wp_user_id ? (int) $call->wp_user_id : null,
             'ticket_id' => $call->ticket_id ? (int) $call->ticket_id : null,
             'title_en' => 'Customer called',
             'message_en' => sprintf('Worker call #%d: customer called', (int) $id),
@@ -232,7 +235,7 @@ class Worker_Calls_Controller extends Base_Controller
         NotificationDispatcher::dashboard_admins('Dashboard.WorkerCallStaffCalled', [
             'event' => 'worker_call.staff_called',
             'worker_call_id' => (int) $id,
-            'staff_id' => $call->staff_id ? (int) $call->staff_id : null,
+            'staff_id' => $call->wp_user_id ? (int) $call->wp_user_id : null,
             'ticket_id' => $call->ticket_id ? (int) $call->ticket_id : null,
             'title_en' => 'Staff called',
             'message_en' => sprintf('Worker call #%d: staff called', (int) $id),

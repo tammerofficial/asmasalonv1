@@ -6,6 +6,7 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
 use AsmaaSalon\Services\ActivityLogger;
+use AsmaaSalon\Services\Apple_Wallet_Service;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -42,7 +43,6 @@ class Loyalty_Controller extends Base_Controller
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_loyalty_transactions';
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
         $params = $this->get_pagination_params($request);
         $offset = ($params['page'] - 1) * $params['per_page'];
 
@@ -50,7 +50,7 @@ class Loyalty_Controller extends Base_Controller
         
         $customer_id = $request->get_param('customer_id');
         if ($customer_id) {
-            $where[] = $wpdb->prepare('customer_id = %d', $customer_id);
+            $where[] = $wpdb->prepare('wc_customer_id = %d', $customer_id);
         }
 
         $type = $request->get_param('type');
@@ -61,22 +61,16 @@ class Loyalty_Controller extends Base_Controller
         $customer_search = $request->get_param('customer_search');
         if ($customer_search) {
             $like = '%' . $wpdb->esc_like((string) $customer_search) . '%';
-            $where[] = $wpdb->prepare('(c.name LIKE %s OR c.phone LIKE %s)', $like, $like);
+            $where[] = $wpdb->prepare('wc_customer_id IN (SELECT ID FROM {$wpdb->users} WHERE display_name LIKE %s OR user_email LIKE %s)', $like, $like);
         }
 
-        // Always exclude deleted customers from listing
-        $where[] = 'c.deleted_at IS NULL';
-
         $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} t LEFT JOIN {$customers_table} c ON c.id = t.customer_id {$where_clause}");
+        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} {$where_clause}");
 
         $items = $wpdb->get_results($wpdb->prepare(
-            "SELECT
-                t.*,
-                c.name AS customer_name,
-                c.phone AS customer_phone
+            "SELECT t.*, u.display_name AS customer_name, u.user_email AS customer_email
              FROM {$table} t
-             LEFT JOIN {$customers_table} c ON c.id = t.customer_id
+             LEFT JOIN {$wpdb->users} u ON u.ID = t.wc_customer_id
              {$where_clause}
              ORDER BY t.created_at DESC
              LIMIT %d OFFSET %d",
@@ -94,12 +88,12 @@ class Loyalty_Controller extends Base_Controller
     {
         global $wpdb;
         $transactions_table = $wpdb->prefix . 'asmaa_loyalty_transactions';
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
+        $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
 
         $total_points_issued = (int) $wpdb->get_var("SELECT COALESCE(SUM(points), 0) FROM {$transactions_table} WHERE type = 'earned'");
         $total_points_redeemed = (int) abs((int) $wpdb->get_var("SELECT COALESCE(SUM(points), 0) FROM {$transactions_table} WHERE type = 'redeemed'"));
-        $active_points = (int) $wpdb->get_var("SELECT COALESCE(SUM(loyalty_points), 0) FROM {$customers_table} WHERE deleted_at IS NULL");
-        $active_customers = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$customers_table} WHERE deleted_at IS NULL AND loyalty_points > 0");
+        $active_points = (int) $wpdb->get_var("SELECT COALESCE(SUM(loyalty_points), 0) FROM {$extended_table}");
+        $active_customers = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$extended_table} WHERE loyalty_points > 0");
 
         return $this->success_response([
             'total_points_issued' => $total_points_issued,
@@ -125,20 +119,23 @@ class Loyalty_Controller extends Base_Controller
                 throw new \Exception(__('Customer ID and positive points are required', 'asmaa-salon'));
             }
 
-            // Get current balance
-            $customers_table = $wpdb->prefix . 'asmaa_customers';
-            $customer = $wpdb->get_row($wpdb->prepare("SELECT loyalty_points FROM {$customers_table} WHERE id = %d", $customer_id));
-            if (!$customer) {
-                throw new \Exception(__('Customer not found', 'asmaa-salon'));
+            // Get current balance from extended data
+            $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
+            $extended = $wpdb->get_row($wpdb->prepare("SELECT loyalty_points FROM {$extended_table} WHERE wc_customer_id = %d", $customer_id));
+            if (!$extended) {
+                // Create extended data if doesn't exist
+                $wpdb->insert($extended_table, ['wc_customer_id' => $customer_id, 'loyalty_points' => 0]);
+                $balance_before = 0;
+            } else {
+                $balance_before = (int) $extended->loyalty_points;
             }
 
-            $balance_before = (int) $customer->loyalty_points;
             $balance_after = $balance_before + $points;
 
             // Create transaction
             $transactions_table = $wpdb->prefix . 'asmaa_loyalty_transactions';
             $wpdb->insert($transactions_table, [
-                'customer_id' => $customer_id,
+                'wc_customer_id' => $customer_id,
                 'type' => 'earned',
                 'points' => $points,
                 'balance_before' => $balance_before,
@@ -149,10 +146,18 @@ class Loyalty_Controller extends Base_Controller
                 'performed_by' => get_current_user_id(),
             ]);
 
-            // Update customer balance
-            $wpdb->update($customers_table, ['loyalty_points' => $balance_after], ['id' => $customer_id]);
+            // Update customer balance in extended data
+            $wpdb->update($extended_table, ['loyalty_points' => $balance_after], ['wc_customer_id' => $customer_id]);
 
             $wpdb->query('COMMIT');
+
+            // Update Apple Wallet pass
+            try {
+                Apple_Wallet_Service::update_pass($customer_id);
+            } catch (\Exception $e) {
+                // Log error but don't fail the transaction
+                error_log('Apple Wallet update failed: ' . $e->getMessage());
+            }
 
             ActivityLogger::log_loyalty('earned', $customer_id, [
                 'points' => $points,
@@ -188,14 +193,14 @@ class Loyalty_Controller extends Base_Controller
                 throw new \Exception(__('Customer ID and positive points are required', 'asmaa-salon'));
             }
 
-            // Get current balance
-            $customers_table = $wpdb->prefix . 'asmaa_customers';
-            $customer = $wpdb->get_row($wpdb->prepare("SELECT loyalty_points FROM {$customers_table} WHERE id = %d", $customer_id));
-            if (!$customer) {
+            // Get current balance from extended data
+            $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
+            $extended = $wpdb->get_row($wpdb->prepare("SELECT loyalty_points FROM {$extended_table} WHERE wc_customer_id = %d", $customer_id));
+            if (!$extended) {
                 throw new \Exception(__('Customer not found', 'asmaa-salon'));
             }
 
-            $balance_before = (int) $customer->loyalty_points;
+            $balance_before = (int) $extended->loyalty_points;
             
             if ($balance_before < $points) {
                 throw new \Exception(__('Insufficient points', 'asmaa-salon'));
@@ -206,7 +211,7 @@ class Loyalty_Controller extends Base_Controller
             // Create transaction
             $transactions_table = $wpdb->prefix . 'asmaa_loyalty_transactions';
             $wpdb->insert($transactions_table, [
-                'customer_id' => $customer_id,
+                'wc_customer_id' => $customer_id,
                 'type' => 'redeemed',
                 'points' => -$points,
                 'balance_before' => $balance_before,
@@ -217,10 +222,18 @@ class Loyalty_Controller extends Base_Controller
                 'performed_by' => get_current_user_id(),
             ]);
 
-            // Update customer balance
-            $wpdb->update($customers_table, ['loyalty_points' => $balance_after], ['id' => $customer_id]);
+            // Update customer balance in extended data
+            $wpdb->update($extended_table, ['loyalty_points' => $balance_after], ['wc_customer_id' => $customer_id]);
 
             $wpdb->query('COMMIT');
+
+            // Update Apple Wallet pass
+            try {
+                Apple_Wallet_Service::update_pass($customer_id);
+            } catch (\Exception $e) {
+                // Log error but don't fail the transaction
+                error_log('Apple Wallet update failed: ' . $e->getMessage());
+            }
 
             ActivityLogger::log_loyalty('redeemed', $customer_id, [
                 'points' => $points,
@@ -254,14 +267,14 @@ class Loyalty_Controller extends Base_Controller
                 throw new \Exception(__('Customer ID is required', 'asmaa-salon'));
             }
 
-            // Get current balance
-            $customers_table = $wpdb->prefix . 'asmaa_customers';
-            $customer = $wpdb->get_row($wpdb->prepare("SELECT loyalty_points FROM {$customers_table} WHERE id = %d", $customer_id));
-            if (!$customer) {
+            // Get current balance from extended data
+            $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
+            $extended = $wpdb->get_row($wpdb->prepare("SELECT loyalty_points FROM {$extended_table} WHERE wc_customer_id = %d", $customer_id));
+            if (!$extended) {
                 throw new \Exception(__('Customer not found', 'asmaa-salon'));
             }
 
-            $balance_before = (int) $customer->loyalty_points;
+            $balance_before = (int) $extended->loyalty_points;
             $balance_after = $balance_before + $points;
 
             if ($balance_after < 0) {
@@ -271,7 +284,7 @@ class Loyalty_Controller extends Base_Controller
             // Create transaction
             $transactions_table = $wpdb->prefix . 'asmaa_loyalty_transactions';
             $wpdb->insert($transactions_table, [
-                'customer_id' => $customer_id,
+                'wc_customer_id' => $customer_id,
                 'type' => 'adjustment',
                 'points' => $points,
                 'balance_before' => $balance_before,
@@ -280,10 +293,18 @@ class Loyalty_Controller extends Base_Controller
                 'performed_by' => get_current_user_id(),
             ]);
 
-            // Update customer balance
-            $wpdb->update($customers_table, ['loyalty_points' => $balance_after], ['id' => $customer_id]);
+            // Update customer balance in extended data
+            $wpdb->update($extended_table, ['loyalty_points' => $balance_after], ['wc_customer_id' => $customer_id]);
 
             $wpdb->query('COMMIT');
+
+            // Update Apple Wallet pass
+            try {
+                Apple_Wallet_Service::update_pass($customer_id);
+            } catch (\Exception $e) {
+                // Log error but don't fail the transaction
+                error_log('Apple Wallet update failed: ' . $e->getMessage());
+            }
 
             ActivityLogger::log_loyalty('adjusted', $customer_id, [
                 'points' => $points,

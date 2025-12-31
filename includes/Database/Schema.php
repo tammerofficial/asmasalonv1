@@ -32,6 +32,8 @@ class Schema
             last_visit_at DATETIME NULL,
             preferred_staff_id BIGINT UNSIGNED NULL,
             is_active TINYINT(1) NOT NULL DEFAULT 1,
+            wc_customer_id BIGINT UNSIGNED NULL,
+            wc_synced_at DATETIME NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             deleted_at DATETIME NULL,
@@ -40,7 +42,8 @@ class Schema
             KEY idx_name (name),
             KEY idx_email (email),
             KEY idx_is_active (is_active),
-            KEY idx_last_visit_at (last_visit_at)
+            KEY idx_last_visit_at (last_visit_at),
+            KEY idx_wc_customer_id (wc_customer_id)
         ) {$charset};";
         dbDelta($sql);
 
@@ -158,9 +161,10 @@ class Schema
         $sql = "CREATE TABLE {$table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             ticket_number VARCHAR(50) NOT NULL,
-            customer_id BIGINT UNSIGNED NULL,
+            wc_customer_id BIGINT UNSIGNED NULL,
+            booking_id BIGINT UNSIGNED NULL,
             service_id BIGINT UNSIGNED NULL,
-            staff_id BIGINT UNSIGNED NULL,
+            wp_user_id BIGINT UNSIGNED NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'waiting',
             notes TEXT NULL,
             check_in_at DATETIME NULL,
@@ -172,9 +176,10 @@ class Schema
             deleted_at DATETIME NULL,
             PRIMARY KEY (id),
             KEY idx_ticket_number (ticket_number),
-            KEY idx_customer_id (customer_id),
+            KEY idx_wc_customer_id (wc_customer_id),
+            KEY idx_booking_id (booking_id),
             KEY idx_service_id (service_id),
-            KEY idx_staff_id (staff_id),
+            KEY idx_wp_user_id (wp_user_id),
             KEY idx_status (status),
             KEY idx_created_at (created_at)
         ) {$charset};";
@@ -220,6 +225,8 @@ class Schema
             payment_status VARCHAR(20) NOT NULL DEFAULT 'unpaid',
             payment_method VARCHAR(50) NULL,
             notes TEXT NULL,
+            wc_order_id BIGINT UNSIGNED NULL,
+            wc_synced_at DATETIME NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             deleted_at DATETIME NULL,
@@ -230,7 +237,8 @@ class Schema
             KEY idx_booking_id (booking_id),
             KEY idx_status (status),
             KEY idx_payment_status (payment_status),
-            KEY idx_created_at (created_at)
+            KEY idx_created_at (created_at),
+            KEY idx_wc_order_id (wc_order_id)
         ) {$charset};";
         dbDelta($sql);
 
@@ -273,6 +281,7 @@ class Schema
             due_amount DECIMAL(10,3) NOT NULL DEFAULT 0,
             status VARCHAR(20) NOT NULL DEFAULT 'draft',
             notes TEXT NULL,
+            wc_order_id BIGINT UNSIGNED NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             deleted_at DATETIME NULL,
@@ -282,7 +291,8 @@ class Schema
             KEY idx_customer_id (customer_id),
             KEY idx_status (status),
             KEY idx_issue_date (issue_date),
-            KEY idx_due_date (due_date)
+            KEY idx_due_date (due_date),
+            KEY idx_wc_order_id (wc_order_id)
         ) {$charset};";
         dbDelta($sql);
 
@@ -317,6 +327,7 @@ class Schema
             notes TEXT NULL,
             payment_date DATETIME NOT NULL,
             processed_by BIGINT UNSIGNED NULL,
+            wc_payment_id BIGINT UNSIGNED NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             deleted_at DATETIME NULL,
@@ -328,7 +339,8 @@ class Schema
             KEY idx_processed_by (processed_by),
             KEY idx_status (status),
             KEY idx_payment_method (payment_method),
-            KEY idx_payment_date (payment_date)
+            KEY idx_payment_date (payment_date),
+            KEY idx_wc_payment_id (wc_payment_id)
         ) {$charset};";
         dbDelta($sql);
 
@@ -350,6 +362,8 @@ class Schema
             unit VARCHAR(50) NULL,
             image VARCHAR(255) NULL,
             is_active TINYINT(1) NOT NULL DEFAULT 1,
+            wc_product_id BIGINT UNSIGNED NULL,
+            wc_synced_at DATETIME NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             deleted_at DATETIME NULL,
@@ -359,7 +373,8 @@ class Schema
             KEY idx_name (name),
             KEY idx_category (category),
             KEY idx_is_active (is_active),
-            KEY idx_stock_quantity (stock_quantity)
+            KEY idx_stock_quantity (stock_quantity),
+            KEY idx_wc_product_id (wc_product_id)
         ) {$charset};";
         dbDelta($sql);
 
@@ -598,6 +613,105 @@ class Schema
             KEY idx_type (type),
             KEY idx_status (status),
             KEY idx_created_at (created_at)
+        ) {$charset};";
+        dbDelta($sql);
+
+        // 25. BOOKING_SETTINGS (for structured settings storage)
+        $table = $wpdb->prefix . 'asmaa_booking_settings';
+        $sql = "CREATE TABLE {$table} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            section VARCHAR(100) NOT NULL,
+            setting_key VARCHAR(255) NOT NULL,
+            setting_value LONGTEXT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY idx_section_key (section, setting_key),
+            KEY idx_section (section)
+        ) {$charset};";
+        dbDelta($sql);
+
+        // 26. QUEUE (alias table for backward compatibility, if needed)
+        // Note: Queue functionality uses asmaa_queue_tickets, but we add this for compatibility
+        $table = $wpdb->prefix . 'asmaa_queue';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            ticket_id BIGINT UNSIGNED NOT NULL,
+            customer_id BIGINT UNSIGNED NULL,
+            service_id BIGINT UNSIGNED NULL,
+            staff_id BIGINT UNSIGNED NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'waiting',
+            position INT UNSIGNED NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_ticket_id (ticket_id),
+            KEY idx_customer_id (customer_id),
+            KEY idx_status (status),
+            KEY idx_position (position)
+        ) {$charset};";
+        dbDelta($sql);
+
+        // 27. MEMBERSHIPS (alias table for backward compatibility)
+        // Note: Main table is asmaa_customer_memberships, but we add this for compatibility
+        $table = $wpdb->prefix . 'asmaa_memberships';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            customer_id BIGINT UNSIGNED NOT NULL,
+            plan_id BIGINT UNSIGNED NOT NULL,
+            start_date DATE NOT NULL,
+            end_date DATE NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'active',
+            auto_renew TINYINT(1) NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_customer_id (customer_id),
+            KEY idx_plan_id (plan_id),
+            KEY idx_status (status),
+            KEY idx_end_date (end_date)
+        ) {$charset};";
+        dbDelta($sql);
+
+        // 28. COMMISSIONS (alias table for backward compatibility)
+        // Note: Main table is asmaa_staff_commissions, but we add this for compatibility
+        $table = $wpdb->prefix . 'asmaa_commissions';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            staff_id BIGINT UNSIGNED NOT NULL,
+            order_id BIGINT UNSIGNED NULL,
+            booking_id BIGINT UNSIGNED NULL,
+            amount DECIMAL(10,3) NOT NULL DEFAULT 0,
+            rate DECIMAL(5,2) NOT NULL DEFAULT 0,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            approved_at DATETIME NULL,
+            paid_at DATETIME NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_staff_id (staff_id),
+            KEY idx_order_id (order_id),
+            KEY idx_booking_id (booking_id),
+            KEY idx_status (status)
+        ) {$charset};";
+        dbDelta($sql);
+
+        // 29. WOOCOMMERCE SYNC LOG
+        $table = $wpdb->prefix . 'asmaa_wc_sync_log';
+        $sql = "CREATE TABLE {$table} (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            entity_type VARCHAR(50) NOT NULL,
+            entity_id BIGINT UNSIGNED NULL,
+            wc_entity_id BIGINT UNSIGNED NULL,
+            sync_direction VARCHAR(20) NOT NULL,
+            status VARCHAR(20) NOT NULL,
+            error_message TEXT NULL,
+            synced_at DATETIME NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_entity (entity_type, entity_id),
+            KEY idx_status (status),
+            KEY idx_synced_at (synced_at)
         ) {$charset};";
         dbDelta($sql);
     }

@@ -4,8 +4,9 @@ namespace AsmaaSalon\API\Controllers;
 
 use WP_REST_Request;
 use WP_REST_Response;
-
 use WP_Error;
+use AsmaaSalon\Services\Apple_Wallet_Service;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -32,13 +33,21 @@ class Commissions_Controller extends Base_Controller
             ['methods' => 'GET', 'callback' => [$this, 'get_settings'], 'permission_callback' => $this->permission_callback('asmaa_commissions_view')],
             ['methods' => 'PUT', 'callback' => [$this, 'update_settings'], 'permission_callback' => $this->permission_callback('asmaa_commissions_calculate')],
         ]);
+        
+        // Apple Wallet pass creation for staff
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/apple-wallet/(?P<staff_id>\d+)', [
+            [
+                'methods' => 'POST',
+                'callback' => [$this, 'create_apple_wallet_pass'],
+                'permission_callback' => $this->permission_callback('asmaa_commissions_view'),
+            ],
+        ]);
     }
 
     public function get_items(WP_REST_Request $request): WP_REST_Response
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_staff_commissions';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
         $params = $this->get_pagination_params($request);
         $offset = ($params['page'] - 1) * $params['per_page'];
 
@@ -46,7 +55,7 @@ class Commissions_Controller extends Base_Controller
         
         $staff_id = $request->get_param('staff_id');
         if ($staff_id) {
-            $where[] = $wpdb->prepare('sc.staff_id = %d', $staff_id);
+            $where[] = $wpdb->prepare('sc.wp_user_id = %d', $staff_id);
         }
 
         $status = $request->get_param('status');
@@ -63,21 +72,18 @@ class Commissions_Controller extends Base_Controller
         $search = $request->get_param('search');
         if ($search) {
             $like = '%' . $wpdb->esc_like((string) $search) . '%';
-            $where[] = $wpdb->prepare('(s.name LIKE %s OR s.phone LIKE %s)', $like, $like);
+            $where[] = $wpdb->prepare('(u.display_name LIKE %s OR u.user_email LIKE %s)', $like, $like);
         }
 
-        // Exclude deleted staff records
-        $where[] = 's.deleted_at IS NULL';
-
         $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} sc LEFT JOIN {$staff_table} s ON s.id = sc.staff_id {$where_clause}");
+        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} sc LEFT JOIN {$wpdb->users} u ON u.ID = sc.wp_user_id {$where_clause}");
 
         $items = $wpdb->get_results($wpdb->prepare(
             "SELECT
                 sc.*,
-                s.name AS staff_name
+                u.display_name AS staff_name
              FROM {$table} sc
-             LEFT JOIN {$staff_table} s ON s.id = sc.staff_id
+             LEFT JOIN {$wpdb->users} u ON u.ID = sc.wp_user_id
              {$where_clause}
              ORDER BY sc.created_at DESC
              LIMIT %d OFFSET %d",
@@ -95,13 +101,12 @@ class Commissions_Controller extends Base_Controller
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_staff_commissions';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
         $id = (int) $request->get_param('id');
 
         $item = $wpdb->get_row($wpdb->prepare(
-            "SELECT sc.*, s.name AS staff_name
+            "SELECT sc.*, u.display_name AS staff_name
              FROM {$table} sc
-             LEFT JOIN {$staff_table} s ON s.id = sc.staff_id
+             LEFT JOIN {$wpdb->users} u ON u.ID = sc.wp_user_id
              WHERE sc.id = %d",
             $id
         ));
@@ -130,11 +135,21 @@ class Commissions_Controller extends Base_Controller
 
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $sql = "UPDATE {$table}
-                SET status = 'approved', approved_by = %d, approved_at = %s
+                SET status = 'approved', wp_user_id_approved = %d, approved_at = %s
                 WHERE id IN ({$placeholders}) AND status = 'pending'";
         $params = array_merge([get_current_user_id(), current_time('mysql')], $ids);
 
         $wpdb->query($wpdb->prepare($sql, ...$params));
+
+        // Update Apple Wallet passes for affected staff
+        $staff_ids = $wpdb->get_col("SELECT DISTINCT wp_user_id FROM {$table} WHERE id IN (" . implode(',', $ids) . ")");
+        foreach ($staff_ids as $staff_id) {
+            try {
+                Apple_Wallet_Service::update_commissions_pass((int) $staff_id);
+            } catch (\Exception $e) {
+                error_log('Apple Wallet update failed for staff ' . $staff_id . ': ' . $e->getMessage());
+            }
+        }
 
         return $this->success_response(null, __('Commissions approved successfully', 'asmaa-salon'));
     }
@@ -185,5 +200,20 @@ class Commissions_Controller extends Base_Controller
 
         $settings = $wpdb->get_row("SELECT * FROM {$table} ORDER BY id DESC LIMIT 1");
         return $this->success_response($settings, __('Settings updated successfully', 'asmaa-salon'));
+    }
+    
+    /**
+     * Create Apple Wallet pass for staff commissions
+     */
+    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $staff_id = (int) $request->get_param('staff_id');
+        
+        try {
+            $result = Apple_Wallet_Service::create_commissions_pass($staff_id);
+            return $this->success_response($result, __('Commissions pass created successfully', 'asmaa-salon'), 201);
+        } catch (\Exception $e) {
+            return $this->error_response($e->getMessage(), 500);
+        }
     }
 }

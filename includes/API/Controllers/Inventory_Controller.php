@@ -71,8 +71,8 @@ class Inventory_Controller extends Base_Controller
         $wpdb->query('START TRANSACTION');
 
         try {
-            $products_table = $wpdb->prefix . 'asmaa_products';
             $movements_table = $wpdb->prefix . 'asmaa_inventory_movements';
+            $extended_table = $wpdb->prefix . 'asmaa_product_extended_data';
 
             $product_id = (int) $request->get_param('product_id');
             $type = sanitize_text_field($request->get_param('type'));
@@ -84,13 +84,13 @@ class Inventory_Controller extends Base_Controller
                 throw new \Exception(__('Product ID, type and quantity are required', 'asmaa-salon'));
             }
 
-            // Get current stock
-            $product = $wpdb->get_row($wpdb->prepare("SELECT stock_quantity FROM {$products_table} WHERE id = %d", $product_id));
-            if (!$product) {
+            // Get WooCommerce product
+            $wc_product = wc_get_product($product_id);
+            if (!$wc_product) {
                 throw new \Exception(__('Product not found', 'asmaa-salon'));
             }
 
-            $before_quantity = (int) $product->stock_quantity;
+            $before_quantity = (int) $wc_product->get_stock_quantity();
             
             // Calculate after quantity based on type
             if (in_array($type, ['purchase', 'return'])) {
@@ -118,20 +118,19 @@ class Inventory_Controller extends Base_Controller
                 'movement_date' => current_time('mysql'),
             ]);
 
-            // Update product stock
-            $wpdb->update($products_table, ['stock_quantity' => $after_quantity], ['id' => $product_id]);
+            // Update WooCommerce product stock
+            $wc_product->set_stock_quantity($after_quantity);
+            $wc_product->save();
 
             // Low stock dashboard notification (admins)
-            $product_meta = $wpdb->get_row($wpdb->prepare(
-                "SELECT name, stock_quantity, min_stock_level FROM {$products_table} WHERE id = %d",
-                $product_id
-            ));
-            if ($product_meta && (int) $product_meta->min_stock_level > 0 && (int) $product_meta->stock_quantity <= (int) $product_meta->min_stock_level) {
+            $extended = $wpdb->get_row($wpdb->prepare("SELECT min_stock_level FROM {$extended_table} WHERE wc_product_id = %d", $product_id));
+            $min_stock_level = $extended ? (int) $extended->min_stock_level : (int) $wc_product->get_low_stock_amount();
+            if ($min_stock_level > 0 && $after_quantity <= $min_stock_level) {
                 NotificationDispatcher::dashboard_admins('Dashboard.InventoryLowStock', [
                     'event' => 'inventory.low_stock',
                     'product_id' => (int) $product_id,
-                    'product_name' => (string) $product_meta->name,
-                    'stock_quantity' => (int) $product_meta->stock_quantity,
+                    'product_name' => $wc_product->get_name(),
+                    'stock_quantity' => $after_quantity,
                     'min_stock_level' => (int) $product_meta->min_stock_level,
                     'title_en' => 'Low stock alert',
                     'message_en' => sprintf('%s is low (%d left)', (string) $product_meta->name, (int) $product_meta->stock_quantity),
@@ -158,17 +157,34 @@ class Inventory_Controller extends Base_Controller
     public function get_low_stock(): WP_REST_Response
     {
         global $wpdb;
-        $table = $wpdb->prefix . 'asmaa_products';
+        $extended_table = $wpdb->prefix . 'asmaa_product_extended_data';
 
-        $items = $wpdb->get_results(
-            "SELECT * FROM {$table} 
-             WHERE stock_quantity <= min_stock_level 
-             AND is_active = 1 
-             AND deleted_at IS NULL 
-             ORDER BY stock_quantity ASC"
-        );
+        // Get products with low stock
+        $low_stock_products = [];
+        $products = wc_get_products(['status' => 'publish', 'limit' => -1]);
+        
+        foreach ($products as $product) {
+            $stock_quantity = (int) $product->get_stock_quantity();
+            $extended = $wpdb->get_row($wpdb->prepare("SELECT min_stock_level FROM {$extended_table} WHERE wc_product_id = %d", $product->get_id()));
+            $min_stock_level = $extended ? (int) $extended->min_stock_level : (int) $product->get_low_stock_amount();
+            
+            if ($min_stock_level > 0 && $stock_quantity <= $min_stock_level) {
+                $low_stock_products[] = [
+                    'id' => $product->get_id(),
+                    'name' => $product->get_name(),
+                    'sku' => $product->get_sku(),
+                    'stock_quantity' => $stock_quantity,
+                    'min_stock_level' => $min_stock_level,
+                ];
+            }
+        }
 
-        return $this->success_response($items);
+        // Sort by stock quantity ascending
+        usort($low_stock_products, function($a, $b) {
+            return $a['stock_quantity'] <=> $b['stock_quantity'];
+        });
+
+        return $this->success_response($low_stock_products);
     }
 
     public function adjust_stock(WP_REST_Request $request): WP_REST_Response|WP_Error
@@ -177,8 +193,8 @@ class Inventory_Controller extends Base_Controller
         $wpdb->query('START TRANSACTION');
 
         try {
-            $products_table = $wpdb->prefix . 'asmaa_products';
             $movements_table = $wpdb->prefix . 'asmaa_inventory_movements';
+            $extended_table = $wpdb->prefix . 'asmaa_product_extended_data';
 
             $product_id = (int) $request->get_param('product_id');
             $new_quantity = (int) $request->get_param('new_quantity');
@@ -188,13 +204,13 @@ class Inventory_Controller extends Base_Controller
                 throw new \Exception(__('Product ID and valid quantity are required', 'asmaa-salon'));
             }
 
-            // Get current stock
-            $product = $wpdb->get_row($wpdb->prepare("SELECT stock_quantity FROM {$products_table} WHERE id = %d", $product_id));
-            if (!$product) {
+            // Get WooCommerce product
+            $wc_product = wc_get_product($product_id);
+            if (!$wc_product) {
                 throw new \Exception(__('Product not found', 'asmaa-salon'));
             }
 
-            $before_quantity = (int) $product->stock_quantity;
+            $before_quantity = (int) $wc_product->get_stock_quantity();
             $difference = $new_quantity - $before_quantity;
 
             if ($difference == 0) {
@@ -213,20 +229,19 @@ class Inventory_Controller extends Base_Controller
                 'movement_date' => current_time('mysql'),
             ]);
 
-            // Update product stock
-            $wpdb->update($products_table, ['stock_quantity' => $new_quantity], ['id' => $product_id]);
+            // Update WooCommerce product stock
+            $wc_product->set_stock_quantity($new_quantity);
+            $wc_product->save();
 
             // Low stock dashboard notification (admins)
-            $product_meta = $wpdb->get_row($wpdb->prepare(
-                "SELECT name, stock_quantity, min_stock_level FROM {$products_table} WHERE id = %d",
-                $product_id
-            ));
-            if ($product_meta && (int) $product_meta->min_stock_level > 0 && (int) $product_meta->stock_quantity <= (int) $product_meta->min_stock_level) {
+            $extended = $wpdb->get_row($wpdb->prepare("SELECT min_stock_level FROM {$extended_table} WHERE wc_product_id = %d", $product_id));
+            $min_stock_level = $extended ? (int) $extended->min_stock_level : (int) $wc_product->get_low_stock_amount();
+            if ($min_stock_level > 0 && $new_quantity <= $min_stock_level) {
                 NotificationDispatcher::dashboard_admins('Dashboard.InventoryLowStock', [
                     'event' => 'inventory.low_stock',
                     'product_id' => (int) $product_id,
-                    'product_name' => (string) $product_meta->name,
-                    'stock_quantity' => (int) $product_meta->stock_quantity,
+                    'product_name' => $wc_product->get_name(),
+                    'stock_quantity' => $new_quantity,
                     'min_stock_level' => (int) $product_meta->min_stock_level,
                     'title_en' => 'Low stock alert',
                     'message_en' => sprintf('%s is low (%d left)', (string) $product_meta->name, (int) $product_meta->stock_quantity),

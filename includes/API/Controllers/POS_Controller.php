@@ -33,6 +33,14 @@ class POS_Controller extends Base_Controller
         register_rest_route($this->namespace, '/' . $this->rest_base . '/session/close', [
             ['methods' => 'POST', 'callback' => [$this, 'close_session'], 'permission_callback' => $this->permission_callback('asmaa_pos_use')],
         ]);
+
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/prepaid/(?P<customer_id>\d+)', [
+            ['methods' => 'GET', 'callback' => [$this, 'get_prepaid_orders'], 'permission_callback' => $this->permission_callback('asmaa_pos_use')],
+        ]);
+
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/sync-pending', [
+            ['methods' => 'POST', 'callback' => [$this, 'sync_pending_orders'], 'permission_callback' => $this->permission_callback('asmaa_pos_use')],
+        ]);
     }
 
     /**
@@ -63,6 +71,10 @@ class POS_Controller extends Base_Controller
      */
     public function process_order(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
+
         global $wpdb;
         $wpdb->query('START TRANSACTION');
 
@@ -72,6 +84,8 @@ class POS_Controller extends Base_Controller
             $items = $request->get_param('items');
             $payment_method = sanitize_text_field($request->get_param('payment_method')) ?: 'cash';
             $discount = (float) ($request->get_param('discount') ?? 0);
+            $booking_id = $request->get_param('booking_id') ? (int) $request->get_param('booking_id') : null;
+            $queue_ticket_id = $request->get_param('queue_ticket_id') ? (int) $request->get_param('queue_ticket_id') : null;
 
             if (empty($customer_id)) {
                 throw new \Exception(__('Customer is required for POS sale', 'asmaa-salon'));
@@ -90,38 +104,44 @@ class POS_Controller extends Base_Controller
                 $subtotal += (float) ($item['unit_price'] ?? 0) * (int) ($item['quantity'] ?? 1);
             }
 
-            $total = max(0, $subtotal - $discount);
-
-            // Create Order
-            $orders_table = $wpdb->prefix . 'asmaa_orders';
-            $order_number = 'ORD-' . date('Ymd') . '-' . str_pad($wpdb->get_var("SELECT COUNT(*) + 1 FROM {$orders_table}"), 4, '0', STR_PAD_LEFT);
-
-            $order_data = [
-                'customer_id' => $customer_id,
-                'order_number' => $order_number,
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-                'tax' => 0,
-                'total' => $total,
-                'status' => 'completed',
-                'payment_status' => 'paid',
-                'payment_method' => $payment_method,
-                'notes' => 'POS Sale',
-            ];
-
-            $wpdb->insert($orders_table, $order_data);
-            if ($wpdb->last_error) {
-                throw new \Exception(__('Failed to create order', 'asmaa-salon'));
+            // Check for prepaid amounts (deposits) from previous orders
+            $prepaid_amount = 0.0;
+            if ($customer_id) {
+                $prepaid_orders = wc_get_orders([
+                    'customer_id' => $customer_id,
+                    'status' => ['processing', 'on-hold'],
+                    'limit' => 10,
+                ]);
+                
+                foreach ($prepaid_orders as $prepaid_order) {
+                    $prepaid_amount += (float) $prepaid_order->get_total_paid();
+                }
             }
 
-            $order_id = $wpdb->insert_id;
+            $total = max(0, $subtotal - $discount - $prepaid_amount);
+            
+            // Store prepaid amount info for response
+            $prepaid_info = [
+                'prepaid_amount' => $prepaid_amount,
+                'prepaid_orders_count' => count($prepaid_orders ?? []),
+            ];
 
-            // Create Order Items and process inventory
-            $order_items_table = $wpdb->prefix . 'asmaa_order_items';
-            $products_table = $wpdb->prefix . 'asmaa_products';
+            // Create WooCommerce Order directly
+            $wc_order = wc_create_order([
+                'customer_id' => $customer_id,
+                'status' => 'wc-completed',
+            ]);
+
+            if (is_wp_error($wc_order)) {
+                throw new \Exception($wc_order->get_error_message());
+            }
+
+            $wc_order_id = $wc_order->get_id();
+            $order_number = $wc_order->get_order_number();
             $inventory_movements_table = $wpdb->prefix . 'asmaa_inventory_movements';
             $created_order_items = [];
 
+            // Add items to WooCommerce order
             foreach ($items as $item) {
                 $item_type = !empty($item['product_id']) ? 'product' : 'service';
                 $item_id = !empty($item['product_id']) ? (int) $item['product_id'] : (int) $item['service_id'];
@@ -131,25 +151,103 @@ class POS_Controller extends Base_Controller
                 $staff_id = !empty($item['staff_id']) ? (int) $item['staff_id'] : null;
                 $item_name = sanitize_text_field($item['name'] ?? 'Item');
 
-                // Create order item
-                $wpdb->insert($order_items_table, [
-                    'order_id' => $order_id,
-                    'item_type' => $item_type,
-                    'item_id' => $item_id,
-                    'item_name' => $item_name,
-                    'quantity' => $quantity,
-                    'unit_price' => $unit_price,
-                    'discount' => 0,
-                    'total' => $item_total,
-                    'staff_id' => $staff_id,
-                ]);
-                if ($wpdb->last_error) {
-                    throw new \Exception(__('Failed to create order item', 'asmaa-salon'));
+                if ($item_type === 'product') {
+                    // Add product to WooCommerce order
+                    $wc_product = wc_get_product($item_id);
+                    if (!$wc_product) {
+                        throw new \Exception(__('Product not found', 'asmaa-salon'));
+                    }
+
+                    // Check stock before adding
+                    $current_stock = $wc_product->get_stock_quantity();
+                    $before_quantity = (int) ($current_stock ?? 0);
+                    $after_quantity = max(0, $before_quantity - $quantity);
+
+                    if ($after_quantity < 0) {
+                        throw new \Exception(__('Insufficient stock', 'asmaa-salon'));
+                    }
+
+                    // Add product to order
+                    $wc_order->add_product($wc_product, $quantity, [
+                        'subtotal' => $item_total,
+                        'total' => $item_total,
+                    ]);
+                    
+                    // Get the last added item and save staff_id in meta
+                    $items = $wc_order->get_items();
+                    $last_item = end($items);
+                    if ($last_item && $staff_id) {
+                        $last_item->add_meta_data('_asmaa_staff_id', $staff_id);
+                        $last_item->save();
+                    }
+
+                    // Update stock
+                    $wc_product->set_stock_quantity($after_quantity);
+                    $wc_product->save();
+
+                    // Check for low stock and send notification
+                    $extended_table = $wpdb->prefix . 'asmaa_product_extended_data';
+                    $extended = $wpdb->get_row(
+                        $wpdb->prepare("SELECT * FROM {$extended_table} WHERE wc_product_id = %d", $item_id)
+                    );
+                    
+                    $min_stock = (int) ($extended->min_stock_level ?? 0);
+                    if ($extended && $after_quantity <= $min_stock && $before_quantity > $min_stock) {
+                        \AsmaaSalon\Services\NotificationDispatcher::low_stock_alert($item_id, [
+                            'name' => $wc_product->get_name(),
+                            'current_stock' => $after_quantity,
+                            'min_stock_level' => $min_stock,
+                            'sku' => $wc_product->get_sku() ?? '',
+                        ]);
+                    }
+
+                    // Create inventory movement
+                    $wpdb->insert($inventory_movements_table, [
+                        'wc_product_id' => $item_id,
+                        'type' => 'sale',
+                        'quantity' => -$quantity,
+                        'before_quantity' => $before_quantity,
+                        'after_quantity' => $after_quantity,
+                        'unit_cost' => 0,
+                        'total_cost' => 0,
+                        'notes' => "POS Sale - WC Order #{$wc_order_id}",
+                        'wp_user_id' => get_current_user_id(),
+                        'movement_date' => current_time('mysql'),
+                    ]);
+                    if ($wpdb->last_error) {
+                        throw new \Exception(__('Failed to create inventory movement', 'asmaa-salon'));
+                    }
+                } else {
+                    // Add service as Virtual Product
+                    $service_product_id = \AsmaaSalon\Services\Product_Service::get_or_create_service_product(
+                        $item_id,
+                        $item_name,
+                        $unit_price
+                    );
+                    
+                    $wc_product = wc_get_product($service_product_id);
+                    if (!$wc_product) {
+                        throw new \Exception(__('Service product not found', 'asmaa-salon'));
+                    }
+                    
+                    // Add service as virtual product
+                    $wc_order->add_product($wc_product, $quantity, [
+                        'subtotal' => $item_total,
+                        'total' => $item_total,
+                    ]);
+                    
+                    // Get the last added item and save staff_id in meta
+                    $items = $wc_order->get_items();
+                    $last_item = end($items);
+                    if ($last_item && $staff_id) {
+                        $last_item->add_meta_data('_asmaa_staff_id', $staff_id);
+                        $last_item->save();
+                    }
                 }
 
-                $order_item_id = (int) $wpdb->insert_id;
+                // Store item info for loyalty/commissions
                 $created_order_items[] = [
-                    'id' => $order_item_id,
+                    'id' => 0, // WC order items don't have our IDs
                     'item_type' => $item_type,
                     'item_id' => $item_id,
                     'item_name' => $item_name,
@@ -158,71 +256,25 @@ class POS_Controller extends Base_Controller
                     'total' => $item_total,
                     'staff_id' => $staff_id,
                 ];
-
-                // Process inventory for products
-                if (!empty($item['product_id'])) {
-                    $product_id = (int) $item['product_id'];
-                    
-                    // Get current stock
-                    $product = $wpdb->get_row($wpdb->prepare("SELECT stock_quantity FROM {$products_table} WHERE id = %d", $product_id));
-                    if (!$product) {
-                        throw new \Exception(__('Product not found', 'asmaa-salon'));
-                    }
-
-                    $before_quantity = (int) $product->stock_quantity;
-                    $after_quantity = max(0, $before_quantity - $quantity);
-
-                    if ($after_quantity < 0) {
-                        throw new \Exception(__('Insufficient stock', 'asmaa-salon'));
-                    }
-
-                    // Update product stock
-                    $wpdb->update($products_table, ['stock_quantity' => $after_quantity], ['id' => $product_id]);
-
-                    // ✅ FIX: Check for low stock and send notification
-                    $product_full = $wpdb->get_row($wpdb->prepare(
-                        "SELECT * FROM {$products_table} WHERE id = %d",
-                        $product_id
-                    ));
-                    
-                    $min_stock = (int) ($product_full->min_stock_level ?? 0);
-                    // Send notification if stock reaches or falls below minimum (including 0)
-                    if ($product_full && $after_quantity <= $min_stock && $before_quantity > $min_stock) {
-                        // Only send if this is the first time crossing the threshold
-                        \AsmaaSalon\Services\NotificationDispatcher::low_stock_alert($product_id, [
-                            'name' => $product_full->name ?? $product_full->name_ar ?? 'Product',
-                            'current_stock' => $after_quantity,
-                            'min_stock_level' => $min_stock,
-                            'sku' => $product_full->sku ?? '',
-                        ]);
-                    }
-
-                    // Create inventory movement
-                    $wpdb->insert($inventory_movements_table, [
-                        'product_id' => $product_id,
-                        'type' => 'sale',
-                        'quantity' => -$quantity,
-                        'before_quantity' => $before_quantity,
-                        'after_quantity' => $after_quantity,
-                        'unit_cost' => 0,
-                        'total_cost' => 0,
-                        'notes' => "POS Sale - Order #{$order_id}",
-                        'performed_by' => get_current_user_id(),
-                        'movement_date' => current_time('mysql'),
-                    ]);
-                    if ($wpdb->last_error) {
-                        throw new \Exception(__('Failed to create inventory movement', 'asmaa-salon'));
-                    }
-                }
             }
 
-            // Create Invoice
+            // Set order totals
+            $wc_order->set_subtotal($subtotal);
+            $wc_order->set_discount_total($discount);
+            $wc_order->set_total($total);
+            $wc_order->set_payment_method($payment_method);
+            $wc_order->set_payment_method_title($payment_method);
+            $wc_order->payment_complete(); // Mark as paid
+            $wc_order->add_order_note('POS Sale');
+            $wc_order->save();
+
+            // Create Invoice (still needed for our system)
             $invoices_table = $wpdb->prefix . 'asmaa_invoices';
             $invoice_number = 'INV-' . date('Ymd') . '-' . str_pad($wpdb->get_var("SELECT COUNT(*) + 1 FROM {$invoices_table}"), 4, '0', STR_PAD_LEFT);
 
             $invoice_data = [
-                'order_id' => $order_id,
-                'customer_id' => $customer_id,
+                'wc_order_id' => $wc_order_id,
+                'wc_customer_id' => $customer_id,
                 'invoice_number' => $invoice_number,
                 'issue_date' => current_time('Y-m-d'),
                 'due_date' => current_time('Y-m-d'),
@@ -261,21 +313,21 @@ class POS_Controller extends Base_Controller
                 }
             }
 
-            // ✅ FIX: Create Payment Record (CRITICAL!)
+            // Create Payment Record
             $payments_table = $wpdb->prefix . 'asmaa_payments';
             $payment_number = 'PAY-' . date('Ymd') . '-' . str_pad($invoice_id, 4, '0', STR_PAD_LEFT);
             
             $payment_data = [
                 'payment_number' => $payment_number,
                 'invoice_id' => $invoice_id,
-                'customer_id' => $customer_id,
-                'order_id' => $order_id,
+                'wc_customer_id' => $customer_id,
+                'wc_order_id' => $wc_order_id,
                 'amount' => $total,
                 'payment_method' => $payment_method,
                 'status' => 'completed',
                 'payment_date' => current_time('mysql'),
                 'notes' => 'POS Payment',
-                'processed_by' => get_current_user_id(),
+                'wp_user_id' => get_current_user_id(),
             ];
 
             $wpdb->insert($payments_table, $payment_data);
@@ -288,38 +340,38 @@ class POS_Controller extends Base_Controller
             $wpdb->update($invoices_table, ['payment_id' => $payment_id], ['id' => $invoice_id]);
 
             // Update POS Session
-            $this->update_session($order_id, $total, $payment_method);
+            $this->update_session($wc_order_id, $total, $payment_method);
 
             // Process Loyalty Points (if customer exists)
             if ($customer_id) {
-                $this->process_loyalty_points($customer_id, $order_id, $order_number, $created_order_items, $total);
+                $this->process_loyalty_points($customer_id, $wc_order_id, $order_number, $created_order_items, $total);
             }
 
             // Process Commissions (if staff assigned)
-            $this->process_commissions($order_id, $created_order_items);
+            $this->process_commissions($wc_order_id, $created_order_items);
 
             // Activity Log
-            ActivityLogger::log_order('created', $order_id, $customer_id, [
+            ActivityLogger::log_order('created', $wc_order_id, $customer_id, [
                 'status' => 'completed',
                 'payment_status' => 'paid',
                 'total' => $total,
                 'items_count' => count($items),
                 'pos' => true,
+                'wc_order_id' => $wc_order_id,
             ]);
 
             $wpdb->query('COMMIT');
 
             return $this->success_response([
-                'order_id' => $order_id,
+                'order_id' => $wc_order_id,
                 'order_number' => $order_number,
                 'invoice_id' => $invoice_id,
                 'invoice_number' => $invoice_number,
-                'payment_id' => $payment_id, // ✅ Include payment_id
-                'payment_number' => $payment_number, // ✅ Include payment_number
+                'payment_id' => $payment_id,
+                'payment_number' => $payment_number,
                 'customer_id' => $customer_id,
                 'total' => $total,
-            ], __('Order processed successfully', 'asmaa-salon'));
-
+            ], __('Order processed successfully', 'asmaa-salon'), 201);
         } catch (\Exception $e) {
             $wpdb->query('ROLLBACK');
             return $this->error_response($e->getMessage(), 500);
@@ -413,16 +465,18 @@ class POS_Controller extends Base_Controller
         
         // Get customers from queue
         $queue_table = $wpdb->prefix . 'asmaa_queue_tickets';
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
         $services_table = $wpdb->prefix . 'asmaa_services';
-        $staff_table = $wpdb->prefix . 'asmaa_staff';
 
         $queue_customers = $wpdb->get_results(
-            "SELECT q.*, c.name, c.phone, s.name as service_name, st.name as staff_name
+            "SELECT q.*, 
+                    u.display_name as name, 
+                    u.user_email as email,
+                    s.name as service_name, 
+                    st.display_name as staff_name
              FROM {$queue_table} q
-             LEFT JOIN {$customers_table} c ON q.customer_id = c.id
+             LEFT JOIN {$wpdb->users} u ON q.wc_customer_id = u.ID
              LEFT JOIN {$services_table} s ON q.service_id = s.id
-             LEFT JOIN {$staff_table} st ON q.staff_id = st.id
+             LEFT JOIN {$wpdb->users} st ON q.wp_user_id = st.ID
              WHERE DATE(q.created_at) = CURDATE()
              AND q.status IN ('waiting', 'called', 'serving')
              AND q.deleted_at IS NULL
@@ -430,11 +484,15 @@ class POS_Controller extends Base_Controller
         );
 
         foreach ($queue_customers as $ticket) {
-            if ($ticket->customer_id) {
+            if ($ticket->wc_customer_id) {
+                // Get phone from WooCommerce customer
+                $wc_customer = new \WC_Customer($ticket->wc_customer_id);
+                $phone = $wc_customer->get_billing_phone();
+                
                 $active_customers[] = [
-                    'id' => $ticket->customer_id,
+                    'id' => $ticket->wc_customer_id,
                     'name' => !empty($ticket->name) ? $ticket->name : 'Walk-in Customer',
-                    'phone' => $ticket->phone ?? '',
+                    'phone' => $phone ?? '',
                     'current_service' => $ticket->service_name ?? 'N/A',
                     'staff_name' => $ticket->staff_name ?? 'Unassigned',
                     'status' => $ticket->status,
@@ -448,11 +506,15 @@ class POS_Controller extends Base_Controller
         // Get customers from bookings (all today's bookings - pending, confirmed, in_progress)
         $bookings_table = $wpdb->prefix . 'asmaa_bookings';
         $booking_customers = $wpdb->get_results(
-            "SELECT b.*, c.name, c.phone, s.name as service_name, st.name as staff_name
+            "SELECT b.*, 
+                    u.display_name as name, 
+                    u.user_email as email,
+                    s.name as service_name, 
+                    st.display_name as staff_name
              FROM {$bookings_table} b
-             LEFT JOIN {$customers_table} c ON b.customer_id = c.id
+             LEFT JOIN {$wpdb->users} u ON b.wc_customer_id = u.ID
              LEFT JOIN {$services_table} s ON b.service_id = s.id
-             LEFT JOIN {$staff_table} st ON b.staff_id = st.id
+             LEFT JOIN {$wpdb->users} st ON b.wp_user_id = st.ID
              WHERE b.booking_date = CURDATE()
              AND b.status IN ('pending', 'confirmed', 'in_progress')
              AND b.deleted_at IS NULL
@@ -460,11 +522,15 @@ class POS_Controller extends Base_Controller
         );
 
         foreach ($booking_customers as $booking) {
-            if ($booking->customer_id) {
+            if ($booking->wc_customer_id) {
+                // Get phone from WooCommerce customer
+                $wc_customer = new \WC_Customer($booking->wc_customer_id);
+                $phone = $wc_customer->get_billing_phone();
+                
                 $active_customers[] = [
-                    'id' => $booking->customer_id,
+                    'id' => $booking->wc_customer_id,
                     'name' => !empty($booking->name) ? $booking->name : 'Walk-in Customer',
-                    'phone' => $booking->phone ?? '',
+                    'phone' => $phone ?? '',
                     'current_service' => $booking->service_name ?? 'N/A',
                     'staff_name' => $booking->staff_name ?? 'Unassigned',
                     'status' => $booking->status,
@@ -533,7 +599,7 @@ class POS_Controller extends Base_Controller
     /**
      * Update POS session with new transaction
      */
-    private function update_session(int $order_id, float $total, string $payment_method = 'cash'): void
+    private function update_session(int $wc_order_id, float $total, string $payment_method = 'cash'): void
     {
         global $wpdb;
         $sessions_table = $wpdb->prefix . 'asmaa_pos_sessions';
@@ -561,23 +627,34 @@ class POS_Controller extends Base_Controller
     {
         global $wpdb;
 
-        $customers_table = $wpdb->prefix . 'asmaa_customers';
+        $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
         $transactions_table = $wpdb->prefix . 'asmaa_loyalty_transactions';
 
-        $customer = $wpdb->get_row($wpdb->prepare(
-            "SELECT id, loyalty_points, total_visits, total_spent FROM {$customers_table} WHERE id = %d",
+        $extended = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$extended_table} WHERE wc_customer_id = %d",
             $customer_id
         ));
-        if (!$customer) {
-            return;
+        
+        if (!$extended) {
+            // Create extended data if doesn't exist
+            $wpdb->insert($extended_table, [
+                'wc_customer_id' => $customer_id,
+                'total_visits' => 1,
+                'total_spent' => $total,
+                'loyalty_points' => 0,
+            ]);
+            $extended = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$extended_table} WHERE wc_customer_id = %d",
+                $customer_id
+            ));
         }
 
         // Always update customer totals for purchases
         $wpdb->query($wpdb->prepare(
-            "UPDATE {$customers_table}
+            "UPDATE {$extended_table}
              SET total_visits = COALESCE(total_visits, 0) + 1,
                  total_spent = COALESCE(total_spent, 0) + %f
-             WHERE id = %d",
+             WHERE wc_customer_id = %d",
             $total,
             $customer_id
         ));
@@ -595,7 +672,7 @@ class POS_Controller extends Base_Controller
             $points_per_item = 0;
         }
 
-        $balance_before = (int) ($customer->loyalty_points ?? 0);
+        $balance_before = (int) ($extended->loyalty_points ?? 0);
         $balance_after = $balance_before;
 
         foreach ($order_items as $row) {
@@ -614,7 +691,7 @@ class POS_Controller extends Base_Controller
             );
 
             $wpdb->insert($transactions_table, [
-                'customer_id' => $customer_id,
+                'wc_customer_id' => $customer_id,
                 'type' => 'earned',
                 'points' => $points,
                 'balance_before' => $balance_after,
@@ -622,7 +699,7 @@ class POS_Controller extends Base_Controller
                 'reference_type' => 'order_item',
                 'reference_id' => (int) ($row['id'] ?? 0),
                 'description' => $desc,
-                'performed_by' => get_current_user_id(),
+                'wp_user_id' => get_current_user_id(),
             ]);
 
             if ($wpdb->last_error) {
@@ -633,7 +710,14 @@ class POS_Controller extends Base_Controller
         }
 
         if ($balance_after !== $balance_before) {
-            $wpdb->update($customers_table, ['loyalty_points' => $balance_after], ['id' => $customer_id]);
+            $wpdb->update($extended_table, ['loyalty_points' => $balance_after], ['wc_customer_id' => $customer_id]);
+            
+            // Update Apple Wallet pass
+            try {
+                \AsmaaSalon\Services\Apple_Wallet_Service::update_pass($customer_id);
+            } catch (\Exception $e) {
+                error_log('Apple Wallet update failed: ' . $e->getMessage());
+            }
         }
     }
 
@@ -686,7 +770,7 @@ class POS_Controller extends Base_Controller
             }
 
             $wpdb->insert($commissions_table, [
-                'staff_id' => $staff_id,
+                'wp_user_id' => $staff_id,
                 'order_id' => $order_id,
                 'order_item_id' => (int) ($row['id'] ?? 0),
                 'booking_id' => null,
@@ -703,5 +787,158 @@ class POS_Controller extends Base_Controller
                 throw new \Exception(__('Failed to create staff commission', 'asmaa-salon'));
             }
         }
+    }
+
+    /**
+     * Get prepaid orders for a customer
+     */
+    public function get_prepaid_orders(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
+
+        $customer_id = (int) $request->get_param('customer_id');
+        
+        if (empty($customer_id)) {
+            return $this->error_response(__('Customer ID is required', 'asmaa-salon'), 400);
+        }
+
+        $prepaid_orders = wc_get_orders([
+            'customer_id' => $customer_id,
+            'status' => ['processing', 'on-hold'],
+            'limit' => 20,
+        ]);
+
+        $prepaid_data = [];
+        $total_prepaid = 0.0;
+
+        foreach ($prepaid_orders as $order) {
+            $paid = (float) $order->get_total_paid();
+            $total_prepaid += $paid;
+            
+            $prepaid_data[] = [
+                'order_id' => $order->get_id(),
+                'order_number' => $order->get_order_number(),
+                'date' => $order->get_date_created()->date('Y-m-d H:i:s'),
+                'total' => (float) $order->get_total(),
+                'paid' => $paid,
+                'status' => $order->get_status(),
+            ];
+        }
+
+        // Update prepaid orders status to completed if fully paid
+        if ($total_prepaid > 0) {
+            foreach ($prepaid_orders as $order) {
+                if ((float) $order->get_total_paid() >= (float) $order->get_total()) {
+                    $order->update_status('completed', 'Completed via POS payment');
+                }
+            }
+        }
+
+        return $this->success_response([
+            'prepaid_orders' => $prepaid_data,
+            'total_prepaid' => $total_prepaid,
+            'count' => count($prepaid_data),
+        ]);
+    }
+
+    /**
+     * Sync pending orders from offline storage (Idempotency)
+     */
+    public function sync_pending_orders(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        if (!class_exists('WooCommerce')) {
+            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
+        }
+
+        global $wpdb;
+        $pending_orders_table = $wpdb->prefix . 'asmaa_pending_orders_sync';
+        
+        $orders = $request->get_param('orders');
+        if (!is_array($orders) || empty($orders)) {
+            return $this->error_response(__('No orders provided', 'asmaa-salon'), 400);
+        }
+        
+        $results = [];
+        
+        foreach ($orders as $order_data) {
+            $client_side_id = sanitize_text_field($order_data['client_side_id'] ?? '');
+            
+            if (empty($client_side_id)) {
+                $results[] = [
+                    'client_side_id' => $client_side_id,
+                    'success' => false,
+                    'error' => 'Missing client_side_id',
+                ];
+                continue;
+            }
+            
+            // Idempotency Check: التحقق من وجود الطلب مسبقاً
+            $existing = $wpdb->get_var($wpdb->prepare(
+                "SELECT wc_order_id FROM {$pending_orders_table} WHERE client_side_id = %s",
+                $client_side_id
+            ));
+            
+            if ($existing) {
+                // الطلب موجود مسبقاً - إرجاع النتيجة بدون معالجة
+                $results[] = [
+                    'client_side_id' => $client_side_id,
+                    'success' => true,
+                    'wc_order_id' => (int) $existing,
+                    'message' => 'Order already synced',
+                ];
+                continue;
+            }
+            
+            // معالجة الطلب
+            try {
+                $order_data_array = $order_data['order_data'] ?? [];
+                
+                // Create a new request with order data
+                $order_request = new WP_REST_Request('POST', $this->namespace . '/pos/process');
+                foreach ($order_data_array as $key => $value) {
+                    $order_request->set_param($key, $value);
+                }
+                
+                $response = $this->process_order($order_request);
+                
+                if (is_wp_error($response)) {
+                    throw new \Exception($response->get_error_message());
+                }
+                
+                $response_data = $response->get_data();
+                $wc_order_id = $response_data['data']->order_id ?? null;
+                
+                if (!$wc_order_id) {
+                    throw new \Exception('Failed to get WC order ID from response');
+                }
+                
+                // تسجيل الطلب في جدول المزامنة
+                $wpdb->insert($pending_orders_table, [
+                    'client_side_id' => $client_side_id,
+                    'wc_order_id' => $wc_order_id,
+                    'synced_at' => current_time('mysql'),
+                ]);
+                
+                $results[] = [
+                    'client_side_id' => $client_side_id,
+                    'success' => true,
+                    'wc_order_id' => $wc_order_id,
+                ];
+            } catch (\Exception $e) {
+                $results[] = [
+                    'client_side_id' => $client_side_id,
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+        
+        return $this->success_response([
+            'synced' => count(array_filter($results, fn($r) => $r['success'])),
+            'failed' => count(array_filter($results, fn($r) => !$r['success'])),
+            'results' => $results,
+        ]);
     }
 }
