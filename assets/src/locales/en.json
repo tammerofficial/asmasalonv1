@@ -31,6 +31,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "walletMembers": "Wallet Members",
     "core": "Core",
     "customers": "Customers",
     "staff": "Staff",

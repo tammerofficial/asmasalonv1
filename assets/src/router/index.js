@@ -22,6 +22,11 @@ const routes = [
     component: () => import('../views/Customers/Profile.vue'),
   },
   {
+    path: '/customers/wallet',
+    name: 'WalletMembers',
+    component: () => import('../views/Customers/WalletMembers.vue'),
+  },
+  {
     path: '/staff',
     name: 'Staff',
     component: () => import('../views/Staff/Index.vue'),

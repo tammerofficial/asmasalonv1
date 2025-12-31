@@ -49,7 +49,7 @@
               <h2 class="staff-name">{{ call.staff_name || 'Staff' }}</h2>
               <div class="chair-badge" :class="{ 'no-chair': !call.staff_chair_number || call.staff_chair_number === 0 }">
                 <CIcon icon="cil-chair" class="chair-icon" />
-                <span>كرسي: {{ call.staff_chair_number || call.staff_chair_number === 0 ? 'غير محدد' : call.staff_chair_number }}</span>
+                <span>كرسي: {{ (!call.staff_chair_number || call.staff_chair_number === 0) ? 'غير محدد' : call.staff_chair_number }}</span>
               </div>
             </div>
             <div class="status-icon-wrapper" :class="call.status">

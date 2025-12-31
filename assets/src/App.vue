@@ -5,7 +5,12 @@
       <div class="asmaa-salon-content">
         <Topbar v-if="!isDisplayMode" @toggle-sidebar="toggleSidebar" />
         <main class="asmaa-salon-main">
-          <router-view />
+          <router-view v-slot="{ Component }">
+            <keep-alive>
+              <component :is="Component" v-if="$route.meta.keepAlive" />
+            </keep-alive>
+            <component :is="Component" v-if="!$route.meta.keepAlive" />
+          </router-view>
         </main>
       </div>
     </div>

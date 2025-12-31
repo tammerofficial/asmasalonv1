@@ -76,6 +76,10 @@
         <CIcon icon="cil-people" class="nav-icon" />
         <span class="nav-text">{{ t('nav.customers') }}</span>
       </router-link>
+      <router-link to="/customers/wallet" class="nav-item" :class="{ 'router-link-active': $route.name === 'WalletMembers' }">
+        <CIcon icon="cil-wallet" class="nav-icon" />
+        <span class="nav-text">{{ t('nav.walletMembers') || 'Wallet Members' }}</span>
+      </router-link>
       <router-link to="/staff" class="nav-item" :class="{ 'router-link-active': $route.name === 'Staff' }">
         <CIcon icon="cil-user" class="nav-icon" />
         <span class="nav-text">{{ t('nav.staff') }}</span>

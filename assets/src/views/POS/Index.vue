@@ -9,6 +9,14 @@
         <CIcon icon="cil-cart" />
       </template>
       <template #actions>
+        <CBadge v-if="!isOnline" color="warning" class="me-2 align-self-center">
+          <CIcon icon="cil-wifi-slash" class="me-1" />
+          {{ t('pos.offline') || 'Offline' }}
+        </CBadge>
+        <CBadge v-if="pendingOrdersCount > 0" color="info" class="me-2 align-self-center">
+          <CIcon icon="cil-cloud-upload" class="me-1" />
+          {{ pendingOrdersCount }} {{ t('pos.pendingOrders') || 'Pending' }}
+        </CBadge>
         <CButton v-if="openSession" color="primary" variant="outline" @click="showSessionModal = true" class="me-2">
           <CIcon icon="cil-info" class="me-2" />
           {{ t('pos.sessionInfo') }}
@@ -16,6 +24,10 @@
         <CButton color="primary" variant="outline" @click="refreshData" class="me-2">
           <CIcon icon="cil-reload" class="me-2" />
           {{ t('pos.refresh') }}
+        </CButton>
+        <CButton v-if="pendingOrdersCount > 0 && isOnline" color="success" variant="outline" @click="syncPendingOrdersHandler" class="me-2">
+          <CIcon icon="cil-sync" class="me-2" />
+          {{ t('pos.syncPending') || 'Sync Pending' }}
         </CButton>
       </template>
     </PageHeader>
@@ -264,6 +276,10 @@
               <span>{{ t('pos.subtotal') }}:</span>
               <strong>{{ formatCurrency(subtotal) }}</strong>
             </div>
+            <div class="summary-row" v-if="prepaidAmount > 0">
+              <span>{{ t('pos.prepaid') || 'المدفوع مسبقاً' }}:</span>
+              <strong class="text-success">-{{ formatCurrency(prepaidAmount) }}</strong>
+            </div>
             <div class="summary-row">
               <span>{{ t('pos.discount') }}:</span>
               <CFormInput
@@ -440,7 +456,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue';
 import {
   CButton,
   CBadge,
@@ -973,7 +989,6 @@ const loadPrepaidAmount = async () => {
 };
 
 // Watch for customer selection to load prepaid
-import { watch } from 'vue';
 watch(selectedCustomerId, () => {
   if (selectedCustomerId.value) {
     loadPrepaidAmount();
@@ -1017,6 +1032,11 @@ onMounted(() => {
   setInterval(() => {
     loadActiveCustomers();
   }, 10000);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('online', handleOnline);
+  window.removeEventListener('offline', handleOffline);
 });
 </script>
 

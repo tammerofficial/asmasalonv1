@@ -31,6 +31,7 @@
   },
   "nav": {
     "dashboard": "لوحة التحكم",
+    "walletMembers": "أعضاء المحفظة",
     "core": "النظام",
     "customers": "العملاء",
     "staff": "الموظفين",
