@@ -172,7 +172,10 @@ class Loyalty_Controller extends Base_Controller
             // Create transaction
             $customer_col = $this->pick_column($transactions_table, ['wc_customer_id', 'customer_id']) ?: 'wc_customer_id';
             $user_col = $this->pick_column($transactions_table, ['wp_user_id', 'performed_by']) ?: 'wp_user_id';
-            $wpdb->insert($transactions_table, [
+            
+            $performed_by = get_current_user_id();
+            
+            $result = $wpdb->insert($transactions_table, [
                 $customer_col => $customer_id,
                 'type' => 'earned',
                 'points' => $points,
@@ -181,11 +184,19 @@ class Loyalty_Controller extends Base_Controller
                 'reference_type' => $reference_type,
                 'reference_id' => $reference_id,
                 'description' => $description,
-                $user_col => get_current_user_id(),
+                $user_col => $performed_by ?: null, // Use NULL instead of 0 for FK
             ]);
 
+            if ($result === false) {
+                throw new \Exception(__('Failed to record loyalty transaction', 'asmaa-salon'));
+            }
+
             // Update customer balance in extended data
-            $wpdb->update($extended_table, ['loyalty_points' => $balance_after], ['wc_customer_id' => $customer_id]);
+            $update_result = $wpdb->update($extended_table, ['loyalty_points' => $balance_after], ['wc_customer_id' => $customer_id]);
+            
+            if ($update_result === false) {
+                throw new \Exception(__('Failed to update customer loyalty balance', 'asmaa-salon'));
+            }
 
             $wpdb->query('COMMIT');
 
@@ -257,7 +268,10 @@ class Loyalty_Controller extends Base_Controller
             // Create transaction
             $customer_col = $this->pick_column($transactions_table, ['wc_customer_id', 'customer_id']) ?: 'wc_customer_id';
             $user_col = $this->pick_column($transactions_table, ['wp_user_id', 'performed_by']) ?: 'wp_user_id';
-            $wpdb->insert($transactions_table, [
+            
+            $performed_by = get_current_user_id();
+            
+            $result = $wpdb->insert($transactions_table, [
                 $customer_col => $customer_id,
                 'type' => 'redeemed',
                 'points' => -$points,
@@ -266,11 +280,19 @@ class Loyalty_Controller extends Base_Controller
                 'reference_type' => $reference_type,
                 'reference_id' => $reference_id,
                 'description' => $description,
-                $user_col => get_current_user_id(),
+                $user_col => $performed_by ?: null, // Use NULL instead of 0 for FK
             ]);
 
+            if ($result === false) {
+                throw new \Exception(__('Failed to record loyalty redemption', 'asmaa-salon'));
+            }
+
             // Update customer balance in extended data
-            $wpdb->update($extended_table, ['loyalty_points' => $balance_after], ['wc_customer_id' => $customer_id]);
+            $update_result = $wpdb->update($extended_table, ['loyalty_points' => $balance_after], ['wc_customer_id' => $customer_id]);
+            
+            if ($update_result === false) {
+                throw new \Exception(__('Failed to update customer loyalty balance', 'asmaa-salon'));
+            }
 
             $wpdb->query('COMMIT');
 
