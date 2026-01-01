@@ -33,3 +33,6 @@ yarn-error.log*
 # Temporary files
 *.tmp
 *.temp
+includes/certs/*.p12
+includes/certs/*.cer
+includes/certs/*.pem
