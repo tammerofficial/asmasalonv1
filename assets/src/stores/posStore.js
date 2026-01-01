@@ -26,6 +26,21 @@ export const usePOSStore = defineStore('pos', () => {
   const paymentMethod = ref('cash');
   const prepaidAmount = ref(0);
   
+  // Advanced Receptionist States
+  const splitPayments = ref([
+    { method: 'cash', amount: 0 },
+    { method: 'knet', amount: 0 },
+    { method: 'credit_card', amount: 0 },
+    { method: 'wallet', amount: 0 }
+  ]);
+  const customerAlerts = ref([]);
+  const lastVisitDetails = ref({
+    date: null,
+    services: [],
+    total: 0,
+    staff_name: ''
+  });
+  
   // Loading States
   const loading = ref({
     products: false,
@@ -54,6 +69,34 @@ export const usePOSStore = defineStore('pos', () => {
   });
 
   // Actions
+  function setSplitPaymentAmount(method, amount) {
+    const item = splitPayments.value.find(p => p.method === method);
+    if (item) {
+      item.amount = Number(amount);
+    }
+  }
+
+  function clearSplitPayments() {
+    splitPayments.value = [
+      { method: 'cash', amount: 0 },
+      { method: 'knet', amount: 0 },
+      { method: 'credit_card', amount: 0 },
+      { method: 'wallet', amount: 0 }
+    ];
+  }
+
+  function addCustomerAlert(alert) {
+    customerAlerts.value.push(alert);
+  }
+
+  function clearCustomerAlerts() {
+    customerAlerts.value = [];
+  }
+
+  function setLastVisitDetails(details) {
+    lastVisitDetails.value = details;
+  }
+
   async function fetchAllData() {
     loading.value.products = true;
     loading.value.services = true;
@@ -188,6 +231,9 @@ export const usePOSStore = defineStore('pos', () => {
     subtotal,
     total,
     selectedCustomer,
+    splitPayments,
+    customerAlerts,
+    lastVisitDetails,
     
     // Actions
     fetchAllData,
@@ -195,7 +241,12 @@ export const usePOSStore = defineStore('pos', () => {
     fetchCustomerFinancials,
     addToCart,
     removeFromCart,
-    clearCart
+    clearCart,
+    setSplitPaymentAmount,
+    clearSplitPayments,
+    addCustomerAlert,
+    clearCustomerAlerts,
+    setLastVisitDetails
   };
 });
 

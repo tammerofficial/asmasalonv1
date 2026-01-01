@@ -40,6 +40,39 @@
           </template>
 
           <CNav variant="pills" class="flex-column operations-nav">
+            <!-- Arrived Hub (The Arrival Button) -->
+            <div class="operation-section mb-3">
+              <div class="section-title d-flex justify-content-between align-items-center mb-2">
+                <span>
+                  <CIcon icon="cil-room" class="me-2 text-primary" />
+                  {{ t('pos.arrivedToday') || 'وصلوا الآن' }}
+                </span>
+                <CBadge color="primary" shape="rounded-pill">{{ posStore.bookings.filter(b => b.status === 'confirmed').length }}</CBadge>
+              </div>
+              <div class="arrived-hub bg-tertiary rounded-4 p-2 border-dashed border-primary">
+                <div v-if="posStore.bookings.filter(b => b.status === 'confirmed').length === 0" class="small text-muted text-center py-2">
+                  {{ t('pos.noArrivals') || 'لا يوجد حجوزات منتظرة' }}
+                </div>
+                <div v-else class="d-flex flex-column gap-2">
+                  <div v-for="b in posStore.bookings.filter(b => b.status === 'confirmed').slice(0,3)" :key="b.id" 
+                       class="arrival-quick-card d-flex justify-content-between align-items-center p-2 bg-secondary rounded-3 shadow-sm border-start border-4 border-success"
+                       style="cursor: pointer;"
+                       @click="handleQuickArrive(b)">
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="mini-avatar-box">{{ b.customer_name?.charAt(0) }}</div>
+                      <div class="info">
+                        <div class="name fw-bold small truncate" style="max-width: 80px;">{{ b.customer_name }}</div>
+                        <div class="time tiny text-muted">{{ b.booking_time }}</div>
+                      </div>
+                    </div>
+                    <CButton color="success" size="sm" variant="ghost" class="p-1">
+                      <CIcon icon="cil-check-circle" />
+                    </CButton>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Active Customers Section -->
             <div class="operation-section">
               <div class="section-title d-flex justify-content-between align-items-center">
@@ -90,7 +123,8 @@
                   v-for="booking in posStore.bookings.slice(0, 3)" 
                   :key="booking.id" 
                   :booking="booking"
-                  @process="selectActiveCustomer"
+                  @process="handleBookingArrive"
+                  @arrive="handleBookingArrive"
                 />
               </div>
             </div>
@@ -111,6 +145,7 @@
                   :ticket="ticket"
                   @call="handleCallTicket"
                   @serve="handleServeTicket"
+                  @arrive="handleQueueArrive"
                 />
               </div>
             </div>
@@ -125,6 +160,15 @@
       <div class="pos-column pos-catalog">
         <Card class="catalog-card h-100">
           <template #header>
+            <!-- VIP / Alert Banner (The Receptionist's eye) -->
+            <div v-if="posStore.selectedCustomer && posStore.customerAlerts.length > 0" class="customer-alert-banner bg-danger text-white p-2 rounded-3 mb-2 d-flex align-items-center gap-3 pulse-red shadow-sm">
+              <CIcon icon="cil-warning" />
+              <div class="alert-content flex-grow-1">
+                <div class="small fw-bold">{{ posStore.customerAlerts[0] }}</div>
+              </div>
+              <CButton color="light" size="sm" variant="ghost" class="py-0 px-1" @click="posStore.customerAlerts = []">X</CButton>
+            </div>
+
             <div class="catalog-header-actions w-100">
               <CInputGroup>
                 <CInputGroupText><CIcon icon="cil-magnifying-glass" /></CInputGroupText>
@@ -203,7 +247,9 @@
           <div class="checkout-customer-section">
             <CustomerQuickView 
               v-if="posStore.selectedCustomer" 
-              :customer="posStore.selectedCustomer" 
+              :customer="posStore.selectedCustomer"
+              :customer-alerts="posStore.customerAlerts"
+              :last-visit="posStore.lastVisitDetails"
               @view-profile="goToCustomerProfile"
               @view-history="showHistoryModal = true"
               @send-wallet-pass="handleSendWalletPass"
@@ -216,6 +262,18 @@
                   {{ c.name }} - {{ c.phone }}
                 </option>
               </CFormSelect>
+            </div>
+
+            <!-- Last Visited Services (Insight for Receptionist) -->
+            <div v-if="posStore.selectedCustomer && posStore.lastServices.length > 0" class="last-services-box mt-3 p-3 bg-tertiary rounded-4 border">
+              <div class="small fw-bold text-muted mb-2 d-flex align-items-center">
+                <CIcon icon="cil-history" class="me-2" /> {{ t('pos.lastVisited') || 'آخر خدمات' }}
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <CBadge v-for="s in posStore.lastServices" :key="s.id" color="secondary" shape="rounded-pill" class="fw-normal" style="cursor: pointer;" @click="handleItemClick(s)">
+                  {{ s.name }}
+                </CBadge>
+              </div>
             </div>
           </div>
 
@@ -272,8 +330,30 @@
 
             <!-- Payment Methods -->
             <div class="payment-section mt-3">
-              <div class="small fw-bold mb-2 text-muted uppercase">{{ t('pos.paymentMethod') }}</div>
-              <PaymentMethodsGrid v-model="posStore.paymentMethod" />
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="small fw-bold text-muted uppercase">{{ t('pos.paymentMethod') }}</div>
+                <CButton color="primary" variant="ghost" size="sm" @click="showSplitPayment = !showSplitPayment">
+                  {{ showSplitPayment ? t('pos.singlePayment') : t('pos.splitPayment') || 'دفع متعدد' }}
+                </CButton>
+              </div>
+
+              <div v-if="showSplitPayment" class="split-payment-grid bg-tertiary p-3 rounded-4 border mb-3">
+                <div v-for="pay in posStore.splitPayments" :key="pay.method" class="mb-2 d-flex align-items-center gap-2">
+                  <CIcon :icon="getPaymentIcon(pay.method)" :class="getPaymentColor(pay.method)" />
+                  <CFormInput 
+                    :value="pay.amount" 
+                    @input="e => posStore.setSplitPaymentAmount(pay.method, e.target.value)"
+                    type="number" 
+                    size="sm" 
+                    :placeholder="t(`pos.payment_${pay.method}`) || pay.method" 
+                  />
+                </div>
+                <div class="remaining-balance tiny text-center fw-bold" :class="remainingSplitBalance === 0 ? 'text-success' : 'text-danger'">
+                  {{ t('pos.remaining') || 'المتبقي' }}: {{ formatCurrency(remainingSplitBalance) }}
+                </div>
+              </div>
+
+              <PaymentMethodsGrid v-else v-model="posStore.paymentMethod" />
             </div>
 
             <!-- Final Actions -->
@@ -372,7 +452,9 @@
                 <label class="form-label small fw-bold text-muted">{{ t('pos.staff') }}</label>
                 <CFormSelect v-model="selectedStaffId">
                   <option value="">{{ t('pos.selectStaff') }}</option>
-                  <option v-for="s in posStore.staff" :key="s.id" :value="s.id">{{ s.name }}</option>
+                  <option v-for="s in posStore.staff" :key="s.id" :value="s.id">
+                    {{ s.name }} ({{ getStaffCurrentLoad(s.id) }} {{ t('pos.activeCustomers') }})
+                  </option>
                 </CFormSelect>
                 <div v-if="estimatedCommission > 0" class="mt-2 small text-success fw-bold">
                   <CIcon icon="cil-money" class="me-1" />
@@ -550,6 +632,8 @@ const {
   selectActiveCustomer, 
   processCheckout, 
   formatCurrency,
+  processBookingArrival,
+  processQueueTicketArrival,
   callNextInQueue,
   callSpecificTicket,
   serveTicket
@@ -564,6 +648,7 @@ const showAddCustomerModal = ref(false);
 const showQuickSettings = ref(false);
 const showAnalyticsModal = ref(false);
 const showInvoicePreview = ref(false);
+const showSplitPayment = ref(false); // New receptionist feature
 const lastProcessedOrder = ref(null);
 const isSavingCustomer = ref(false);
 const newCustomer = ref({ name: '', phone: '', email: '' });
@@ -573,6 +658,31 @@ const selectedStaffId = ref('');
 const modalQty = ref(1);
 
 // Computed
+const remainingSplitBalance = computed(() => {
+  const paid = posStore.splitPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  return posStore.total - paid;
+});
+
+const getPaymentIcon = (method) => {
+  switch (method) {
+    case 'cash': return 'cil-money';
+    case 'knet': return 'cil-credit-card';
+    case 'credit_card': return 'cil-bank';
+    case 'wallet': return 'cil-wallet';
+    default: return 'cil-money';
+  }
+};
+
+const getPaymentColor = (method) => {
+  switch (method) {
+    case 'cash': return 'text-success';
+    case 'knet': return 'text-info';
+    case 'credit_card': return 'text-primary';
+    case 'wallet': return 'text-warning';
+    default: return '';
+  }
+};
+
 const estimatedCommission = computed(() => {
   if (!selectedStaffId.value || !selectedItem.value) return 0;
   const staffMember = posStore.staff.find(s => Number(s.id) === Number(selectedStaffId.value));
@@ -610,6 +720,49 @@ const handleItemClick = (item) => {
   showItemModal.value = true;
 };
 
+// Receptionist Special: Arrival Flows
+const handleBookingArrive = async (booking) => {
+  const result = await processBookingArrival(booking);
+  if (result) {
+    activeTab.value = 'services';
+    // Load last visit and alerts for the customer
+    await fetchCustomerReceptionistData(booking.customer_id);
+  }
+};
+
+const handleQueueArrive = async (ticket) => {
+  const result = await processQueueTicketArrival(ticket);
+  if (result) {
+    activeTab.value = 'services';
+    if (ticket.customer_id) {
+      await fetchCustomerReceptionistData(ticket.customer_id);
+    }
+  }
+};
+
+const fetchCustomerReceptionistData = async (customerId) => {
+  if (!customerId) return;
+  try {
+    // 1. Fetch Alerts/Notes
+    const response = await api.get(`/customers/${customerId}`);
+    const customer = response.data?.data || response.data;
+    if (customer?.notes) {
+      posStore.clearCustomerAlerts();
+      posStore.addCustomerAlert(customer.notes);
+    }
+
+    // 2. Fetch Last Visit
+    const lastVisitRes = await api.get(`/customers/${customerId}/last-visit`);
+    if (lastVisitRes.data?.data) {
+      posStore.setLastVisitDetails(lastVisitRes.data.data);
+    }
+  } catch (error) {
+    console.error('Error fetching receptionist data:', error);
+  }
+};
+
+const handleQuickArrive = handleBookingArrive; // Backward compatibility
+
 const confirmAddItem = () => {
   const staffMember = posStore.staff.find(s => Number(s.id) === Number(selectedStaffId.value));
   const type = activeTab.value === 'services' ? 'service' : (activeTab.value === 'products' ? 'product' : 'membership');
@@ -636,10 +789,13 @@ const updateQty = (index, delta) => {
   }
 };
 
-const onCustomerSelect = () => {
+const onCustomerSelect = async () => {
   if (posStore.selectedCustomerId) {
     const customer = posStore.customers.find(c => Number(c.id) === Number(posStore.selectedCustomerId));
-    if (customer) selectActiveCustomer(customer);
+    if (customer) {
+      await selectActiveCustomer(customer);
+      await fetchCustomerReceptionistData(customer.id);
+    }
   }
 };
 
@@ -961,6 +1117,63 @@ onMounted(() => {
 .checkout-btn:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 0 10px 25px rgba(187, 160, 122, 0.4) !important;
+}
+
+/* Receptionist Features CSS */
+.arrival-quick-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.arrival-quick-card:hover {
+  transform: scale(1.02) translateX(5px);
+  background: var(--bg-primary) !important;
+}
+.mini-avatar-box {
+  width: 32px;
+  height: 32px;
+  background: var(--asmaa-primary);
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+.tiny { font-size: 0.65rem; }
+
+.customer-alert-banner {
+  border-left: 5px solid rgba(255,255,255,0.3);
+}
+.pulse-red {
+  animation: pulse-red-bg 2s infinite;
+}
+@keyframes pulse-red-bg {
+  0% { box-shadow: 0 0 0 0 rgba(229, 83, 83, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(229, 83, 83, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 83, 83, 0); }
+}
+
+.split-payment-grid {
+  background: rgba(187, 160, 122, 0.05);
+}
+.remaining-balance {
+  letter-spacing: 1px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.last-services-box .badge {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  background: white;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
+}
+.last-services-box .badge:hover {
+  background: var(--asmaa-primary);
+  color: white;
+  border-color: var(--asmaa-primary);
 }
 
 /* Modal Styling */

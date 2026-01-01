@@ -13,8 +13,12 @@
       <CBadge :color="statusColor">{{ booking.status }}</CBadge>
     </div>
     <div class="booking-actions">
+      <CButton size="sm" color="success" @click="$emit('arrive', booking)" v-if="status === 'confirmed' || status === 'pending'">
+        <CIcon icon="cil-walk" class="me-1" />
+        {{ t('pos.arrived') || 'وصلت' }}
+      </CButton>
       <CButton size="sm" color="primary" @click="$emit('process', booking)">
-        <CIcon icon="cil-check-circle" />
+        <CIcon icon="cil-plus" />
       </CButton>
     </div>
   </div>
@@ -24,6 +28,9 @@
 import { computed } from 'vue';
 import { CBadge, CButton } from '@coreui/vue';
 import { CIcon } from '@coreui/icons-vue';
+import { useTranslation } from '@/composables/useTranslation';
+
+const { t } = useTranslation();
 
 const props = defineProps({
   booking: {

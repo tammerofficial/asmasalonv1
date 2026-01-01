@@ -12,6 +12,16 @@
       <CButton 
         v-if="ticket.status === 'waiting'" 
         size="sm" 
+        color="success" 
+        class="me-1"
+        @click="$emit('arrive', ticket)"
+      >
+        <CIcon icon="cil-walk" class="me-1" />
+        {{ t('pos.arrived') || 'وصلت' }}
+      </CButton>
+      <CButton 
+        v-if="ticket.status === 'waiting'" 
+        size="sm" 
         color="warning" 
         @click="$emit('call', ticket)"
       >

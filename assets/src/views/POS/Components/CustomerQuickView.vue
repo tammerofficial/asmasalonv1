@@ -52,7 +52,7 @@
         {{ t('loyalty.walletLinked') || 'محفظة نشطة' }}
       </CBadge>
       <CButton 
-        v-else 
+        v-else-if="customer"
         size="sm" 
         color="info" 
         variant="outline" 
@@ -62,6 +62,30 @@
         <CIcon icon="cil-send" class="me-1" />
         {{ t('loyalty.sendWalletPass') || 'إرسال بطاقة المحفظة' }}
       </CButton>
+    </div>
+
+    <!-- Advanced Receptionist Features: Alerts & Last Visit -->
+    <div class="customer-alerts mt-3" v-if="customerAlerts && customerAlerts.length > 0">
+      <div v-for="(alert, index) in customerAlerts" :key="index" class="alert-item">
+        <CIcon icon="cil-warning" class="me-2 text-danger" />
+        {{ alert }}
+      </div>
+    </div>
+
+    <div class="last-visit-box mt-3" v-if="lastVisit && lastVisit.date">
+      <div class="last-visit-header">
+        <span class="last-visit-label">{{ t('customers.lastVisit') || 'آخر زيارة' }}</span>
+        <span class="last-visit-date">{{ formatDate(lastVisit.date) }}</span>
+      </div>
+      <div class="last-visit-content">
+        <div class="last-visit-services">
+          {{ lastVisit.services.join(' + ') }}
+        </div>
+        <div class="last-visit-footer">
+          <span class="staff-name"><CIcon icon="cil-user" class="me-1" /> {{ lastVisit.staff_name }}</span>
+          <span class="total-spent">{{ formatCurrency(lastVisit.total) }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -78,6 +102,14 @@ const props = defineProps({
   customer: {
     type: Object,
     default: null
+  },
+  customerAlerts: {
+    type: Array,
+    default: () => []
+  },
+  lastVisit: {
+    type: Object,
+    default: () => ({})
   }
 });
 
@@ -92,6 +124,12 @@ function formatCurrency(amount) {
     currency: 'KWD',
     minimumFractionDigits: 3,
   }).format(amount || 0);
+}
+
+function formatDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('ar-KW', { day: 'numeric', month: 'short' });
 }
 </script>
 
@@ -182,6 +220,65 @@ function formatCurrency(amount) {
   margin-top: 1rem;
   display: flex;
   gap: 0.5rem;
+}
+
+.customer-alerts {
+  background: rgba(229, 83, 83, 0.1);
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(229, 83, 83, 0.2);
+}
+
+.alert-item {
+  color: #e55353;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.last-visit-box {
+  background: var(--bg-secondary);
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.last-visit-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.last-visit-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.last-visit-date {
+  font-size: 0.75rem;
+  color: var(--asmaa-primary);
+  font-weight: 700;
+}
+
+.last-visit-services {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.last-visit-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.total-spent {
+  color: #2eb85c;
+  font-weight: 700;
 }
 </style>
 

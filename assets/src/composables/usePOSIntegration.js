@@ -12,6 +12,8 @@ export function usePOSIntegration() {
 
   async function selectActiveCustomer(customer) {
     posStore.selectedCustomerId = customer.id || customer.customer_id;
+    posStore.clearCustomerAlerts();
+    posStore.setLastVisitDetails({ date: null, services: [], total: 0, staff_name: '' });
     
     // Fetch detailed loyalty and financial data
     await Promise.all([
@@ -83,6 +85,72 @@ export function usePOSIntegration() {
     return false;
   }
 
+  async function processBookingArrival(booking) {
+    try {
+      isProcessing.value = true;
+      // 1. Select the customer
+      if (booking.customer_id) {
+        await selectActiveCustomer({ id: booking.customer_id, name: booking.customer_name });
+      }
+
+      // 2. Add the service to the cart
+      if (booking.service_id) {
+        posStore.addToCart({
+          service_id: booking.service_id,
+          name: booking.service_name,
+          unit_price: booking.price,
+          quantity: 1,
+          staff_id: booking.staff_id
+        });
+      }
+
+      // 3. Optional: Mark as arrived in backend (if endpoint exists)
+      // await api.post(`/bookings/${booking.id}/arrive`);
+
+      toast.success(t('pos.bookingProcessed') || 'تم تحويل الحجز إلى سلة المشتريات');
+      return true;
+    } catch (error) {
+      console.error('Error processing booking arrival:', error);
+      toast.error(t('pos.errorProcessingArrival'));
+      return false;
+    } finally {
+      isProcessing.value = false;
+    }
+  }
+
+  async function processQueueTicketArrival(ticket) {
+    try {
+      isProcessing.value = true;
+      // 1. Select the customer if known
+      if (ticket.customer_id) {
+        await selectActiveCustomer({ id: ticket.customer_id, name: ticket.customer_name });
+      }
+
+      // 2. Add the service to the cart
+      if (ticket.service_id) {
+        posStore.addToCart({
+          service_id: ticket.service_id,
+          name: ticket.service_name,
+          unit_price: ticket.price,
+          quantity: 1,
+          staff_id: ticket.staff_id
+        });
+      }
+
+      // 3. Start serving the ticket
+      await serveTicket(ticket.id);
+
+      toast.success(t('pos.queueProcessed') || 'تم تحويل التذكرة إلى سلة المشتريات وبدء الخدمة');
+      return true;
+    } catch (error) {
+      console.error('Error processing queue arrival:', error);
+      toast.error(t('pos.errorProcessingArrival'));
+      return false;
+    } finally {
+      isProcessing.value = false;
+    }
+  }
+
   async function processCheckout(clientSideId) {
     if (posStore.cart.length === 0) {
       toast.error(t('pos.emptyCart'));
@@ -104,6 +172,9 @@ export function usePOSIntegration() {
         payment_method: posStore.paymentMethod,
         discount: posStore.discount || 0,
         client_side_id: clientSideId,
+        // Support for split payments
+        is_split_payment: posStore.splitPayments.some(p => p.amount > 0),
+        split_payments: posStore.splitPayments.filter(p => p.amount > 0)
       };
 
       const response = await api.post('/pos/process', payload);
@@ -111,6 +182,7 @@ export function usePOSIntegration() {
       if (response.data?.success) {
         toast.success(t('pos.orderProcessed') || 'تمت معالجة الطلب بنجاح');
         posStore.clearCart();
+        posStore.clearSplitPayments();
         await posStore.fetchAllData();
         return response.data.data;
       } else {
@@ -138,7 +210,13 @@ export function usePOSIntegration() {
     isProcessing,
     selectActiveCustomer,
     processCheckout,
-    formatCurrency
+    formatCurrency,
+    processBookingArrival,
+    processQueueTicketArrival,
+    callNextInQueue,
+    callSpecificTicket,
+    serveTicket,
+    redeemLoyaltyPoints
   };
 }
 
