@@ -6,6 +6,7 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
 use AsmaaSalon\Services\ActivityLogger;
+use AsmaaSalon\Services\Unified_Order_Service;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -47,6 +48,10 @@ class Queue_Controller extends Base_Controller
 
         register_rest_route($this->namespace, '/' . $this->rest_base . '/call-next', [
             ['methods' => 'POST', 'callback' => [$this, 'call_next'], 'permission_callback' => $this->permission_callback('asmaa_queue_call')],
+        ]);
+
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/checkout', [
+            ['methods' => 'POST', 'callback' => [$this, 'checkout_ticket'], 'permission_callback' => $this->permission_callback('asmaa_pos_use')],
         ]);
     }
 
@@ -472,5 +477,31 @@ class Queue_Controller extends Base_Controller
         }
 
         return $response;
+    }
+
+    /**
+     * Checkout queue ticket - Create order from queue ticket
+     */
+    public function checkout_ticket(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $queue_ticket_id = (int) $request->get_param('id');
+        $additional_items = $request->get_param('additional_items') ?: [];
+        $payment_method = sanitize_text_field($request->get_param('payment_method')) ?: 'cash';
+
+        try {
+            $result = Unified_Order_Service::create_from_queue($queue_ticket_id, $additional_items, $payment_method);
+
+            return $this->success_response([
+                'order_id' => $result['wc_order_id'],
+                'order_number' => $result['order_number'],
+                'invoice_id' => $result['invoice_id'],
+                'invoice_number' => $result['invoice_number'],
+                'payment_id' => $result['payment_id'],
+                'payment_number' => $result['payment_number'],
+                'total' => $result['total'],
+            ], __('Queue ticket checkout completed successfully', 'asmaa-salon'), 201);
+        } catch (\Exception $e) {
+            return $this->error_response($e->getMessage(), 500);
+        }
     }
 }

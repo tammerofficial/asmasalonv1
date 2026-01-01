@@ -200,13 +200,19 @@ api.interceptors.response.use(
       const status = error.response.status;
       const url = error.config?.url || 'unknown';
       const method = error.config?.method || 'unknown';
-      
-      console.error(`Asmaa Salon API Error [${status}]:`, {
-        url: `${method.toUpperCase()} ${url}`,
-        status,
-        statusText: error.response.statusText,
-        data: error.response.data,
-      });
+
+      // Avoid spamming console errors for expected validation/UX flows (like 400 on redeem).
+      // Keep logging for auth errors and server failures.
+      const shouldLog = status >= 500 || status === 401 || status === 403;
+
+      if (shouldLog) {
+        console.error(`Asmaa Salon API Error [${status}]:`, {
+          url: `${method.toUpperCase()} ${url}`,
+          status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+        });
+      }
       
       // Handle 403 - try refresh nonce
       if (status === 403) {
@@ -227,5 +233,23 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Prefetch function for background data loading
+export async function prefetch(endpoint, params = {}) {
+  try {
+    const response = await api.get(endpoint, {
+      params: {
+        ...params,
+        per_page: params.per_page || 50,
+      },
+      noCache: false, // Use cache for prefetch
+    });
+    return response;
+  } catch (error) {
+    // Silent error handling for prefetch
+    console.error(`Prefetch error for ${endpoint}:`, error);
+    return { data: null };
+  }
+}
 
 export default api;

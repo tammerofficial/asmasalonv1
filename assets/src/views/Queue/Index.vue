@@ -285,6 +285,15 @@
                     <CIcon icon="cil-check" />
                   </button>
                   <button 
+                    v-if="ticket.status === 'serving' || ticket.status === 'completed'"
+                    class="action-btn action-btn-checkout" 
+                    @click="checkoutTicket(ticket)"
+                    :title="t('queue.checkout') || 'Checkout'"
+                    :disabled="loading"
+                  >
+                    <CIcon icon="cil-cart" />
+                  </button>
+                  <button 
                     class="action-btn" 
                     @click="viewTicket(ticket)" 
                     :title="t('common.view')"
@@ -463,6 +472,15 @@
         >
           <CIcon icon="cil-check" class="me-2" />
           {{ t('queue.complete') }}
+        </CButton>
+        <CButton 
+          v-if="viewingTicket && (viewingTicket.status === 'serving' || viewingTicket.status === 'completed')"
+          color="success" 
+          class="btn-primary-custom"
+          @click="() => { closeViewModal(); checkoutTicket(viewingTicket); }"
+        >
+          <CIcon icon="cil-cart" class="me-2" />
+          {{ t('queue.checkout') || 'Checkout' }}
         </CButton>
       </CModalFooter>
     </CModal>
@@ -1007,6 +1025,25 @@ const completeTicket = async (ticket) => {
   } catch (error) {
     console.error('Error completing ticket:', error);
     toast.error(t('queue.errorCompletingTicket'));
+  }
+};
+
+const checkoutTicket = async (ticket) => {
+  try {
+    const response = await api.post(`/queue/${ticket.id}/checkout`, {
+      payment_method: 'cash',
+      additional_items: [],
+    });
+    
+    if (response.data?.data) {
+      toast.success(t('queue.checkoutSuccess') || 'Checkout completed successfully');
+      await loadTickets();
+      // Optionally redirect to POS or show order details
+      router.push(`/orders/${response.data.data.order_id}`);
+    }
+  } catch (error) {
+    console.error('Error checking out ticket:', error);
+    toast.error(error.response?.data?.message || t('queue.checkoutError') || 'Error during checkout');
   }
 };
 
@@ -1738,6 +1775,16 @@ onUnmounted(() => {
 .action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.action-btn-checkout {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.action-btn-checkout:hover {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
 .auto-refresh-indicator {

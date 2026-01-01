@@ -7,6 +7,7 @@ use WP_REST_Response;
 use WP_Error;
 use AsmaaSalon\Services\ActivityLogger;
 use AsmaaSalon\Services\NotificationDispatcher;
+use AsmaaSalon\Services\Unified_Order_Service;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -48,6 +49,10 @@ class Bookings_Controller extends Base_Controller
 
         register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/convert-to-queue', [
             ['methods' => 'POST', 'callback' => [$this, 'convert_to_queue'], 'permission_callback' => $this->permission_callback('asmaa_bookings_update')],
+        ]);
+
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/checkout', [
+            ['methods' => 'POST', 'callback' => [$this, 'checkout_booking'], 'permission_callback' => $this->permission_callback('asmaa_pos_use')],
         ]);
     }
 
@@ -456,5 +461,31 @@ class Bookings_Controller extends Base_Controller
 
         $updated_booking = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id));
         return $this->success_response($updated_booking, __('Booking converted to queue ticket successfully', 'asmaa-salon'));
+    }
+
+    /**
+     * Checkout booking - Create order from booking
+     */
+    public function checkout_booking(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $booking_id = (int) $request->get_param('id');
+        $additional_items = $request->get_param('additional_items') ?: [];
+        $payment_method = sanitize_text_field($request->get_param('payment_method')) ?: 'cash';
+
+        try {
+            $result = Unified_Order_Service::create_from_booking($booking_id, $additional_items, $payment_method);
+
+            return $this->success_response([
+                'order_id' => $result['wc_order_id'],
+                'order_number' => $result['order_number'],
+                'invoice_id' => $result['invoice_id'],
+                'invoice_number' => $result['invoice_number'],
+                'payment_id' => $result['payment_id'],
+                'payment_number' => $result['payment_number'],
+                'total' => $result['total'],
+            ], __('Booking checkout completed successfully', 'asmaa-salon'), 201);
+        } catch (\Exception $e) {
+            return $this->error_response($e->getMessage(), 500);
+        }
     }
 }

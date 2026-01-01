@@ -35,11 +35,6 @@ class Settings_Controller extends Base_Controller
                 'callback' => [$this, 'get_apple_wallet_settings'],
                 'permission_callback' => $this->permission_callback('asmaa_settings_view'),
             ],
-            [
-                'methods' => 'PUT',
-                'callback' => [$this, 'update_apple_wallet_settings'],
-                'permission_callback' => $this->permission_callback('asmaa_settings_update'),
-            ],
         ]);
     }
 
@@ -106,95 +101,25 @@ class Settings_Controller extends Base_Controller
         $certs_dir = $upload_dir['basedir'] . '/asmaa-salon/certs';
         
         $settings = [
-            'team_id' => get_option('asmaa_salon_apple_team_id', ''),
-            'pass_type_id' => get_option('asmaa_salon_apple_pass_type_id', 'pass.com.asmaasalon.loyalty'),
-            'certificate_path' => get_option('asmaa_salon_apple_certificate_path', ''),
-            'certificate_password' => '', // Never return password
-            'wwdr_certificate_path' => get_option('asmaa_salon_apple_wwdr_certificate_path', ''),
-            'sandbox_mode' => get_option('asmaa_salon_apple_wallet_sandbox', false),
+            'team_id' => \AsmaaSalon\Config\Apple_Wallet_Config::TEAM_ID,
+            'pass_type_id' => \AsmaaSalon\Config\Apple_Wallet_Config::PASS_TYPE_ID,
+            'certificate_path' => \AsmaaSalon\Config\Apple_Wallet_Config::CERTIFICATE_PATH,
+            'certificate_password' => '***', // Hidden for security
+            'wwdr_certificate_path' => \AsmaaSalon\Config\Apple_Wallet_Config::WWDR_CERTIFICATE_PATH,
+            'sandbox_mode' => \AsmaaSalon\Config\Apple_Wallet_Config::SANDBOX_MODE,
+            'certificates_exist' => \AsmaaSalon\Config\Apple_Wallet_Config::certificates_exist(),
             'certs_directory' => $certs_dir,
             'certs_url' => $upload_dir['baseurl'] . '/asmaa-salon/certs',
         ];
         
-        // Check if certificates exist
-        $settings['certificate_exists'] = false;
-        $settings['wwdr_certificate_exists'] = false;
-        
-        if ($settings['certificate_path']) {
-            $cert_file = $certs_dir . '/' . basename($settings['certificate_path']);
-            $settings['certificate_exists'] = file_exists($cert_file) || file_exists($settings['certificate_path']);
-        }
-        
-        if ($settings['wwdr_certificate_path']) {
-            $wwdr_file = $certs_dir . '/' . basename($settings['wwdr_certificate_path']);
-            $settings['wwdr_certificate_exists'] = file_exists($wwdr_file) || file_exists($settings['wwdr_certificate_path']);
-        }
+        // Check if certificates exist (already set in config)
         
         return $this->success_response($settings);
     }
     
     /**
-     * Update Apple Wallet settings
+     * Note: Apple Wallet settings are now managed via Apple_Wallet_Config.php
+     * To change settings, edit includes/Config/Apple_Wallet_Config.php directly
      */
-    public function update_apple_wallet_settings(WP_REST_Request $request): WP_REST_Response|WP_Error
-    {
-        $settings = $request->get_json_params();
-        
-        // Validate and sanitize settings
-        $allowed_keys = [
-            'team_id',
-            'pass_type_id',
-            'certificate_path',
-            'certificate_password',
-            'wwdr_certificate_path',
-            'sandbox_mode',
-        ];
-        
-        $validated = [];
-        foreach ($allowed_keys as $key) {
-            if (isset($settings[$key])) {
-                switch ($key) {
-                    case 'team_id':
-                    case 'pass_type_id':
-                    case 'certificate_path':
-                    case 'wwdr_certificate_path':
-                        $validated[$key] = sanitize_text_field($settings[$key]);
-                        break;
-                    case 'certificate_password':
-                        $validated[$key] = sanitize_text_field($settings[$key]);
-                        break;
-                    case 'sandbox_mode':
-                        $validated[$key] = (bool) $settings[$key];
-                        break;
-                }
-            }
-        }
-        
-        if (empty($validated)) {
-            return $this->error_response(__('No valid settings provided', 'asmaa-salon'), 400);
-        }
-        
-        // Update options
-        foreach ($validated as $key => $value) {
-            $option_name = 'asmaa_salon_apple_' . str_replace('_', '_', $key);
-            if ($key === 'team_id') {
-                update_option('asmaa_salon_apple_team_id', $value);
-            } elseif ($key === 'pass_type_id') {
-                update_option('asmaa_salon_apple_pass_type_id', $value);
-            } elseif ($key === 'certificate_path') {
-                update_option('asmaa_salon_apple_certificate_path', $value);
-            } elseif ($key === 'certificate_password') {
-                update_option('asmaa_salon_apple_certificate_password', $value);
-            } elseif ($key === 'wwdr_certificate_path') {
-                update_option('asmaa_salon_apple_wwdr_certificate_path', $value);
-            } elseif ($key === 'sandbox_mode') {
-                update_option('asmaa_salon_apple_wallet_sandbox', $value);
-            }
-        }
-        
-        // Return updated settings
-        $controller = new self();
-        return $controller->get_apple_wallet_settings($request);
-    }
 }
 

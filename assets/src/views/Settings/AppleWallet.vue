@@ -13,7 +13,7 @@
 
     <div v-else>
       <Card :title="t('settings.appleWallet.configuration') || 'Configuration'" icon="cil-settings" class="mb-4">
-        <form @submit.prevent="saveSettings">
+        <div class="read-only-settings">
           <CRow class="g-3">
             <CCol :md="6">
               <label class="form-label">
@@ -21,9 +21,10 @@
                 <span class="text-danger">*</span>
               </label>
               <CFormInput
-                v-model="form.team_id"
+                :value="settings.team_id"
                 :placeholder="t('settings.appleWallet.teamIdPlaceholder') || 'ABC123DEF4'"
-                required
+                readonly
+                disabled
               />
               <small class="text-muted">
                 {{ t('settings.appleWallet.teamIdHelp') || 'Your Apple Developer Team ID' }}
@@ -36,9 +37,10 @@
                 <span class="text-danger">*</span>
               </label>
               <CFormInput
-                v-model="form.pass_type_id"
+                :value="settings.pass_type_id"
                 :placeholder="t('settings.appleWallet.passTypeIdPlaceholder') || 'pass.com.asmaasalon.loyalty'"
-                required
+                readonly
+                disabled
               />
               <small class="text-muted">
                 {{ t('settings.appleWallet.passTypeIdHelp') || 'Pass Type Identifier from Apple Developer' }}
@@ -93,8 +95,10 @@
                 {{ t('settings.appleWallet.wwdrCertificatePath') || 'WWDR Certificate Path' }}
               </label>
               <CFormInput
-                v-model="form.wwdr_certificate_path"
+                :value="settings?.wwdr_certificate_path"
                 :placeholder="t('settings.appleWallet.wwdrCertificatePathPlaceholder') || 'AppleWWDRCAG3.cer'"
+                readonly
+                disabled
               />
               <small class="text-muted">
                 {{ t('settings.appleWallet.wwdrCertificatePathHelp') || 'Apple Worldwide Developer Relations Certificate (optional but recommended)' }}
@@ -109,8 +113,9 @@
 
             <CCol :md="12">
               <CFormCheck
-                v-model="form.sandbox_mode"
+                :checked="settings?.sandbox_mode"
                 :label="t('settings.appleWallet.sandboxMode') || 'Use Sandbox Mode (for testing)'"
+                disabled
               />
               <small class="text-muted d-block">
                 {{ t('settings.appleWallet.sandboxModeHelp') || 'Enable sandbox mode for testing passes before production' }}
@@ -130,19 +135,15 @@
             </CCol>
 
             <CCol :md="12">
-              <CButton 
-                type="submit" 
-                color="primary" 
-                :disabled="saving"
-                class="btn-primary-custom"
-              >
-                <CSpinner v-if="saving" size="sm" class="me-2" />
-                <CIcon v-else icon="cil-save" class="me-2" />
-                {{ saving ? (t('common.saving') || 'Saving...') : (t('common.save') || 'Save Settings') }}
-              </CButton>
+              <div class="alert alert-warning">
+                <CIcon icon="cil-warning" class="me-2" />
+                <strong>ملاحظة:</strong> الإعدادات محددة في ملف الثوابت المركزي: <code>includes/Config/Apple_Wallet_Config.php</code>
+                <br>
+                للتعديل، قم بتحرير الملف مباشرة ثم أعد تحميل الصفحة.
+              </div>
             </CCol>
           </CRow>
-        </form>
+        </div>
       </Card>
 
       <Card :title="t('settings.appleWallet.status') || 'Status'" icon="cil-info" v-if="settings">
@@ -202,16 +203,7 @@ const { t } = useTranslation();
 const toast = useToast();
 
 const loading = ref(true);
-const saving = ref(false);
 const settings = ref(null);
-const form = ref({
-  team_id: '',
-  pass_type_id: 'pass.com.asmaasalon.loyalty',
-  certificate_path: '',
-  certificate_password: '',
-  wwdr_certificate_path: '',
-  sandbox_mode: false,
-});
 
 const loadSettings = async () => {
   try {
@@ -219,38 +211,12 @@ const loadSettings = async () => {
     const response = await api.get('/settings/apple-wallet');
     if (response.data?.success) {
       settings.value = response.data.data || {};
-      form.value = {
-        team_id: settings.value.team_id || '',
-        pass_type_id: settings.value.pass_type_id || 'pass.com.asmaasalon.loyalty',
-        certificate_path: settings.value.certificate_path || '',
-        certificate_password: '', // Never load password
-        wwdr_certificate_path: settings.value.wwdr_certificate_path || '',
-        sandbox_mode: settings.value.sandbox_mode || false,
-      };
     }
   } catch (error) {
     console.error('Error loading Apple Wallet settings:', error);
     toast.error(t('common.errorLoading') || 'Error loading settings');
   } finally {
     loading.value = false;
-  }
-};
-
-const saveSettings = async () => {
-  try {
-    saving.value = true;
-    const response = await api.put('/settings/apple-wallet', form.value);
-    if (response.data?.success) {
-      toast.success(t('settings.appleWallet.saved') || 'Settings saved successfully');
-      await loadSettings();
-    } else {
-      toast.error(response.data?.message || t('common.errorSaving') || 'Error saving settings');
-    }
-  } catch (error) {
-    console.error('Error saving Apple Wallet settings:', error);
-    toast.error(error.response?.data?.message || t('common.errorSaving') || 'Error saving settings');
-  } finally {
-    saving.value = false;
   }
 };
 

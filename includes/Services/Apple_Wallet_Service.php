@@ -4,6 +4,7 @@ namespace AsmaaSalon\Services;
 
 use AsmaaSalon\Helpers\QR_Code_Generator;
 use AsmaaSalon\Helpers\Apple_Push_Notification_Service;
+use AsmaaSalon\Config\Apple_Wallet_Config;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -106,14 +107,14 @@ class Apple_Wallet_Service
         // Generate pass identifiers
         $serial_number = 'LOYALTY-' . $wc_customer_id . '-' . time();
         $auth_token = wp_generate_password(32, false);
-        $pass_type_id = get_option('asmaa_salon_apple_pass_type_id', 'pass.com.asmaasalon.loyalty');
+        $pass_type_id = Apple_Wallet_Config::PASS_TYPE_ID;
         
         // Build pass data
         $pass_data = [
             'formatVersion' => 1,
             'passTypeIdentifier' => $pass_type_id,
             'serialNumber' => $serial_number,
-            'teamIdentifier' => get_option('asmaa_salon_apple_team_id', 'TEAM_ID'),
+            'teamIdentifier' => Apple_Wallet_Config::TEAM_ID,
             'organizationName' => get_bloginfo('name'),
             'description' => __('Loyalty Card', 'asmaa-salon'),
             'logoText' => __('Asmaa Salon', 'asmaa-salon'),
@@ -352,13 +353,13 @@ class Apple_Wallet_Service
         
         $serial_number = 'MEMBERSHIP-' . $wc_customer_id . '-' . time();
         $auth_token = wp_generate_password(32, false);
-        $pass_type_id = 'pass.com.asmaasalon.membership';
+        $pass_type_id = Apple_Wallet_Config::PASS_TYPE_ID;
         
         $pass_data = [
             'formatVersion' => 1,
             'passTypeIdentifier' => $pass_type_id,
             'serialNumber' => $serial_number,
-            'teamIdentifier' => get_option('asmaa_salon_apple_team_id', 'TEAM_ID'),
+            'teamIdentifier' => Apple_Wallet_Config::TEAM_ID,
             'organizationName' => get_bloginfo('name'),
             'description' => __('Membership Card', 'asmaa-salon'),
             'logoText' => __('Asmaa Salon', 'asmaa-salon'),
@@ -545,13 +546,13 @@ class Apple_Wallet_Service
         
         $serial_number = 'PROGRAMS-' . $wc_customer_id . '-' . time();
         $auth_token = wp_generate_password(32, false);
-        $pass_type_id = 'pass.com.asmaasalon.programs';
+        $pass_type_id = Apple_Wallet_Config::PASS_TYPE_ID;
         
         $pass_data = [
             'formatVersion' => 1,
             'passTypeIdentifier' => $pass_type_id,
             'serialNumber' => $serial_number,
-            'teamIdentifier' => get_option('asmaa_salon_apple_team_id', 'TEAM_ID'),
+            'teamIdentifier' => Apple_Wallet_Config::TEAM_ID,
             'organizationName' => get_bloginfo('name'),
             'description' => __('Programs Card', 'asmaa-salon'),
             'logoText' => __('Asmaa Salon', 'asmaa-salon'),
@@ -730,13 +731,13 @@ class Apple_Wallet_Service
         
         $serial_number = 'COMMISSIONS-' . $wp_user_id . '-' . time();
         $auth_token = wp_generate_password(32, false);
-        $pass_type_id = 'pass.com.asmaasalon.commissions';
+        $pass_type_id = Apple_Wallet_Config::PASS_TYPE_ID;
         
         $pass_data = [
             'formatVersion' => 1,
             'passTypeIdentifier' => $pass_type_id,
             'serialNumber' => $serial_number,
-            'teamIdentifier' => get_option('asmaa_salon_apple_team_id', 'TEAM_ID'),
+            'teamIdentifier' => Apple_Wallet_Config::TEAM_ID,
             'organizationName' => get_bloginfo('name'),
             'description' => __('Commissions Card', 'asmaa-salon'),
             'logoText' => __('Asmaa Salon', 'asmaa-salon'),
@@ -1041,9 +1042,9 @@ class Apple_Wallet_Service
         $signature_path = $pass_dir . '/signature';
         
         // Get certificate paths from options
-        $cert_path = get_option('asmaa_salon_apple_certificate_path', '');
-        $cert_password = get_option('asmaa_salon_apple_certificate_password', '');
-        $wwdr_cert_path = get_option('asmaa_salon_apple_wwdr_certificate_path', '');
+        $cert_path = Apple_Wallet_Config::get_certificate_path();
+        $cert_password = Apple_Wallet_Config::CERTIFICATE_PASSWORD;
+        $wwdr_cert_path = Apple_Wallet_Config::get_wwdr_certificate_path();
         
         // If using relative path, resolve to uploads directory
         if ($cert_path && !file_exists($cert_path)) {

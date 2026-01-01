@@ -72,8 +72,8 @@ class Apple_Push_Notification_Service
     private static function send_apns_notification(string $push_token, string $pass_type_id, string $serial_number): bool
     {
         // Get certificate path
-        $cert_path = get_option('asmaa_salon_apple_certificate_path', '');
-        $cert_password = get_option('asmaa_salon_apple_certificate_password', '');
+        $cert_path = \AsmaaSalon\Config\Apple_Wallet_Config::get_certificate_path();
+        $cert_password = \AsmaaSalon\Config\Apple_Wallet_Config::CERTIFICATE_PASSWORD;
         
         // Resolve certificate path
         if ($cert_path && !file_exists($cert_path)) {
@@ -90,7 +90,7 @@ class Apple_Push_Notification_Service
         }
         
         // Determine APNs endpoint (production or sandbox)
-        $use_sandbox = get_option('asmaa_salon_apple_wallet_sandbox', false);
+        $use_sandbox = \AsmaaSalon\Config\Apple_Wallet_Config::SANDBOX_MODE;
         $apns_url = $use_sandbox 
             ? 'ssl://gateway.sandbox.push.apple.com:2195'
             : 'ssl://gateway.push.apple.com:2195';

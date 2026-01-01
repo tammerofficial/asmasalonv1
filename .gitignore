@@ -33,11 +33,17 @@ yarn-error.log*
 # Temporary files
 *.tmp
 *.temp
+
+# Apple Wallet local certs/config (never commit)
+includes/Config/
 includes/certs/*.p12
 includes/certs/*.cer
 includes/certs/*.pem
 includes/certs/*.key
 includes/certs/*.csr
+
+# Local one-off debug scripts (may contain sensitive passwords)
+test_certificate_password.php
 
 # Cursor
 .cursor/

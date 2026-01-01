@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import api from '@/utils/api';
+import api, { prefetch } from '@/utils/api';
 
 export const useNotificationsStore = defineStore('notifications', {
   state: () => ({
@@ -8,6 +8,7 @@ export const useNotificationsStore = defineStore('notifications', {
     loading: false,
     lastId: 0,
     pollingId: null,
+    prefetched: false,
   }),
 
   getters: {
@@ -85,6 +86,27 @@ export const useNotificationsStore = defineStore('notifications', {
       if (this.pollingId) {
         window.clearInterval(this.pollingId);
         this.pollingId = null;
+      }
+    },
+
+    async prefetchNotifications(params = {}) {
+      try {
+        const response = await prefetch('notifications', {
+          ...params,
+          per_page: 50,
+        });
+        
+        if (response.data && response.data.data) {
+          const data = response.data.data;
+          this.items = Array.isArray(data.items) ? data.items : [];
+          this.unreadCount = Number(data.unread_count || 0);
+          this.lastId = this.items.length ? Number(this.items[0]?.id || 0) : this.lastId;
+          this.prefetched = true;
+        }
+        
+        return response.data;
+      } catch (error) {
+        console.error('Error prefetching notifications:', error);
       }
     },
   },

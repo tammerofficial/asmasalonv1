@@ -490,8 +490,12 @@ const redeemPoints = async () => {
     closeRedeemModal();
     await Promise.all([loadStats(), loadTransactions()]);
   } catch (error) {
-    console.error('Redeem points error:', error);
-    toast.error(t('loyalty.redeemError') || t('common.errorLoading'));
+    const msg =
+      error?.response?.data?.message ||
+      error?.response?.data?.data?.message ||
+      error?.message ||
+      (t('loyalty.redeemError') || t('common.errorLoading'));
+    toast.error(msg);
   } finally {
     redeeming.value = false;
   }

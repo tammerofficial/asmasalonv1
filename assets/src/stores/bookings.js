@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import api from '../utils/api';
+import api, { prefetch } from '../utils/api';
 
 export const useBookingsStore = defineStore('bookings', {
     state: () => ({
@@ -7,6 +7,7 @@ export const useBookingsStore = defineStore('bookings', {
             items: [],
             loading: false,
             error: null,
+            prefetched: false,
             pagination: {
                 current_page: 1,
                 per_page: 20,
@@ -18,6 +19,7 @@ export const useBookingsStore = defineStore('bookings', {
             items: [],
             loading: false,
             error: null,
+            prefetched: false,
             pagination: {
                 current_page: 1,
                 per_page: 20,
@@ -29,6 +31,7 @@ export const useBookingsStore = defineStore('bookings', {
             items: [],
             loading: false,
             error: null,
+            prefetched: false,
             pagination: {
                 current_page: 1,
                 per_page: 20,
@@ -60,7 +63,11 @@ export const useBookingsStore = defineStore('bookings', {
 
     actions: {
         // Services
-        async fetchServices(params = {}) {
+        async fetchServices(params = {}, forceRefresh = false) {
+            if (!forceRefresh && this.services.prefetched && this.services.items.length > 0) {
+                return { items: this.services.items, total: this.services.items.length };
+            }
+
             this.services.loading = true;
             this.services.error = null;
 
@@ -87,6 +94,29 @@ export const useBookingsStore = defineStore('bookings', {
                 console.error('Error fetching services:', error);
             } finally {
                 this.services.loading = false;
+            }
+        },
+
+        async prefetchServices(params = {}) {
+            try {
+                const response = await prefetch('services', {
+                    ...params,
+                    per_page: 50,
+                });
+                
+                if (response.data && response.data.data && response.data.data.items) {
+                    this.services.items = (response.data.data.items || []).map((s) => ({
+                        ...s,
+                        title: s.title ?? s.name_ar ?? s.name ?? '',
+                        duration: Number(s.duration ?? 0),
+                        price: Number(s.price ?? 0),
+                    }));
+                    this.services.prefetched = true;
+                }
+                
+                return response.data;
+            } catch (error) {
+                console.error('Error prefetching services:', error);
             }
         },
 
@@ -145,7 +175,11 @@ export const useBookingsStore = defineStore('bookings', {
         },
 
         // Staff
-        async fetchStaff(params = {}) {
+        async fetchStaff(params = {}, forceRefresh = false) {
+            if (!forceRefresh && this.staff.prefetched && this.staff.items.length > 0) {
+                return { items: this.staff.items, total: this.staff.items.length };
+            }
+
             this.staff.loading = true;
             this.staff.error = null;
 
@@ -170,6 +204,27 @@ export const useBookingsStore = defineStore('bookings', {
                 console.error('Error fetching staff:', error);
             } finally {
                 this.staff.loading = false;
+            }
+        },
+
+        async prefetchStaff(params = {}) {
+            try {
+                const response = await prefetch('staff', {
+                    ...params,
+                    per_page: 50,
+                });
+                
+                if (response.data && response.data.data && response.data.data.items) {
+                    this.staff.items = (response.data.data.items || []).map((s) => ({
+                        ...s,
+                        full_name: s.full_name ?? s.name ?? '',
+                    }));
+                    this.staff.prefetched = true;
+                }
+                
+                return response.data;
+            } catch (error) {
+                console.error('Error prefetching staff:', error);
             }
         },
 
@@ -226,7 +281,11 @@ export const useBookingsStore = defineStore('bookings', {
         },
 
         // Appointments (Bookings)
-        async fetchAppointments(params = {}) {
+        async fetchAppointments(params = {}, forceRefresh = false) {
+            if (!forceRefresh && this.appointments.prefetched && this.appointments.items.length > 0) {
+                return { items: this.appointments.items, total: this.appointments.items.length };
+            }
+
             this.appointments.loading = true;
             this.appointments.error = null;
 
@@ -248,6 +307,24 @@ export const useBookingsStore = defineStore('bookings', {
                 console.error('Error fetching appointments:', error);
             } finally {
                 this.appointments.loading = false;
+            }
+        },
+
+        async prefetchAppointments(params = {}) {
+            try {
+                const response = await prefetch('bookings', {
+                    ...params,
+                    per_page: 50,
+                });
+                
+                if (response.data && response.data.data && response.data.data.items) {
+                    this.appointments.items = response.data.data.items || [];
+                    this.appointments.prefetched = true;
+                }
+                
+                return response.data;
+            } catch (error) {
+                console.error('Error prefetching appointments:', error);
             }
         },
 

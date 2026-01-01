@@ -533,6 +533,14 @@
                             </div>
                             <div class="appointment-actions">
                                 <button
+                                    v-if="appointment.status === 'completed' || appointment.status === 'in_progress'"
+                                    class="action-btn action-btn-checkout"
+                                    @click="checkoutBooking(appointment)"
+                                    :title="t('booking.checkout') || 'Checkout'"
+                                >
+                                    <CIcon icon="cil-cart" />
+                                </button>
+                                <button
                                     class="action-btn"
                                     @click="openAppointmentModal(appointment)"
                                     :title="t('booking.edit')"
@@ -1312,6 +1320,25 @@ const getStaffName = (staffId) => {
 const getServiceAppointmentsCount = (serviceId) => {
     const items = bookingStore.appointments.items || [];
     return items.filter(a => a.service_id === serviceId).length;
+};
+
+const checkoutBooking = async (appointment) => {
+    try {
+        const response = await api.post(`/bookings/${appointment.id}/checkout`, {
+            payment_method: 'cash',
+            additional_items: [],
+        });
+        
+        if (response.data?.data) {
+            alert(t('booking.checkoutSuccess') || 'Checkout completed successfully');
+            await bookingStore.fetchAppointments();
+            // Optionally redirect to orders
+            router.push(`/orders/${response.data.data.order_id}`);
+        }
+    } catch (error) {
+        console.error('Error checking out booking:', error);
+        alert(error.response?.data?.message || t('booking.checkoutError') || 'Error during checkout');
+    }
 };
 
 const servicesAnalyticsRows = computed(() => {
@@ -2236,6 +2263,16 @@ const servicesAnalyticsTotals = computed(() => {
     background: linear-gradient(135deg, rgba(187, 160, 122, 0.95) 0%, var(--asmaa-primary) 100%);
     transform: translateY(-2px) scale(1.1);
     box-shadow: 0 4px 8px rgba(187, 160, 122, 0.3);
+}
+
+.action-btn-checkout {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.action-btn-checkout:hover {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
 .action-btn-card CIcon {

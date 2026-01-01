@@ -379,10 +379,12 @@ import LoadingSpinner from '@/components/UI/LoadingSpinner.vue';
 import api, { clearCache } from '@/utils/api';
 import { useToast } from '@/composables/useToast';
 import { useUiStore } from '@/stores/ui';
+import { useBackgroundPrefetch } from '@/composables/useBackgroundPrefetch';
 
 const router = useRouter();
 const { t } = useTranslation();
 const toast = useToast();
+const { prefetchAllWithDelay } = useBackgroundPrefetch();
 const loading = ref(false);
 const loadingBookings = ref(false);
 const loadingQueue = ref(false);
@@ -686,10 +688,18 @@ const loadQueue = async () => {
   }
 };
 
-onMounted(() => {
-  loadDashboardData();
-  loadRecentBookings();
-  loadQueue();
+onMounted(async () => {
+  // Load essential dashboard data immediately
+  await Promise.all([
+    loadDashboardData(),
+    loadRecentBookings(),
+    loadQueue(),
+  ]);
+  
+  // Start background prefetch after dashboard loads (Rule #5)
+  prefetchAllWithDelay().catch(() => {
+    // Silent error handling - prefetch errors never affect UX
+  });
 });
 
 // Re-render charts when theme changes (Day/Night)
