@@ -1,268 +1,247 @@
 <template>
   <div class="pos-page">
-    <!-- Page Header -->
-    <PageHeader 
-      :title="t('pos.title')"
-      :subtitle="t('pos.subtitle')"
-    >
-      <template #icon>
-        <CIcon icon="cil-cart" />
-      </template>
-      <template #actions>
-        <CBadge v-if="!isOnline" color="warning" class="me-2 align-self-center">
-          <CIcon icon="cil-wifi-slash" class="me-1" />
-          {{ t('pos.offline') || 'Offline' }}
+    <div class="pos-header-top d-flex justify-content-between align-items-center mb-3">
+      <div class="header-left d-flex align-items-center gap-3">
+        <h4 class="mb-0 fw-bold text-primary">{{ t('pos.title') }}</h4>
+        <CBadge color="success" shape="rounded-pill" v-if="posStore.openSession">
+          {{ t('pos.sessionOpen') || 'الجلسة مفتوحة' }} (#{{ posStore.openSession.id }})
         </CBadge>
-        <CBadge v-if="pendingOrdersCount > 0" color="info" class="me-2 align-self-center">
-          <CIcon icon="cil-cloud-upload" class="me-1" />
-          {{ pendingOrdersCount }} {{ t('pos.pendingOrders') || 'Pending' }}
-        </CBadge>
-        <CButton v-if="openSession" color="primary" variant="outline" @click="showSessionModal = true" class="me-2">
-          <CIcon icon="cil-info" class="me-2" />
-          {{ t('pos.sessionInfo') }}
+      </div>
+      <div class="header-right d-flex align-items-center gap-3">
+        <CButton color="info" variant="ghost" @click="showAnalyticsModal = true">
+          <CIcon icon="cil-chart-line" />
         </CButton>
-        <CButton color="primary" variant="outline" @click="refreshData" class="me-2">
-          <CIcon icon="cil-reload" class="me-2" />
-          {{ t('pos.refresh') }}
+        <NotificationsBell />
+        <CButton color="secondary" variant="ghost" @click="showQuickSettings = true">
+          <CIcon icon="cil-settings" />
         </CButton>
-        <CButton v-if="pendingOrdersCount > 0 && isOnline" color="success" variant="outline" @click="syncPendingOrdersHandler" class="me-2">
-          <CIcon icon="cil-sync" class="me-2" />
-          {{ t('pos.syncPending') || 'Sync Pending' }}
-        </CButton>
-      </template>
-    </PageHeader>
+      </div>
+    </div>
+
+    <!-- Quick Stats Bar (Header) -->
+    <QuickStatsBar 
+      :session="posStore.openSession" 
+      :activeCustomersCount="posStore.activeCustomers.length"
+    />
 
     <!-- Main POS Layout (3 Columns) -->
     <div class="pos-layout">
-      <!-- Column 1: Active Customers -->
-      <div class="pos-column pos-column-1">
-        <Card :title="t('pos.activeCustomers')" icon="cil-people" class="h-100">
-          <LoadingSpinner v-if="loadingActiveCustomers" :text="t('common.loading')" />
-          
-          <EmptyState 
-            v-else-if="activeCustomers.length === 0"
-            :title="t('pos.noActiveCustomers')"
-            :description="t('pos.noActiveCustomersDesc')"
-            icon-color="gray"
-          />
+      
+      <!-- Column 1: Operations (Customers, Bookings, Queue) -->
+      <div class="pos-column pos-operations">
+        <Card class="operations-card h-100">
+          <template #header>
+            <div class="d-flex justify-content-between align-items-center w-100">
+              <span class="fw-bold">{{ t('pos.operations') || 'العمليات' }}</span>
+              <CButton size="sm" color="primary" variant="ghost" @click="posStore.fetchAllData">
+                <CIcon icon="cil-reload" />
+              </CButton>
+            </div>
+          </template>
 
-          <div v-else class="active-customers-list">
-            <div 
-              v-for="customer in activeCustomers" 
-              :key="customer.id"
-              class="active-customer-item"
-              :class="{ 'selected': Number(selectedCustomerId) === Number(customer.id) }"
-              @click="selectCustomer(customer.id)"
-            >
-              <div class="customer-avatar">
-                <CIcon icon="cil-user" />
+          <CNav variant="pills" class="flex-column operations-nav">
+            <!-- Active Customers Section -->
+            <div class="operation-section">
+              <div class="section-title d-flex justify-content-between align-items-center">
+                <span>
+                  <CIcon icon="cil-people" class="me-2" />
+                  {{ t('pos.activeCustomers') }}
+                </span>
+                <CButton size="sm" color="success" variant="ghost" @click="showAddCustomerModal = true">
+                  <CIcon icon="cil-plus" />
+                </CButton>
               </div>
-              <div class="customer-info">
-                <div class="customer-name">{{ customer.name }}</div>
-                <div class="customer-meta">
-                  <CBadge color="primary" class="me-2">
-                    {{ customer.type === 'queue' ? (customer.ticket_number ? `#${customer.ticket_number}` : t('queue.title')) : t('bookings.title') }}
-                  </CBadge>
-                  <span class="customer-service">{{ customer.current_service || 'N/A' }}</span>
+              <div class="operation-list">
+                <div 
+                  v-for="customer in posStore.activeCustomers" 
+                  :key="customer.id"
+                  class="operation-item"
+                  :class="{ 'selected': Number(posStore.selectedCustomerId) === Number(customer.id) }"
+                  @click="selectActiveCustomer(customer)"
+                >
+                  <div class="item-avatar">{{ customer.name?.charAt(0) || 'C' }}</div>
+                  <div class="item-info">
+                    <div class="item-name">{{ customer.name }}</div>
+                    <div class="item-meta">
+                      <CBadge :color="customer.type === 'queue' ? 'info' : 'primary'" size="sm">
+                        {{ customer.type === 'queue' ? '#' + customer.ticket_number : t('bookings.title') }}
+                      </CBadge>
+                      <span class="ms-2">{{ customer.current_service || 'N/A' }}</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="customer-staff" v-if="customer.staff_name && customer.staff_name !== 'Unassigned'">
-                  <CIcon icon="cil-user" class="me-1" />
-                  {{ customer.staff_name }}
-                </div>
-                <div class="customer-time" v-if="customer.booking_start_at || customer.booking_time">
-                  <CIcon icon="cil-clock" class="me-1" />
-                  {{ formatBookingTime(customer) }}
+                <div v-if="posStore.activeCustomers.length === 0" class="empty-state-mini">
+                  {{ t('pos.noActiveCustomers') }}
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- All Customers Dropdown -->
-          <template #footer>
-            <CFormSelect 
-              v-model.number="selectedCustomerId" 
-              :placeholder="t('pos.selectCustomer')"
-              @change="onCustomerSelect"
-            >
-              <option value="">{{ t('pos.selectCustomer') }}</option>
-              <option v-for="customer in customers" :key="customer.id" :value="customer.id">
-                {{ customer.name_ar || customer.name }} - {{ customer.phone }}
-              </option>
-            </CFormSelect>
-          </template>
-        </Card>
-      </div>
+            <!-- Bookings Section -->
+            <div class="operation-section mt-3">
+              <div class="section-title d-flex justify-content-between">
+                <span>
+                  <CIcon icon="cil-calendar" class="me-2" />
+                  {{ t('bookings.title') }}
+                </span>
+                <router-link to="/bookings" class="text-primary text-decoration-none small">{{ t('common.viewAll') }}</router-link>
+              </div>
+              <div class="operation-list">
+                <BookingCard 
+                  v-for="booking in posStore.bookings.slice(0, 3)" 
+                  :key="booking.id" 
+                  :booking="booking"
+                  @process="selectActiveCustomer"
+                />
+              </div>
+            </div>
 
-      <!-- Column 2: Services/Products -->
-      <div class="pos-column pos-column-2">
-        <!-- Tabs -->
-        <Card>
-          <CNav variant="tabs" role="tablist">
-            <CNavItem>
-              <CNavLink 
-                :active="activeTab === 'services'"
-                @click="activeTab = 'services'"
-                role="tab"
-              >
-                <CIcon icon="cil-spreadsheet" class="me-2" />
-                {{ t('pos.services') }}
-              </CNavLink>
-            </CNavItem>
-            <CNavItem>
-              <CNavLink 
-                :active="activeTab === 'products'"
-                @click="activeTab = 'products'"
-                role="tab"
-              >
-                <CIcon icon="cil-basket" class="me-2" />
-                {{ t('pos.products') }}
-              </CNavLink>
-            </CNavItem>
+            <!-- Queue Section -->
+            <div class="operation-section mt-3">
+              <div class="section-title d-flex justify-content-between">
+                <span>
+                  <CIcon icon="cil-list" class="me-2" />
+                  {{ t('queue.title') }}
+                </span>
+                <CButton size="sm" color="primary" variant="ghost" @click="callNext">{{ t('queue.next') }}</CButton>
+              </div>
+              <div class="operation-list">
+                <QueueTicketCard 
+                  v-for="ticket in posStore.queueTickets.filter(t => t.status !== 'completed').slice(0, 3)" 
+                  :key="ticket.id" 
+                  :ticket="ticket"
+                  @call="handleCallTicket"
+                  @serve="handleServeTicket"
+                />
+              </div>
+            </div>
+
+            <!-- Staff Status Section -->
+            <StaffStatusWidget :staff="posStore.staff" @call="handleCallStaff" />
           </CNav>
         </Card>
+      </div>
 
-        <!-- Search -->
-        <Card>
-          <CInputGroup>
-            <CInputGroupText>
-              <CIcon icon="cil-magnifying-glass" />
-            </CInputGroupText>
-            <CFormInput
-              v-model="searchQuery"
-              :placeholder="activeTab === 'services' ? t('pos.searchService') : t('pos.searchProduct')"
-              @input="filterItems"
+      <!-- Column 2: Catalog (Services & Products) -->
+      <div class="pos-column pos-catalog">
+        <Card class="catalog-card h-100">
+          <template #header>
+            <div class="catalog-header-actions w-100">
+              <CInputGroup>
+                <CInputGroupText><CIcon icon="cil-magnifying-glass" /></CInputGroupText>
+                <CFormInput 
+                  v-model="searchQuery" 
+                  :placeholder="t('common.search') + '...'"
+                  class="border-start-0"
+                />
+              </CInputGroup>
+              
+              <CNav variant="pills" class="catalog-tabs mt-3">
+                <CNavItem>
+                  <CNavLink :active="activeTab === 'services'" @click="activeTab = 'services'">
+                    <CIcon icon="cil-spreadsheet" class="me-2" />{{ t('pos.services') }}
+                  </CNavLink>
+                </CNavItem>
+                <CNavItem>
+                  <CNavLink :active="activeTab === 'products'" @click="activeTab = 'products'">
+                    <CIcon icon="cil-basket" class="me-2" />{{ t('pos.products') }}
+                  </CNavLink>
+                </CNavItem>
+                <CNavItem>
+                  <CNavLink :active="activeTab === 'memberships'" @click="activeTab = 'memberships'">
+                    <CIcon icon="cil-gem" class="me-2" />{{ t('memberships.title') || 'العضويات' }}
+                  </CNavLink>
+                </CNavItem>
+                <CNavItem>
+                  <CNavLink :active="activeTab === 'favorites'" @click="activeTab = 'favorites'">
+                    <CIcon icon="cil-star" class="me-2" />{{ t('common.favorites') || 'المفضلة' }}
+                  </CNavLink>
+                </CNavItem>
+              </CNav>
+            </div>
+          </template>
+
+          <div class="catalog-grid-wrapper">
+            <LoadingSpinner v-if="posStore.loading.products || posStore.loading.services" />
+            
+            <div v-else class="catalog-grid">
+              <div 
+                v-for="item in filteredItems" 
+                :key="item.id"
+                class="catalog-item-card"
+                :class="{ 'out-of-stock': activeTab === 'products' && (item.stock_quantity || 0) <= 0 }"
+                @click="handleItemClick(item)"
+              >
+                <div class="item-category-badge" v-if="item.category">{{ item.category }}</div>
+                <div class="item-name">{{ item.name_ar || item.name }}</div>
+                <div class="item-price">{{ formatCurrency(item.price || item.selling_price || 0) }}</div>
+                <div class="item-stock" v-if="activeTab === 'products'">
+                  {{ t('products.stock') }}: {{ item.stock_quantity || 0 }}
+                </div>
+                <div class="quick-add">
+                  <CIcon icon="cil-plus" />
+                </div>
+              </div>
+            </div>
+
+            <EmptyState 
+              v-if="!filteredItems.length" 
+              :title="t('common.noResults')" 
+              icon="cil-search" 
             />
-          </CInputGroup>
-        </Card>
-
-        <!-- Services Grid -->
-        <Card v-if="activeTab === 'services'" :title="t('pos.services')" icon="cil-spreadsheet">
-          <LoadingSpinner v-if="loadingServices" :text="t('common.loading')" />
-          
-          <EmptyState 
-            v-else-if="filteredServices.length === 0"
-            :title="t('pos.noServices')"
-            :description="t('pos.noServices')"
-            icon-color="gray"
-          />
-
-          <div v-else class="items-grid">
-            <div 
-              v-for="service in filteredServices" 
-              :key="service.id"
-              class="item-card"
-              @click="handleServiceClick(service, $event)"
-            >
-              <div class="item-name">{{ service.name_ar || service.name }}</div>
-              <div class="item-price">{{ formatCurrency(service.price || 0) }}</div>
-              <div class="item-category" v-if="service.category">
-                <CIcon icon="cil-tag" class="me-1" />
-                {{ service.category }}
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <!-- Products Grid -->
-        <Card v-if="activeTab === 'products'" :title="t('pos.products')" icon="cil-basket">
-          <LoadingSpinner v-if="loadingProducts" :text="t('common.loading')" />
-          
-          <EmptyState 
-            v-else-if="filteredProducts.length === 0"
-            :title="t('pos.noProducts')"
-            :description="t('pos.noProducts')"
-            icon-color="gray"
-          />
-
-          <div v-else class="items-grid">
-            <div 
-              v-for="product in filteredProducts" 
-              :key="product.id"
-              class="item-card"
-              :class="{ 'out-of-stock': (product.stock_quantity || 0) <= 0 }"
-              @click="handleProductClick(product, $event)"
-            >
-              <div class="item-name">{{ product.name_ar || product.name }}</div>
-              <div class="item-price">{{ formatCurrency(product.selling_price || product.price || 0) }}</div>
-              <div class="item-stock" v-if="product.stock_quantity !== undefined">
-                <CBadge color="primary">
-                  {{ t('products.stock') }}: {{ product.stock_quantity }}
-                </CBadge>
-              </div>
-              <div class="item-sku" v-if="product.sku">
-                <small>SKU: {{ product.sku }}</small>
-              </div>
-            </div>
           </div>
         </Card>
       </div>
 
-      <!-- Column 3: Cart -->
-      <div class="pos-column pos-column-3">
-        <Card :title="t('pos.cart')" icon="cil-cart" class="h-100">
-          <!-- Customer Selection -->
-          <div class="cart-customer mb-3">
-            <label class="form-label">{{ t('pos.customer') }}</label>
-            <CFormSelect 
-              v-model.number="selectedCustomerId" 
-              @change="onCustomerSelect"
-            >
-              <option value="">{{ t('pos.walkInCustomer') }}</option>
-              <option v-for="customer in customers" :key="customer.id" :value="customer.id">
-                {{ customer.name_ar || customer.name }}
-              </option>
-            </CFormSelect>
+      <!-- Column 3: Checkout (Cart, Loyalty, Payment) -->
+      <div class="pos-column pos-checkout">
+        <Card class="checkout-card h-100">
+          <template #header>
+            <div class="fw-bold">{{ t('pos.cart') }}</div>
+          </template>
+
+          <!-- Selected Customer Info -->
+          <div class="checkout-customer-section">
+            <CustomerQuickView 
+              v-if="posStore.selectedCustomer" 
+              :customer="posStore.selectedCustomer" 
+              @view-profile="goToCustomerProfile"
+              @view-history="showHistoryModal = true"
+              @send-wallet-pass="handleSendWalletPass"
+            />
+            
+            <div v-else class="customer-selection-empty">
+              <CFormSelect v-model="posStore.selectedCustomerId" @change="onCustomerSelect">
+                <option :value="null">{{ t('pos.walkInCustomer') }}</option>
+                <option v-for="c in posStore.customers" :key="c.id" :value="c.id">
+                  {{ c.name }} - {{ c.phone }}
+                </option>
+              </CFormSelect>
+            </div>
           </div>
 
           <!-- Cart Items -->
-          <div class="cart-items">
-            <EmptyState 
-              v-if="cart.length === 0"
-              :title="t('pos.emptyCart')"
-              :description="t('pos.emptyCartDesc')"
-              icon-color="gray"
-            />
-
-            <div v-else class="cart-items-list">
-              <div 
-                v-for="(item, index) in cart" 
-                :key="index"
-                class="cart-item"
-              >
-                <div class="cart-item-info">
-                  <div class="cart-item-name">{{ item.name }}</div>
-                  <div class="cart-item-meta" v-if="item.staff_name">
-                    <CIcon icon="cil-user" class="me-1" />
-                    {{ item.staff_name }}
+          <div class="cart-items-section">
+            <div v-if="posStore.cart.length === 0" class="empty-cart-display">
+              <CIcon icon="cil-cart" class="mb-2" size="xl" />
+              <div>{{ t('pos.emptyCartDesc') }}</div>
+            </div>
+            
+            <div v-else class="cart-list">
+              <div v-for="(item, index) in posStore.cart" :key="index" class="cart-item">
+                <div class="item-info">
+                  <div class="item-name">{{ item.name }}</div>
+                  <div class="item-staff" v-if="item.staff_name">
+                    <CIcon icon="cil-user" class="me-1" />{{ item.staff_name }}
                   </div>
                 </div>
-                <div class="cart-item-actions">
-                  <div class="cart-item-quantity">
-                    <CButton 
-                      color="primary" 
-                      size="sm" 
-                      variant="outline"
-                      @click="decreaseQuantity(index)"
-                    >
-                      <CIcon icon="cil-minus" />
-                    </CButton>
-                    <span class="quantity-value">{{ item.quantity }}</span>
-                    <CButton 
-                      color="primary" 
-                      size="sm" 
-                      variant="outline"
-                      @click="increaseQuantity(index)"
-                    >
-                      <CIcon icon="cil-plus" />
-                    </CButton>
+                <div class="item-controls">
+                  <div class="quantity-picker">
+                    <button @click="updateQty(index, -1)">-</button>
+                    <span>{{ item.quantity }}</span>
+                    <button @click="updateQty(index, 1)">+</button>
                   </div>
-                  <div class="cart-item-price">{{ formatCurrency(item.unit_price * item.quantity) }}</div>
-                  <CButton 
-                    color="primary" 
-                    size="sm" 
-                    variant="ghost"
-                    @click="removeFromCart(index)"
-                  >
+                  <div class="item-total">{{ formatCurrency(item.unit_price * item.quantity) }}</div>
+                  <CButton size="sm" color="danger" variant="ghost" @click="posStore.removeFromCart(index)">
                     <CIcon icon="cil-trash" />
                   </CButton>
                 </div>
@@ -270,773 +249,503 @@
             </div>
           </div>
 
-          <!-- Cart Summary -->
-          <div class="cart-summary">
-            <div class="summary-row">
-              <span>{{ t('pos.subtotal') }}:</span>
-              <strong>{{ formatCurrency(subtotal) }}</strong>
+          <!-- Checkout Summary -->
+          <div class="checkout-footer">
+            <div class="summary-details">
+              <div class="summary-line">
+                <span>{{ t('pos.subtotal') }}</span>
+                <span>{{ formatCurrency(posStore.subtotal) }}</span>
+              </div>
+              <div class="summary-line" v-if="posStore.prepaidAmount > 0">
+                <span>{{ t('pos.prepaid') }}</span>
+                <span class="text-success">-{{ formatCurrency(posStore.prepaidAmount) }}</span>
+              </div>
+              <div class="summary-line discount-line">
+                <span>{{ t('pos.discount') }}</span>
+                <CFormInput v-model.number="posStore.discount" type="number" step="0.5" size="sm" class="summary-input" />
+              </div>
+              <div class="summary-line total-line">
+                <span>{{ t('pos.total') }}</span>
+                <span class="total-amount">{{ formatCurrency(posStore.total) }}</span>
+              </div>
             </div>
-            <div class="summary-row" v-if="prepaidAmount > 0">
-              <span>{{ t('pos.prepaid') || 'المدفوع مسبقاً' }}:</span>
-              <strong class="text-success">-{{ formatCurrency(prepaidAmount) }}</strong>
-            </div>
-            <div class="summary-row">
-              <span>{{ t('pos.discount') }}:</span>
-              <CFormInput
-                v-model.number="discount"
-                type="number"
-                step="0.001"
-                min="0"
-                :max="subtotal"
-                @input="calculateTotal"
-                class="discount-input"
-              />
-            </div>
-            <div class="summary-row total-row">
-              <span>{{ t('pos.total') }}:</span>
-              <strong class="total-amount">{{ formatCurrency(total) }}</strong>
-            </div>
-          </div>
 
-          <!-- Payment Method -->
-          <div class="payment-method mb-3">
-            <label class="form-label">{{ t('pos.paymentMethod') }}</label>
-            <CFormSelect v-model="paymentMethod">
-              <option value="cash">{{ t('pos.cash') }}</option>
-              <option value="card">{{ t('pos.card') }}</option>
-              <option value="knet">{{ t('pos.knet') }}</option>
-            </CFormSelect>
-          </div>
+            <!-- Payment Methods -->
+            <div class="payment-section mt-3">
+              <div class="small fw-bold mb-2 text-muted uppercase">{{ t('pos.paymentMethod') }}</div>
+              <PaymentMethodsGrid v-model="posStore.paymentMethod" />
+            </div>
 
-          <!-- Actions -->
-          <div class="cart-actions">
-            <CButton 
-              color="primary" 
-              variant="outline" 
-              @click="clearCart"
-              class="w-100 mb-2"
-              :disabled="cart.length === 0"
-            >
-              <CIcon icon="cil-trash" class="me-2" />
-              {{ t('pos.clearCart') }}
-            </CButton>
-            <CButton 
-              color="primary" 
-              @click="processOrder"
-              class="w-100"
-              :disabled="cart.length === 0 || processing"
-            >
-              <CIcon icon="cil-check-circle" class="me-2" />
-              {{ processing ? t('pos.processing') : t('pos.processOrder') }}
-            </CButton>
+            <!-- Final Actions -->
+            <div class="checkout-actions">
+              <CButton color="primary" class="w-100 checkout-btn py-3" :disabled="!posStore.cart.length || isProcessing" @click="handleCheckout">
+                <CIcon v-if="isProcessing" icon="cil-reload" class="spinning me-2" />
+                <CIcon v-else icon="cil-check-circle" class="me-2" />
+                {{ isProcessing ? t('pos.processing') : t('pos.processOrder') }}
+              </CButton>
+              <CButton color="secondary" variant="ghost" class="w-100 mt-2" @click="posStore.clearCart">
+                {{ t('pos.clearCart') }}
+              </CButton>
+            </div>
           </div>
         </Card>
       </div>
     </div>
 
-    <!-- Service Modal -->
-    <CModal 
-      v-model:visible="showServiceModal" 
-      :title="t('pos.addService')"
-      size="lg"
-    >
-      <template #body>
-        <div v-if="selectedService">
-          <div class="mb-3">
-            <label class="form-label">{{ t('pos.service') }}</label>
-            <CFormInput :value="selectedService.name_ar || selectedService.name" disabled />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">{{ t('pos.price') }}</label>
-            <CFormInput :value="formatCurrency(selectedService.price || 0)" disabled />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">{{ t('pos.staff') }}</label>
-            <CFormSelect v-model="selectedStaffId">
-              <option value="">{{ t('pos.selectStaff') }}</option>
-              <option v-for="staffMember in staff" :key="staffMember.id" :value="staffMember.id">
-                {{ staffMember.name }}
-              </option>
-            </CFormSelect>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">{{ t('pos.quantity') }}</label>
-            <CFormInput 
-              v-model.number="serviceQuantity" 
-              type="number" 
-              min="1"
-            />
-          </div>
-        </div>
-      </template>
-      <template #footer>
-        <CButton color="primary" variant="outline" @click="showServiceModal = false">{{ t('pos.cancel') }}</CButton>
-        <CButton color="primary" @click="addServiceToCart">{{ t('pos.addToCart') }}</CButton>
-      </template>
+    <!-- Modals -->
+    <CModal :visible="showAnalyticsModal" @close="showAnalyticsModal = false" size="lg" alignment="center">
+      <CModalHeader>
+        <CModalTitle>{{ t('analytics.title') || 'التحليلات الحية' }}</CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        <LiveAnalyticsDashboard :session="posStore.openSession" />
+      </CModalBody>
     </CModal>
 
-    <!-- Product Modal -->
-    <CModal 
-      v-model:visible="showProductModal" 
-      :title="t('pos.addProduct')"
-      size="lg"
-    >
-      <template #body>
-        <div v-if="selectedProduct">
+    <CModal :visible="showHistoryModal" @close="showHistoryModal = false" size="xl" alignment="center">
+      <CModalHeader>
+        <CModalTitle>{{ t('common.history') || 'السجل' }} - {{ posStore.selectedCustomer?.name }}</CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        <CNav variant="tabs" class="mb-3">
+          <CNavItem><CNavLink :active="historyTab === 'orders'" @click="historyTab = 'orders'">{{ t('orders.title') }}</CNavLink></CNavItem>
+          <CNavItem><CNavLink :active="historyTab === 'invoices'" @click="historyTab = 'invoices'">{{ t('invoices.title') }}</CNavLink></CNavItem>
+          <CNavItem><CNavLink :active="historyTab === 'payments'" @click="historyTab = 'payments'">{{ t('payments.title') }}</CNavLink></CNavItem>
+        </CNav>
+
+        <div v-if="historyTab === 'orders'" class="history-list">
+          <div v-for="order in posStore.orders" :key="order.id" class="history-item border rounded p-3 mb-2">
+            <div class="d-flex justify-content-between">
+              <span class="fw-bold">#{{ order.order_number }}</span>
+              <span class="text-primary fw-bold">{{ formatCurrency(order.total) }}</span>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+              <span class="small text-muted">{{ order.created_at }}</span>
+              <CBadge :color="order.status === 'completed' ? 'success' : 'warning'">{{ order.status }}</CBadge>
+            </div>
+          </div>
+          <EmptyState v-if="!posStore.orders.length" :title="t('orders.noOrders')" icon="cil-cart" />
+        </div>
+
+        <div v-if="historyTab === 'invoices'" class="history-list">
+          <div v-for="invoice in posStore.invoices" :key="invoice.id" class="history-item border rounded p-3 mb-2">
+            <div class="d-flex justify-content-between">
+              <span class="fw-bold">#{{ invoice.invoice_number }}</span>
+              <span class="text-primary fw-bold">{{ formatCurrency(invoice.total_amount) }}</span>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+              <span class="small text-muted">{{ invoice.created_at }}</span>
+              <CBadge :color="invoice.status === 'paid' ? 'success' : 'danger'">{{ invoice.status }}</CBadge>
+            </div>
+          </div>
+          <EmptyState v-if="!posStore.invoices.length" :title="t('invoices.noInvoices')" icon="cil-file" />
+        </div>
+
+        <div v-if="historyTab === 'payments'" class="history-list">
+          <div v-for="payment in posStore.payments" :key="payment.id" class="history-item border rounded p-3 mb-2">
+            <div class="d-flex justify-content-between">
+              <span class="fw-bold">{{ payment.payment_method }}</span>
+              <span class="text-success fw-bold">{{ formatCurrency(payment.amount) }}</span>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+              <span class="small text-muted">{{ payment.created_at }}</span>
+              <CBadge color="info">#{{ payment.id }}</CBadge>
+            </div>
+          </div>
+          <EmptyState v-if="!posStore.payments.length" :title="t('payments.noPayments')" icon="cil-money" />
+        </div>
+      </CModalBody>
+    </CModal>
+
+    <CModal :visible="showItemModal" @close="showItemModal = false" size="lg" alignment="center">
+      <CModalHeader>
+        <CModalTitle>{{ activeTab === 'services' ? t('pos.addService') : t('pos.addProduct') }}</CModalTitle>
+      </CModalHeader>
+      <CModalBody v-if="selectedItem">
+        <CRow>
+          <CCol md="6">
+            <div class="item-preview-card">
+              <div class="item-name h4">{{ selectedItem.name_ar || selectedItem.name }}</div>
+              <div class="item-price h3 text-primary">{{ formatCurrency(selectedItem.price || selectedItem.selling_price || 0) }}</div>
+              <hr />
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">{{ t('pos.staff') }}</label>
+                <CFormSelect v-model="selectedStaffId">
+                  <option value="">{{ t('pos.selectStaff') }}</option>
+                  <option v-for="s in posStore.staff" :key="s.id" :value="s.id">{{ s.name }}</option>
+                </CFormSelect>
+                <div v-if="estimatedCommission > 0" class="mt-2 small text-success fw-bold">
+                  <CIcon icon="cil-money" class="me-1" />
+                  {{ t('commissions.estimated') || 'العمولة المقدرة' }}: {{ formatCurrency(estimatedCommission) }}
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">{{ t('pos.quantity') }}</label>
+                <div class="quantity-input-large">
+                  <CButton color="secondary" variant="outline" @click="modalQty > 1 ? modalQty-- : null">-</CButton>
+                  <CFormInput v-model.number="modalQty" type="number" min="1" class="text-center" />
+                  <CButton color="secondary" variant="outline" @click="modalQty++">+</CButton>
+                </div>
+              </div>
+            </div>
+          </CCol>
+          <CCol md="6">
+            <!-- Loyalty & Offers placeholder -->
+            <div class="offers-section">
+              <div class="section-title small fw-bold text-muted mb-2 uppercase">{{ t('loyalty.offers') || 'العروض المتاحة' }}</div>
+              <div class="empty-state-mini border rounded p-3 text-center">
+                {{ t('loyalty.noOffers') || 'لا توجد عروض لهذه الخدمة حالياً' }}
+              </div>
+            </div>
+          </CCol>
+        </CRow>
+      </CModalBody>
+      <CModalFooter>
+        <CButton color="secondary" variant="ghost" @click="showItemModal = false">{{ t('common.cancel') }}</CButton>
+        <CButton color="primary" @click="confirmAddItem">{{ t('pos.addToCart') }}</CButton>
+      </CModalFooter>
+    </CModal>
+
+    <!-- Quick Add Customer Modal -->
+    <CModal :visible="showAddCustomerModal" @close="showAddCustomerModal = false" alignment="center">
+      <CModalHeader>
+        <CModalTitle>{{ t('customers.add') || 'إضافة عميلة جديدة' }}</CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        <form @submit.prevent="handleAddCustomer">
           <div class="mb-3">
-            <label class="form-label">{{ t('products.title') }}</label>
-            <CFormInput :value="selectedProduct.name_ar || selectedProduct.name" disabled />
+            <label class="form-label">{{ t('customers.name') }}</label>
+            <CFormInput v-model="newCustomer.name" required />
           </div>
           <div class="mb-3">
-            <label class="form-label">{{ t('pos.price') }}</label>
-            <CFormInput :value="formatCurrency(selectedProduct.selling_price || selectedProduct.price || 0)" disabled />
+            <label class="form-label">{{ t('customers.phone') }}</label>
+            <CFormInput v-model="newCustomer.phone" required />
           </div>
           <div class="mb-3">
-            <label class="form-label">{{ t('pos.availableStock') }}</label>
-            <CFormInput :value="selectedProduct.stock_quantity || 0" disabled />
+            <label class="form-label">{{ t('customers.email') }}</label>
+            <CFormInput v-model="newCustomer.email" type="email" />
           </div>
-          <div class="mb-3">
-            <label class="form-label">{{ t('pos.staff') }}</label>
-            <CFormSelect v-model="selectedProductStaffId">
-              <option value="">{{ t('pos.selectStaff') }}</option>
-              <option v-for="staffMember in staff" :key="staffMember.id" :value="staffMember.id">
-                {{ staffMember.name }}
-              </option>
-            </CFormSelect>
+          <CButton type="submit" color="primary" class="w-100" :disabled="isSavingCustomer">
+            <CIcon v-if="isSavingCustomer" icon="cil-reload" class="spinning me-2" />
+            {{ t('common.save') }}
+          </CButton>
+        </form>
+      </CModalBody>
+    </CModal>
+
+    <!-- Invoice Preview Modal -->
+    <CModal :visible="showInvoicePreview" @close="showInvoicePreview = false" size="lg" alignment="center">
+      <CModalHeader>
+        <CModalTitle>{{ t('pos.invoicePreview') || 'معاينة الفاتورة' }}</CModalTitle>
+      </CModalHeader>
+      <CModalBody v-if="lastProcessedOrder" class="p-0">
+        <div class="invoice-container p-4" id="printable-invoice">
+          <div class="invoice-header text-center mb-4">
+            <h3 class="fw-bold">SALON ASMAA</h3>
+            <div>{{ t('pos.receipt') }} #{{ lastProcessedOrder.order_number }}</div>
+            <div class="small">{{ new Date().toLocaleString() }}</div>
           </div>
-          <div class="mb-3">
-            <label class="form-label">{{ t('pos.quantity') }}</label>
-            <CFormInput 
-              v-model.number="productQuantity" 
-              type="number" 
-              min="1"
-              :max="selectedProduct.stock_quantity || 999"
-            />
+          <hr />
+          <div class="invoice-items mb-4">
+            <div v-for="item in lastProcessedOrder.items" :key="item.id" class="d-flex justify-content-between mb-2">
+              <span>{{ item.name }} x {{ item.quantity }}</span>
+              <span>{{ formatCurrency(item.total) }}</span>
+            </div>
+          </div>
+          <hr />
+          <div class="invoice-summary">
+            <div class="d-flex justify-content-between">
+              <span>{{ t('pos.subtotal') }}</span>
+              <span>{{ formatCurrency(lastProcessedOrder.subtotal) }}</span>
+            </div>
+            <div class="d-flex justify-content-between text-danger" v-if="lastProcessedOrder.discount > 0">
+              <span>{{ t('pos.discount') }}</span>
+              <span>-{{ formatCurrency(lastProcessedOrder.discount) }}</span>
+            </div>
+            <div class="d-flex justify-content-between fw-bold h4 mt-2">
+              <span>{{ t('pos.total') }}</span>
+              <span>{{ formatCurrency(lastProcessedOrder.total) }}</span>
+            </div>
+          </div>
+          <div class="invoice-footer text-center mt-5">
+            <p>{{ t('pos.thankYou') || 'شكراً لزيارتكم' }}</p>
           </div>
         </div>
-      </template>
-      <template #footer>
-        <CButton color="primary" variant="outline" @click="showProductModal = false">{{ t('pos.cancel') }}</CButton>
-        <CButton 
-          color="primary" 
-          @click="addProductToCart"
-          :disabled="productQuantity > (selectedProduct?.stock_quantity || 0)"
-        >
-          {{ t('pos.addToCart') }}
+      </CModalBody>
+      <CModalFooter>
+        <CButton color="secondary" @click="showInvoicePreview = false">{{ t('common.close') }}</CButton>
+        <CButton color="primary" @click="window.print()">
+          <CIcon icon="cil-print" class="me-2" />
+          {{ t('common.print') }}
         </CButton>
-      </template>
+      </CModalFooter>
     </CModal>
 
-    <!-- Session Modal -->
-    <CModal 
-      v-model:visible="showSessionModal" 
-      :title="t('pos.sessionInfo')"
-    >
-      <template #body>
-        <div v-if="openSession">
-          <div class="mb-3">
-            <strong>{{ t('pos.openedAt') }}:</strong> {{ formatDateTime(openSession.opened_at) }}
+    <!-- Quick Settings Modal -->
+    <CModal :visible="showQuickSettings" @close="showQuickSettings = false" alignment="center">
+      <CModalHeader>
+        <CModalTitle>{{ t('settings.title') || 'الإعدادات السريعة' }}</CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        <div class="settings-list">
+          <div class="setting-item d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+            <div>
+              <div class="fw-bold">{{ t('pos.autoPrint') || 'طباعة تلقائية' }}</div>
+              <div class="small text-muted">{{ t('pos.autoPrintDesc') || 'طباعة الفاتورة فور إتمام الطلب' }}</div>
+            </div>
+            <CFormSwitch />
           </div>
-          <div class="mb-3">
-            <strong>{{ t('pos.openingCash') }}:</strong> {{ formatCurrency(openSession.opening_cash || 0) }}
+          <div class="setting-item d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+            <div>
+              <div class="fw-bold">{{ t('pos.soundNotifications') || 'تنبيهات صوتية' }}</div>
+              <div class="small text-muted">{{ t('pos.soundNotificationsDesc') || 'تفعيل الصوت عند استدعاء الطابور' }}</div>
+            </div>
+            <CFormSwitch :checked="true" />
           </div>
-          <div class="mb-3">
-            <strong>{{ t('pos.totalTransactions') }}:</strong> {{ openSession.total_transactions || 0 }}
-          </div>
-          <div class="mb-3">
-            <strong>{{ t('pos.totalSales') }}:</strong> {{ formatCurrency(openSession.total_sales || 0) }}
-          </div>
+          <hr />
+          <CButton color="danger" variant="outline" class="w-100" @click="handleCloseSession">
+            <CIcon icon="cil-lock-locked" class="me-2" />
+            {{ t('pos.closeSession') || 'إغلاق الجلسة' }}
+          </CButton>
         </div>
-      </template>
-      <template #footer>
-        <CButton color="primary" @click="showSessionModal = false">{{ t('pos.close') }}</CButton>
-      </template>
+      </CModalBody>
     </CModal>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted, watch } from 'vue';
-import {
-  CButton,
-  CBadge,
-  CFormInput,
-  CFormSelect,
-  CInputGroup,
-  CInputGroupText,
-  CModal,
-  CNav,
-  CNavItem,
-  CNavLink,
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { 
+  CButton, CBadge, CFormInput, CFormSelect, CInputGroup, CInputGroupText, 
+  CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter,
+  CNav, CNavItem, CNavLink, CRow, CCol 
 } from '@coreui/vue';
 import { CIcon } from '@coreui/icons-vue';
 import { useTranslation } from '@/composables/useTranslation';
 import { useToast } from '@/composables/useToast';
+import { usePOSStore } from '@/stores/posStore';
+import { usePOSIntegration } from '@/composables/usePOSIntegration';
+
+// Components
 import PageHeader from '@/components/UI/PageHeader.vue';
 import Card from '@/components/UI/Card.vue';
 import EmptyState from '@/components/UI/EmptyState.vue';
 import LoadingSpinner from '@/components/UI/LoadingSpinner.vue';
-import api, { clearCache } from '@/utils/api';
-import {
-  savePendingOrder,
-  getPendingOrders,
-  deletePendingOrder,
-  initializeCartSession,
-  getPendingOrdersCount,
-  syncPendingOrders,
-} from '@/services/posOfflineService';
+import NotificationsBell from '@/components/Notifications/NotificationsBell.vue';
+import QuickStatsBar from './Components/QuickStatsBar.vue';
+import CustomerQuickView from './Components/CustomerQuickView.vue';
+import BookingCard from './Components/BookingCard.vue';
+import QueueTicketCard from './Components/QueueTicketCard.vue';
+import PaymentMethodsGrid from './Components/PaymentMethodsGrid.vue';
+import StaffStatusWidget from './Components/StaffStatusWidget.vue';
+import LiveAnalyticsDashboard from './Components/LiveAnalyticsDashboard.vue';
 
 const { t } = useTranslation();
 const toast = useToast();
+const router = useRouter();
+const posStore = usePOSStore();
+const { 
+  isProcessing, 
+  selectActiveCustomer, 
+  processCheckout, 
+  formatCurrency,
+  callNextInQueue,
+  callSpecificTicket,
+  serveTicket
+} = usePOSIntegration();
 
-// Data
+// Local State
 const activeTab = ref('services');
 const searchQuery = ref('');
-const selectedCustomerId = ref(null);
-const discount = ref(0);
-const paymentMethod = ref('cash');
-const processing = ref(false);
-
-// Offline support
-const isOnline = ref(navigator.onLine);
-const pendingOrdersCount = ref(0);
-const prepaidAmount = ref(0);
-
-// Products & Services
-const products = ref([]);
-const services = ref([]);
-const staff = ref([]);
-const customers = ref([]);
-const activeCustomers = ref([]);
-const openSession = ref(null);
-
-// Loading states
-const loadingProducts = ref(false);
-const loadingServices = ref(false);
-const loadingActiveCustomers = ref(false);
-
-// Cart
-const cart = ref([]);
-
-// Modals
-const showServiceModal = ref(false);
-const showProductModal = ref(false);
-const showSessionModal = ref(false);
-const selectedService = ref(null);
-const selectedProduct = ref(null);
+const showItemModal = ref(false);
+const showHistoryModal = ref(false);
+const showAddCustomerModal = ref(false);
+const showQuickSettings = ref(false);
+const showAnalyticsModal = ref(false);
+const showInvoicePreview = ref(false);
+const lastProcessedOrder = ref(null);
+const isSavingCustomer = ref(false);
+const newCustomer = ref({ name: '', phone: '', email: '' });
+const historyTab = ref('orders');
+const selectedItem = ref(null);
 const selectedStaffId = ref('');
-const selectedProductStaffId = ref('');
-const serviceQuantity = ref(1);
-const productQuantity = ref(1);
+const modalQty = ref(1);
 
 // Computed
-const filteredServices = computed(() => {
-  if (!searchQuery.value) return services.value;
-  const query = searchQuery.value.toLowerCase();
-  return services.value.filter(s => 
-    (s.name_ar || s.name || '').toLowerCase().includes(query) ||
-    (s.category || '').toLowerCase().includes(query)
+const estimatedCommission = computed(() => {
+  if (!selectedStaffId.value || !selectedItem.value) return 0;
+  const staffMember = posStore.staff.find(s => Number(s.id) === Number(selectedStaffId.value));
+  if (!staffMember) return 0;
+  
+  const price = parseFloat(selectedItem.value.price || selectedItem.value.selling_price || 0);
+  const rate = parseFloat(staffMember.commission_rate || 10); // Default 10%
+  return (price * modalQty.value) * (rate / 100);
+});
+
+const filteredItems = computed(() => {
+  let list = [];
+  if (activeTab.value === 'services') list = posStore.services;
+  else if (activeTab.value === 'products') list = posStore.products;
+  else if (activeTab.value === 'memberships') list = posStore.memberships;
+  
+  if (!searchQuery.value) return list;
+  const q = searchQuery.value.toLowerCase();
+  return list.filter(item => 
+    (item.name_ar || item.name || '').toLowerCase().includes(q) ||
+    (item.category || '').toLowerCase().includes(q) ||
+    (item.sku || '').toLowerCase().includes(q)
   );
-});
-
-const filteredProducts = computed(() => {
-  if (!searchQuery.value) return products.value.filter(p => (p.stock_quantity || 0) > 0);
-  const query = searchQuery.value.toLowerCase();
-  return products.value.filter(p => 
-    ((p.name_ar || p.name || '').toLowerCase().includes(query) ||
-    (p.sku || '').toLowerCase().includes(query) ||
-    (p.barcode || '').toLowerCase().includes(query)) &&
-    (p.stock_quantity || 0) > 0
-  );
-});
-
-const subtotal = computed(() => {
-  return cart.value.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
-});
-
-const total = computed(() => {
-  return Math.max(0, subtotal.value - discount.value - prepaidAmount.value);
 });
 
 // Methods
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-KW', {
-    style: 'currency',
-    currency: 'KWD',
-    minimumFractionDigits: 3,
-  }).format(amount || 0);
-};
-
-const formatDateTime = (date) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleString('en-US');
-};
-
-const formatTime = (dateTime) => {
-  if (!dateTime) return '';
-  const date = new Date(dateTime);
-  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-};
-
-const formatBookingTime = (customer) => {
-  // Prefer a combined datetime string from API
-  if (customer?.booking_start_at) {
-    return formatTime(customer.booking_start_at);
+const handleItemClick = (item) => {
+  if (activeTab.value === 'products' && (item.stock_quantity || 0) <= 0) {
+    toast.error(t('pos.outOfStock') || 'المنتج غير متوفر في المخزون');
+    return;
   }
-
-  // Fallback: booking_time might be a TIME string (e.g. 14:30:00)
-  if (customer?.booking_time && typeof customer.booking_time === 'string') {
-    return customer.booking_time.slice(0, 5); // HH:MM
-  }
-
-  return '';
+  selectedItem.value = item;
+  selectedStaffId.value = '';
+  modalQty.value = 1;
+  showItemModal.value = true;
 };
 
-const filterItems = () => {
-  // Reactive filtering via computed properties
+const confirmAddItem = () => {
+  const staffMember = posStore.staff.find(s => Number(s.id) === Number(selectedStaffId.value));
+  const type = activeTab.value === 'services' ? 'service' : (activeTab.value === 'products' ? 'product' : 'membership');
+  const itemToAdd = {
+    type: type,
+    service_id: type === 'service' ? selectedItem.value.id : null,
+    product_id: type === 'product' ? selectedItem.value.id : null,
+    membership_id: type === 'membership' ? selectedItem.value.id : null,
+    name: selectedItem.value.name_ar || selectedItem.value.name,
+    quantity: modalQty.value,
+    unit_price: parseFloat(selectedItem.value.price || selectedItem.value.selling_price || 0),
+    staff_id: selectedStaffId.value || null,
+    staff_name: staffMember ? staffMember.name : ''
+  };
+  posStore.addToCart(itemToAdd);
+  showItemModal.value = false;
+  toast.success(t('pos.addedToCart') || 'تمت الإضافة للسلة');
 };
 
-const selectCustomer = (customerId) => {
-  selectedCustomerId.value = customerId ? Number(customerId) : null;
-  // Scroll to cart section if on mobile
-  if (window.innerWidth < 1200) {
-    const cartSection = document.querySelector('.pos-column-3');
-    if (cartSection) {
-      cartSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+const updateQty = (index, delta) => {
+  const item = posStore.cart[index];
+  if (item.quantity + delta > 0) {
+    item.quantity += delta;
   }
 };
 
 const onCustomerSelect = () => {
-  // Customer selected from dropdown
-  if (selectedCustomerId.value) {
-    const customer = customers.value.find(c => Number(c.id) === Number(selectedCustomerId.value));
-    if (customer) {
-      // Customer is now selected, ready to add items
-    }
+  if (posStore.selectedCustomerId) {
+    const customer = posStore.customers.find(c => Number(c.id) === Number(posStore.selectedCustomerId));
+    if (customer) selectActiveCustomer(customer);
   }
 };
 
-const openServiceModal = (service) => {
-  selectedService.value = service;
-  selectedStaffId.value = '';
-  serviceQuantity.value = 1;
-  showServiceModal.value = true;
-};
-
-const openProductModal = (product) => {
-  if ((product.stock_quantity || 0) <= 0) {
-    toast.error(t('pos.noProducts'));
-    return;
-  }
-  selectedProduct.value = product;
-  selectedProductStaffId.value = '';
-  productQuantity.value = 1;
-  showProductModal.value = true;
-};
-
-const requireCustomerSelected = () => {
-  if (!selectedCustomerId.value) {
-    toast.error(t('pos.selectCustomer'));
-    return false;
-  }
-  return true;
-};
-
-// Click behavior:
-// - Normal click: quick-add with qty=1
-// - Shift-click: open modal (choose staff/quantity)
-const handleServiceClick = (service, event) => {
-  if (!requireCustomerSelected()) return;
-
-  if (event?.shiftKey) {
-    openServiceModal(service);
-    return;
-  }
-
-  cart.value.push({
-    type: 'service',
-    service_id: service.id,
-    name: service.name_ar || service.name,
-    quantity: 1,
-    unit_price: parseFloat(service.price || 0),
-    staff_id: null,
-    staff_name: '',
-  });
-};
-
-const handleProductClick = (product, event) => {
-  if (!requireCustomerSelected()) return;
-
-  if ((product.stock_quantity || 0) <= 0) {
-    toast.error(t('pos.noProducts'));
-    return;
-  }
-
-  if (event?.shiftKey) {
-    openProductModal(product);
-    return;
-  }
-
-  cart.value.push({
-    type: 'product',
-    product_id: product.id,
-    name: product.name_ar || product.name,
-    quantity: 1,
-    unit_price: parseFloat(product.selling_price || product.price || 0),
-    staff_id: null,
-    staff_name: '',
-  });
-};
-
-const addServiceToCart = () => {
-  if (!selectedService.value) return;
-  
-  const staffMember = staff.value.find(s => s.id == selectedStaffId.value);
-  const staffName = staffMember ? staffMember.name : '';
-  
-  cart.value.push({
-    type: 'service',
-    service_id: selectedService.value.id,
-    name: selectedService.value.name_ar || selectedService.value.name + (staffName ? ` (${staffName})` : ''),
-    quantity: serviceQuantity.value,
-    unit_price: parseFloat(selectedService.value.price || 0),
-    staff_id: selectedStaffId.value || null,
-    staff_name: staffName,
-  });
-  
-  calculateTotal();
-  showServiceModal.value = false;
-};
-
-const addProductToCart = () => {
-  if (!selectedProduct.value) return;
-  
-  if (productQuantity.value > (selectedProduct.value.stock_quantity || 0)) {
-    toast.error(t('pos.noProducts'));
-    return;
-  }
-  
-  const staffMember = staff.value.find(s => s.id == selectedProductStaffId.value);
-  const staffName = staffMember ? staffMember.name : '';
-  
-  cart.value.push({
-    type: 'product',
-    product_id: selectedProduct.value.id,
-    name: selectedProduct.value.name_ar || selectedProduct.value.name + (staffName ? ` (${staffName})` : ''),
-    quantity: productQuantity.value,
-    unit_price: parseFloat(selectedProduct.value.selling_price || selectedProduct.value.price || 0),
-    staff_id: selectedProductStaffId.value || null,
-    staff_name: staffName,
-  });
-  
-  calculateTotal();
-  showProductModal.value = false;
-};
-
-const increaseQuantity = (index) => {
-  cart.value[index].quantity++;
-  calculateTotal();
-};
-
-const decreaseQuantity = (index) => {
-  if (cart.value[index].quantity > 1) {
-    cart.value[index].quantity--;
-    calculateTotal();
+const handleCheckout = async () => {
+  const clientSideId = 'pos_' + Date.now();
+  const result = await processCheckout(clientSideId);
+  if (result) {
+    lastProcessedOrder.value = result;
+    showInvoicePreview.value = true;
   }
 };
 
-const removeFromCart = (index) => {
-  cart.value.splice(index, 1);
-  calculateTotal();
+const goToCustomerProfile = (id) => {
+  router.push(`/customers/${id}`);
 };
 
-const clearCart = () => {
-  if (confirm(t('pos.clearCart') + '?')) {
-    cart.value = [];
-    discount.value = 0;
-    calculateTotal();
-  }
-};
-
-const calculateTotal = () => {
-  // Computed property handles this
-};
-
-const processOrder = async () => {
-  if (cart.value.length === 0) {
-    toast.error(t('pos.emptyCart'));
-    return;
-  }
-
-  // Initialize cart session if not already done
-  const client_side_id = initializeCartSession();
-
-  processing.value = true;
+const handleSendWalletPass = async (id) => {
   try {
-    const payload = {
-      customer_id: selectedCustomerId.value ? Number(selectedCustomerId.value) : null,
-      items: cart.value.map(item => ({
-        service_id: item.service_id || null,
-        product_id: item.product_id || null,
-        staff_id: item.staff_id || null,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        name: item.name,
-      })),
-      payment_method: paymentMethod.value,
-      discount: discount.value || 0,
-      client_side_id: client_side_id,
-    };
-
-    // Check if online
-    if (!isOnline.value) {
-      // Save to IndexedDB
-      await savePendingOrder(payload, client_side_id);
-      toast.warning(t('pos.orderSavedOffline') || 'تم حفظ الطلب محلياً. سيتم المزامنة تلقائياً عند عودة الإنترنت.');
-      await updatePendingOrdersBadge();
-      
-      // Clear cart but keep session
-      cart.value = [];
-      discount.value = 0;
-      
-      processing.value = false;
-      return;
-    }
-
-    try {
-      const response = await api.post('/pos/process', payload);
-      
-      if (response.data?.success) {
-        const responsePayload = response.data?.data || {};
-        const orderNo = responsePayload.order_number || 'N/A';
-        const invNo = responsePayload.invoice_number || responsePayload.invoice_id || 'N/A';
-        
-        // Backend now creates Payment automatically - no need for frontend workaround
-        toast.success(`${t('pos.orderProcessed')} ${orderNo} | Invoice: ${invNo}`);
-        
-        // Clear session after successful order
-        sessionStorage.removeItem('pos_cart_session_id');
-        
-        // Clear cart
-        cart.value = [];
-        discount.value = 0;
-        calculateTotal();
-
-        // Stay on POS, just refresh data so invoice appears in invoices and payments pages
-        clearCache('/invoices');
-        clearCache('/payments');
-        await refreshData();
-        await updatePendingOrdersBadge();
-      } else {
-        toast.error(response.data?.message || t('pos.errorProcessing'));
-      }
-    } catch (error) {
-      console.error('Error processing order:', error);
-      
-      // If network error, save offline
-      if (!error.response || error.code === 'ERR_NETWORK') {
-        await savePendingOrder(payload, client_side_id);
-        toast.warning(t('pos.orderSavedOffline') || 'تم حفظ الطلب محلياً. سيتم المزامنة تلقائياً عند عودة الإنترنت.');
-        await updatePendingOrdersBadge();
-        
-        // Clear cart
-        cart.value = [];
-        discount.value = 0;
-      } else {
-        toast.error(error.response?.data?.message || t('pos.errorProcessing'));
-      }
-    } finally {
-      processing.value = false;
-    }
-  } catch (error) {
-    console.error('Error in processOrder:', error);
-    toast.error(t('pos.errorProcessing') || 'خطأ في معالجة الطلب');
-    processing.value = false;
-  }
-};
-
-const loadProducts = async () => {
-  loadingProducts.value = true;
-  try {
-    const response = await api.get('/products', {
-      params: { per_page: 1000, is_active: 1 },
-    });
-    products.value = response.data?.data?.items || response.data?.items || [];
-  } catch (error) {
-    console.error('Error loading products:', error);
-    products.value = [];
-  } finally {
-    loadingProducts.value = false;
-  }
-};
-
-const loadServices = async () => {
-  loadingServices.value = true;
-  try {
-    const response = await api.get('/services', {
-      params: { per_page: 1000, is_active: 1 },
-    });
-    services.value = response.data?.data?.items || response.data?.items || [];
-  } catch (error) {
-    console.error('Error loading services:', error);
-    services.value = [];
-  } finally {
-    loadingServices.value = false;
-  }
-};
-
-const loadStaff = async () => {
-  try {
-    const response = await api.get('/staff', {
-      params: { per_page: 1000, status: 'active' },
-    });
-    staff.value = response.data?.data?.items || response.data?.items || [];
-  } catch (error) {
-    console.error('Error loading staff:', error);
-    staff.value = [];
-  }
-};
-
-const loadCustomers = async () => {
-  try {
-    const response = await api.get('/customers', {
-      params: { per_page: 1000 },
-    });
-    customers.value = response.data?.data?.items || response.data?.items || [];
-  } catch (error) {
-    console.error('Error loading customers:', error);
-    customers.value = [];
-  }
-};
-
-const loadActiveCustomers = async () => {
-  loadingActiveCustomers.value = true;
-  try {
-    const response = await api.get('/pos');
-    const data = response.data?.data || response.data || {};
-    activeCustomers.value = data.active_customers || [];
-  } catch (error) {
-    console.error('Error loading active customers:', error);
-    activeCustomers.value = [];
-  } finally {
-    loadingActiveCustomers.value = false;
-  }
-};
-
-const loadSession = async () => {
-  try {
-    const response = await api.get('/pos/session');
-    openSession.value = response.data?.data || response.data || null;
-  } catch (error) {
-    console.error('Error loading session:', error);
-    openSession.value = null;
-  }
-};
-
-const refreshData = async () => {
-  await Promise.all([
-    loadProducts(),
-    loadServices(),
-    loadStaff(),
-    loadCustomers(),
-    loadActiveCustomers(),
-    loadSession(),
-  ]);
-  toast.success(t('pos.refresh') + ' - ' + t('common.refresh'));
-};
-
-// Update pending orders badge
-const updatePendingOrdersBadge = async () => {
-  try {
-    pendingOrdersCount.value = await getPendingOrdersCount();
-  } catch (error) {
-    console.error('Error getting pending orders count:', error);
-  }
-};
-
-// Sync pending orders when online
-const syncPendingOrdersHandler = async () => {
-  if (!isOnline.value) return;
-  
-  try {
-    const result = await syncPendingOrders(api);
-    if (result.synced > 0) {
-      toast.success(t('pos.ordersSynced', { count: result.synced }));
-      await updatePendingOrdersBadge();
-    }
-  } catch (error) {
-    console.error('Error syncing pending orders:', error);
-  }
-};
-
-// Load prepaid amount for selected customer
-const loadPrepaidAmount = async () => {
-  if (!selectedCustomerId.value) {
-    prepaidAmount.value = 0;
-    return;
-  }
-  
-  try {
-    const response = await api.get(`/pos/prepaid/${selectedCustomerId.value}`);
+    const response = await api.post(`/loyalty/apple-wallet/send/${id}`);
     if (response.data?.success) {
-      prepaidAmount.value = response.data.data?.total_prepaid || 0;
+      toast.success(t('loyalty.passSent') || 'تم إرسال بطاقة المحفظة بنجاح');
     }
   } catch (error) {
-    console.error('Error loading prepaid amount:', error);
-    prepaidAmount.value = 0;
+    console.error('Error sending wallet pass:', error);
+    toast.error(t('loyalty.errorSendingPass') || 'خطأ في إرسال بطاقة المحفظة');
   }
 };
 
-// Watch for customer selection to load prepaid
-watch(selectedCustomerId, () => {
-  if (selectedCustomerId.value) {
-    loadPrepaidAmount();
-  } else {
-    prepaidAmount.value = 0;
+const handleAddCustomer = async () => {
+  isSavingCustomer.value = true;
+  try {
+    const response = await api.post('/customers', newCustomer.value);
+    if (response.data?.success) {
+      toast.success(t('customers.added') || 'تمت إضافة العميلة بنجاح');
+      await posStore.fetchAllData();
+      selectActiveCustomer(response.data.data);
+      showAddCustomerModal.value = false;
+      newCustomer.value = { name: '', phone: '', email: '' };
+    }
+  } catch (error) {
+    console.error('Error adding customer:', error);
+    toast.error(t('customers.errorAdding') || 'خطأ في إضافة العميلة');
+  } finally {
+    isSavingCustomer.value = false;
   }
-});
-
-// Network status listeners
-const handleOnline = () => {
-  isOnline.value = true;
-  syncPendingOrdersHandler();
 };
 
-const handleOffline = () => {
-  isOnline.value = false;
-  toast.warning(t('pos.offlineMode'));
+const callNext = async () => {
+  await callNextInQueue();
+};
+
+const handleCallTicket = async (ticket) => {
+  await callSpecificTicket(ticket.id);
+};
+
+const handleServeTicket = async (ticket) => {
+  await serveTicket(ticket.id);
+  selectActiveCustomer({ 
+    id: ticket.customer_id, 
+    name: ticket.customer_name, 
+    type: 'queue', 
+    ticket_number: ticket.ticket_number 
+  });
+};
+
+const handleCallStaff = async (staff) => {
+  if (staff.status !== 'available') {
+    toast.warning(t('workerCalls.staffNotAvailable') || 'الموظفة مشغولة حالياً');
+    return;
+  }
+  
+  try {
+    const response = await api.post('/worker-calls', {
+      staff_id: staff.id,
+      customer_id: posStore.selectedCustomerId,
+      reason: 'POS Service Request'
+    });
+    
+    if (response.data?.success) {
+      toast.success(t('workerCalls.callSent') || 'تم إرسال النداء للموظفة: ' + staff.name);
+      await posStore.fetchAllData();
+    }
+  } catch (error) {
+    console.error('Error calling staff:', error);
+    toast.error(t('workerCalls.errorCalling') || 'خطأ في إرسال النداء');
+  }
+};
+
+const handleCloseSession = async () => {
+  if (!confirm(t('pos.confirmCloseSession') || 'هل أنت متأكد من إغلاق الجلسة؟')) return;
+  
+  try {
+    const response = await api.post(`/pos/session/${posStore.openSession.id}/close`);
+    if (response.data?.success) {
+      toast.success(t('pos.sessionClosed') || 'تم إغلاق الجلسة بنجاح');
+      showQuickSettings.value = false;
+      await posStore.fetchAllData();
+    }
+  } catch (error) {
+    console.error('Error closing session:', error);
+    toast.error(t('pos.errorClosingSession'));
+  }
 };
 
 onMounted(() => {
-  // Initialize cart session
-  initializeCartSession();
-  
-  // Update pending orders badge
-  updatePendingOrdersBadge();
-  
-  // Set up network listeners
-  window.addEventListener('online', handleOnline);
-  window.addEventListener('offline', handleOffline);
-  
-  refreshData();
-  
-  // Auto-sync pending orders every 30 seconds if online
-  setInterval(() => {
-    if (isOnline.value && pendingOrdersCount.value > 0) {
-      syncPendingOrdersHandler();
-    }
-  }, 30000);
-  
-  // Auto-refresh active customers every 10 seconds
-  setInterval(() => {
-    loadActiveCustomers();
-  }, 10000);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('online', handleOnline);
-  window.removeEventListener('offline', handleOffline);
+  posStore.fetchAllData();
 });
 </script>
 
@@ -1044,512 +753,310 @@ onUnmounted(() => {
 .pos-page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  min-height: 100vh;
-  padding-bottom: 2rem;
+  height: calc(100vh - 100px);
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: var(--bg-primary);
+  font-family: 'Cairo', sans-serif;
 }
 
 .pos-layout {
   display: grid;
-  grid-template-columns: 320px 1fr 420px;
+  grid-template-columns: 340px 1fr 420px;
   gap: 1.5rem;
-  min-height: calc(100vh - 180px);
-  align-items: start;
+  flex: 1;
+  overflow: hidden;
 }
 
 .pos-column {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 600px;
+  overflow: hidden;
+  animation: fadeIn 0.5s ease-out;
 }
 
-.pos-column-1 {
-  min-width: 320px;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.pos-column-3 {
-  min-width: 420px;
+/* Operations Column */
+.operations-card {
+  border-radius: 24px;
+  border: none;
+  box-shadow: var(--shadow-md);
+  background: var(--bg-secondary);
 }
 
-/* Active Customers */
-.active-customers-list {
+.operation-section .section-title {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--asmaa-primary);
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+}
+
+.operation-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-height: calc(100vh - 350px);
-  padding-right: 0.5rem;
 }
 
-.active-customers-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.active-customers-list::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-  border-radius: 3px;
-}
-
-.active-customers-list::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-.active-customers-list::-webkit-scrollbar-thumb:hover {
-  background: var(--asmaa-primary);
-}
-
-.active-customer-item {
+.operation-item {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  border: 2px solid var(--border-color);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.active-customer-item:hover {
-  border-color: var(--asmaa-primary);
   background: var(--bg-tertiary);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.active-customer-item.selected {
+.operation-item:hover {
   border-color: var(--asmaa-primary);
-  background: rgba(187, 160, 122, 0.1);
+  background: var(--bg-secondary);
+  transform: translateX(-5px);
+  box-shadow: var(--shadow-sm);
 }
 
-.customer-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--asmaa-primary);
+.operation-item.selected {
+  border-color: var(--asmaa-primary);
+  background: linear-gradient(135deg, rgba(187, 160, 122, 0.15) 0%, rgba(187, 160, 122, 0.05) 100%);
+  box-shadow: 0 4px 15px rgba(187, 160, 122, 0.1);
+}
+
+.item-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, #d4b996 100%);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  flex-shrink: 0;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(187, 160, 122, 0.3);
 }
 
-.customer-info {
-  flex: 1;
-  min-width: 0;
+/* Catalog Column */
+.catalog-card {
+  border-radius: 24px;
+  border: none;
+  box-shadow: var(--shadow-lg);
 }
 
-.customer-name {
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.customer-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.25rem;
-}
-
-.customer-service {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.customer-staff,
-.customer-time {
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  margin-top: 0.25rem;
-}
-
-/* Items Grid */
-.items-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 1rem;
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-height: calc(100vh - 450px);
-  padding-right: 0.5rem;
-  padding-bottom: 1rem;
-}
-
-.items-grid::-webkit-scrollbar {
-  width: 6px;
-}
-
-.items-grid::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-  border-radius: 3px;
-}
-
-.items-grid::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-.items-grid::-webkit-scrollbar-thumb:hover {
-  background: var(--asmaa-primary);
-}
-
-.item-card {
-  padding: 1.25rem;
-  background: var(--bg-secondary);
+.catalog-header-actions .nav-pills .nav-link {
   border-radius: 12px;
-  border: 2px solid var(--border-color);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.item-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--asmaa-primary);
-  transform: scaleX(0);
-  transition: transform 0.2s;
-}
-
-.item-card:hover {
-  border-color: var(--asmaa-primary);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(187, 160, 122, 0.2);
-}
-
-.item-card:hover::before {
-  transform: scaleX(1);
-}
-
-.item-card.out-of-stock {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.item-name {
+  padding: 0.6rem 1.25rem;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  transition: all 0.3s;
 }
 
-.item-price {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--asmaa-primary);
-  margin-bottom: 0.5rem;
-}
-
-.item-category,
-.item-stock,
-.item-sku {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
-}
-
-/* Cart */
-.cart-items {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  margin-bottom: 1rem;
-  max-height: calc(100vh - 650px);
-  min-height: 200px;
-  padding-right: 0.5rem;
-}
-
-.cart-items::-webkit-scrollbar {
-  width: 6px;
-}
-
-.cart-items::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-  border-radius: 3px;
-}
-
-.cart-items::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-.cart-items::-webkit-scrollbar-thumb:hover {
+.catalog-header-actions .nav-pills .nav-link.active {
   background: var(--asmaa-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
 }
 
-.cart-items-list {
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.25rem;
+  padding: 1rem;
+}
+
+.catalog-item-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 1.5rem;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-.cart-item {
-  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  transition: all 0.2s;
-}
-
-.cart-item:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--asmaa-primary);
-  box-shadow: 0 2px 8px rgba(187, 160, 122, 0.1);
-}
-
-.cart-item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.cart-item-name {
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.cart-item-meta {
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-}
-
-.cart-item-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.cart-item-quantity {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.quantity-value {
-  min-width: 30px;
   text-align: center;
-  font-weight: 600;
+  min-height: 160px;
 }
 
-.cart-item-price {
-  font-weight: 600;
+.catalog-item-card:hover {
+  transform: scale(1.05);
+  border-color: var(--asmaa-primary);
+  background: var(--bg-secondary);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.item-category-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: white;
   color: var(--asmaa-primary);
-  min-width: 80px;
-  text-align: right;
+  padding: 4px 10px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
-.cart-summary {
-  border-top: 2px solid var(--border-color);
-  padding-top: 1rem;
-  margin-bottom: 1rem;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.catalog-item-card .item-name {
+  font-size: 1rem;
+  font-weight: 700;
   margin-bottom: 0.75rem;
+  color: var(--text-primary);
 }
 
-.summary-row.total-row {
-  border-top: 1px solid var(--border-color);
-  padding-top: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.total-amount {
+.catalog-item-card .item-price {
+  font-weight: 900;
   font-size: 1.25rem;
   color: var(--asmaa-primary);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, #8a6d3b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.discount-input {
-  max-width: 120px;
-}
-
-.cart-actions {
-  margin-top: 1rem;
-}
-
-/* Force primary color on all buttons */
-.pos-page .btn-primary,
-.pos-page .btn-primary:hover,
-.pos-page .btn-primary:focus,
-.pos-page .btn-primary:active,
-.pos-page .btn-primary.active {
-  background-color: var(--asmaa-primary) !important;
-  border-color: var(--asmaa-primary) !important;
-  color: white !important;
-}
-
-.pos-page .btn-outline-primary,
-.pos-page .btn-outline-primary:hover,
-.pos-page .btn-outline-primary:focus,
-.pos-page .btn-outline-primary:active {
-  color: var(--asmaa-primary) !important;
-  border-color: var(--asmaa-primary) !important;
-  background-color: transparent !important;
-}
-
-.pos-page .btn-outline-primary:hover {
-  background-color: rgba(187, 160, 122, 0.1) !important;
-}
-
-.pos-page .btn-ghost-primary,
-.pos-page .btn-ghost-primary:hover,
-.pos-page .btn-ghost-primary:focus {
-  color: var(--asmaa-primary) !important;
-  background-color: transparent !important;
-  border-color: transparent !important;
-}
-
-.pos-page .btn-ghost-primary:hover {
-  background-color: rgba(187, 160, 122, 0.1) !important;
-}
-
-/* Badge primary color */
-.pos-page .badge-primary {
-  background-color: var(--asmaa-primary) !important;
-  color: white !important;
-}
-
-/* Tabs styling with primary color */
-.pos-column-2 .nav-tabs {
-  border-bottom: 2px solid var(--border-color);
-}
-
-.pos-column-2 .nav-tabs .nav-link {
-  color: var(--text-secondary);
+/* Checkout Column */
+.checkout-card {
+  border-radius: 24px;
   border: none;
-  border-bottom: 2px solid transparent;
-  padding: 0.75rem 1rem;
-  transition: all 0.2s;
+  box-shadow: var(--shadow-xl);
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
 }
 
-.pos-column-2 .nav-tabs .nav-link:hover {
-  color: var(--asmaa-primary);
-  border-bottom-color: var(--asmaa-primary);
-  background: rgba(187, 160, 122, 0.05);
+.checkout-footer {
+  padding: 1.5rem;
+  background: white;
+  border-radius: 32px 32px 0 0;
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.05);
+  border-top: 1px solid var(--border-color);
 }
 
-.pos-column-2 .nav-tabs .nav-link.active {
-  color: var(--asmaa-primary);
-  border-bottom-color: var(--asmaa-primary);
-  background: rgba(187, 160, 122, 0.1);
-  font-weight: 600;
+.total-line {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px dashed var(--border-color);
+  font-weight: 900;
+  font-size: 1.5rem;
 }
 
-/* Card improvements */
-.pos-column .card {
-  display: flex;
-  flex-direction: column;
+.checkout-btn {
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, #8a6d3b 100%) !important;
+  border: none !important;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  height: 60px;
+  border-radius: 18px;
+  transition: all 0.3s;
+}
+
+.checkout-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(187, 160, 122, 0.4) !important;
+}
+
+/* Modal Styling */
+.item-preview-card {
+  padding: 1.5rem;
+  background: var(--bg-tertiary);
+  border-radius: 20px;
   height: 100%;
-  overflow: hidden;
 }
 
-.pos-column .card-body {
-  flex: 1;
-  overflow: hidden;
+.quantity-input-large {
   display: flex;
-  flex-direction: column;
+  gap: 0.5rem;
 }
 
-/* Better spacing */
-.pos-column-2 .card {
-  margin-bottom: 1rem;
+/* Scrollbar Styling */
+.catalog-grid-wrapper::-webkit-scrollbar,
+.cart-items-section::-webkit-scrollbar {
+  width: 4px;
 }
 
-.pos-column-2 .card:last-child {
-  margin-bottom: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.pos-column-2 .card:last-child .card-body {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+.catalog-grid-wrapper::-webkit-scrollbar-thumb,
+.cart-items-section::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
 }
 
 /* Responsive */
-@media (max-width: 1600px) {
-  .pos-layout {
-    grid-template-columns: 300px 1fr 380px;
-  }
-}
-
 @media (max-width: 1400px) {
   .pos-layout {
-    grid-template-columns: 280px 1fr 360px;
-  }
-  
-  .items-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: 300px 1fr 380px;
+    gap: 1rem;
   }
 }
 
 @media (max-width: 1200px) {
   .pos-layout {
-    grid-template-columns: 1fr;
-    min-height: auto;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
   }
-  
-  .pos-column {
-    min-width: 100%;
-    min-height: auto;
+  .pos-operations { 
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
   }
-  
-  .active-customers-list,
-  .items-grid,
-  .cart-items {
-    max-height: 500px;
+  .pos-checkout { 
+    grid-column: 2 / 3;
+    grid-row: 1 / 3;
+  }
+  .pos-catalog {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
   }
 }
 
-@media (max-width: 768px) {
-  .pos-page {
-    gap: 1rem;
-  }
-  
+@media (max-width: 992px) {
   .pos-layout {
-    gap: 1rem;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+    overflow-y: auto;
   }
-  
-  .items-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 0.75rem;
+  .pos-page {
+    height: auto;
+    overflow-y: auto;
   }
-  
-  .active-customer-item {
-    padding: 0.75rem;
+  .pos-operations, .pos-catalog, .pos-checkout {
+    grid-column: 1 / 2;
+    grid-row: auto;
+    height: auto;
+    max-height: none;
   }
-  
-  .cart-item {
-    padding: 0.75rem;
-    flex-wrap: wrap;
+  .checkout-card {
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+    border-radius: 24px 24px 0 0;
   }
+}
+
+@media (max-width: 576px) {
+  .pos-page {
+    padding: 0.5rem;
+  }
+  .catalog-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  .quick-stats-bar {
+    padding: 0.5rem;
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>
