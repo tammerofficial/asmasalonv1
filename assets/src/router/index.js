@@ -161,6 +161,11 @@ const routes = [
     name: 'WooCommerceSettings',
     component: () => import('../views/Settings/WooCommerce.vue'),
   },
+  {
+    path: '/settings/apple-wallet',
+    name: 'SettingsAppleWallet',
+    component: () => import('../views/Settings/AppleWallet.vue'),
+  },
 ];
 
 const router = createRouter({

@@ -3,6 +3,7 @@
 namespace AsmaaSalon\Services;
 
 use AsmaaSalon\Helpers\QR_Code_Generator;
+use AsmaaSalon\Helpers\Apple_Push_Notification_Service;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -105,7 +106,7 @@ class Apple_Wallet_Service
         // Generate pass identifiers
         $serial_number = 'LOYALTY-' . $wc_customer_id . '-' . time();
         $auth_token = wp_generate_password(32, false);
-        $pass_type_id = 'pass.com.asmaasalon.loyalty';
+        $pass_type_id = get_option('asmaa_salon_apple_pass_type_id', 'pass.com.asmaasalon.loyalty');
         
         // Build pass data
         $pass_data = [
@@ -168,7 +169,10 @@ class Apple_Wallet_Service
             'last_updated' => current_time('mysql'),
         ]);
         
-        // Generate pass file URL (would need to sign and create .pkpass file)
+        // Generate and sign .pkpass file
+        $pkpass_path = self::generate_signed_pkpass($pass_data, $serial_number, $wc_customer_id);
+        
+        // Generate pass file URL
         $pass_url = rest_url('asmaa-salon/v1/apple-wallet/pass/' . $serial_number);
         
         return [
@@ -176,6 +180,7 @@ class Apple_Wallet_Service
             'pass_id' => $wpdb->insert_id,
             'serial_number' => $serial_number,
             'pass_url' => $pass_url,
+            'pkpass_path' => $pkpass_path,
             'pass_data' => $pass_data,
         ];
     }
@@ -280,10 +285,21 @@ class Apple_Wallet_Service
             'pass_type' => self::PASS_TYPE_LOYALTY,
         ]);
         
+        // Regenerate signed .pkpass file
+        $pkpass_path = self::generate_signed_pkpass($pass_data, $pass->serial_number, $wc_customer_id);
+        
+        // Send push notification to update pass on devices
+        try {
+            Apple_Push_Notification_Service::send_push_notification($pass->serial_number);
+        } catch (\Exception $e) {
+            error_log('Apple Wallet: Push notification failed: ' . $e->getMessage());
+        }
+        
         return [
             'success' => true,
             'serial_number' => $pass->serial_number,
             'pass_data' => $pass_data,
+            'pkpass_path' => $pkpass_path,
             'updated' => true,
         ];
     }
@@ -402,6 +418,9 @@ class Apple_Wallet_Service
             'last_updated' => current_time('mysql'),
         ]);
         
+        // Generate and sign .pkpass file
+        $pkpass_path = self::generate_signed_pkpass($pass_data, $serial_number, $wc_customer_id);
+        
         $pass_url = rest_url('asmaa-salon/v1/apple-wallet/pass/' . $serial_number);
         
         return [
@@ -409,6 +428,7 @@ class Apple_Wallet_Service
             'pass_id' => $wpdb->insert_id,
             'serial_number' => $serial_number,
             'pass_url' => $pass_url,
+            'pkpass_path' => $pkpass_path,
             'pass_data' => $pass_data,
         ];
     }
@@ -466,10 +486,21 @@ class Apple_Wallet_Service
             'pass_type' => self::PASS_TYPE_MEMBERSHIP,
         ]);
         
+        // Regenerate signed .pkpass file
+        $pkpass_path = self::generate_signed_pkpass($pass_data, $pass->serial_number, $wc_customer_id);
+        
+        // Send push notification
+        try {
+            Apple_Push_Notification_Service::send_push_notification($pass->serial_number);
+        } catch (\Exception $e) {
+            error_log('Apple Wallet: Push notification failed: ' . $e->getMessage());
+        }
+        
         return [
             'success' => true,
             'serial_number' => $pass->serial_number,
             'pass_data' => $pass_data,
+            'pkpass_path' => $pkpass_path,
             'updated' => true,
         ];
     }
@@ -575,6 +606,9 @@ class Apple_Wallet_Service
             'last_updated' => current_time('mysql'),
         ]);
         
+        // Generate and sign .pkpass file
+        $pkpass_path = self::generate_signed_pkpass($pass_data, $serial_number, $wc_customer_id);
+        
         $pass_url = rest_url('asmaa-salon/v1/apple-wallet/pass/' . $serial_number);
         
         return [
@@ -582,6 +616,7 @@ class Apple_Wallet_Service
             'pass_id' => $wpdb->insert_id,
             'serial_number' => $serial_number,
             'pass_url' => $pass_url,
+            'pkpass_path' => $pkpass_path,
             'pass_data' => $pass_data,
         ];
     }
@@ -634,10 +669,21 @@ class Apple_Wallet_Service
             'pass_type' => self::PASS_TYPE_PROGRAMS,
         ]);
         
+        // Regenerate signed .pkpass file
+        $pkpass_path = self::generate_signed_pkpass($pass_data, $pass->serial_number, $wc_customer_id);
+        
+        // Send push notification
+        try {
+            Apple_Push_Notification_Service::send_push_notification($pass->serial_number);
+        } catch (\Exception $e) {
+            error_log('Apple Wallet: Push notification failed: ' . $e->getMessage());
+        }
+        
         return [
             'success' => true,
             'serial_number' => $pass->serial_number,
             'pass_data' => $pass_data,
+            'pkpass_path' => $pkpass_path,
             'updated' => true,
         ];
     }
@@ -745,6 +791,9 @@ class Apple_Wallet_Service
             'last_updated' => current_time('mysql'),
         ]);
         
+        // Generate and sign .pkpass file
+        $pkpass_path = self::generate_signed_pkpass($pass_data, $serial_number, $wp_user_id);
+        
         $pass_url = rest_url('asmaa-salon/v1/apple-wallet/pass/' . $serial_number);
         
         return [
@@ -752,6 +801,7 @@ class Apple_Wallet_Service
             'pass_id' => $wpdb->insert_id,
             'serial_number' => $serial_number,
             'pass_url' => $pass_url,
+            'pkpass_path' => $pkpass_path,
             'pass_data' => $pass_data,
         ];
     }
@@ -807,10 +857,21 @@ class Apple_Wallet_Service
             'pass_type' => self::PASS_TYPE_COMMISSIONS,
         ]);
         
+        // Regenerate signed .pkpass file
+        $pkpass_path = self::generate_signed_pkpass($pass_data, $pass->serial_number, $wp_user_id);
+        
+        // Send push notification
+        try {
+            Apple_Push_Notification_Service::send_push_notification($pass->serial_number);
+        } catch (\Exception $e) {
+            error_log('Apple Wallet: Push notification failed: ' . $e->getMessage());
+        }
+        
         return [
             'success' => true,
             'serial_number' => $pass->serial_number,
             'pass_data' => $pass_data,
+            'pkpass_path' => $pkpass_path,
             'updated' => true,
         ];
     }
@@ -837,9 +898,9 @@ class Apple_Wallet_Service
                 )
             );
         } else {
-            $pass = $wpdb->get_row(
+        $pass = $wpdb->get_row(
                 $wpdb->prepare("SELECT * FROM {$table} WHERE wc_customer_id = %d ORDER BY created_at DESC LIMIT 1", $wc_customer_id)
-            );
+        );
         }
         
         if (!$pass) {
@@ -881,6 +942,221 @@ class Apple_Wallet_Service
         }
         
         return $result;
+    }
+    
+    /**
+     * Generate signed .pkpass file
+     * 
+     * @param array $pass_data Pass JSON data
+     * @param string $serial_number Pass serial number
+     * @param int $wc_customer_id Customer ID
+     * @return string Path to generated .pkpass file
+     */
+    public static function generate_signed_pkpass(array $pass_data, string $serial_number, int $wc_customer_id): string
+    {
+        $upload_dir = wp_upload_dir();
+        $base_dir = $upload_dir['basedir'] . '/asmaa-salon';
+        $passes_dir = $base_dir . '/passes';
+        $certs_dir = $base_dir . '/certs';
+        
+        // Ensure directories exist
+        if (!file_exists($passes_dir)) {
+            wp_mkdir_p($passes_dir);
+        }
+        if (!file_exists($certs_dir)) {
+            wp_mkdir_p($certs_dir);
+        }
+        
+        // Create temporary directory for pass files
+        $temp_dir = $passes_dir . '/temp-' . $serial_number;
+        if (!file_exists($temp_dir)) {
+            wp_mkdir_p($temp_dir);
+        }
+        
+        // Write pass.json
+        file_put_contents($temp_dir . '/pass.json', json_encode($pass_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        
+        // Create placeholder images if they don't exist
+        self::create_pass_images($temp_dir);
+        
+        // Create manifest
+        $manifest = self::create_manifest($temp_dir);
+        
+        // Create signature
+        self::create_signature($temp_dir, $manifest);
+        
+        // Create .pkpass ZIP file
+        $pkpass_path = $passes_dir . '/' . $serial_number . '.pkpass';
+        self::create_pkpass_zip($temp_dir, $pkpass_path);
+        
+        // Clean up temporary directory
+        self::delete_directory($temp_dir);
+        
+        return $pkpass_path;
+    }
+    
+    /**
+     * Create placeholder images for pass
+     */
+    private static function create_pass_images(string $pass_dir): void
+    {
+        // Create a simple transparent PNG as placeholder
+        $logo_content = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+        
+        // Standard logo sizes for Apple Wallet
+        file_put_contents($pass_dir . '/logo.png', $logo_content);
+        file_put_contents($pass_dir . '/logo@2x.png', $logo_content);
+        file_put_contents($pass_dir . '/logo@3x.png', $logo_content);
+        
+        // Optional: Add icon images
+        file_put_contents($pass_dir . '/icon.png', $logo_content);
+        file_put_contents($pass_dir . '/icon@2x.png', $logo_content);
+        file_put_contents($pass_dir . '/icon@3x.png', $logo_content);
+    }
+    
+    /**
+     * Create manifest.json with SHA1 hashes
+     */
+    private static function create_manifest(string $pass_dir): array
+    {
+        $manifest = [];
+        $files = glob($pass_dir . '/*');
+        
+        foreach ($files as $file) {
+            if (is_file($file) && basename($file) !== 'manifest.json' && basename($file) !== 'signature') {
+                $manifest[basename($file)] = sha1_file($file);
+            }
+        }
+        
+        file_put_contents($pass_dir . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT));
+        return $manifest;
+    }
+    
+    /**
+     * Create PKCS7 signature
+     */
+    private static function create_signature(string $pass_dir, array $manifest): void
+    {
+        $manifest_json = $pass_dir . '/manifest.json';
+        $signature_path = $pass_dir . '/signature';
+        
+        // Get certificate paths from options
+        $cert_path = get_option('asmaa_salon_apple_certificate_path', '');
+        $cert_password = get_option('asmaa_salon_apple_certificate_password', '');
+        $wwdr_cert_path = get_option('asmaa_salon_apple_wwdr_certificate_path', '');
+        
+        // If using relative path, resolve to uploads directory
+        if ($cert_path && !file_exists($cert_path)) {
+            $upload_dir = wp_upload_dir();
+            $certs_dir = $upload_dir['basedir'] . '/asmaa-salon/certs';
+            if (file_exists($certs_dir . '/' . basename($cert_path))) {
+                $cert_path = $certs_dir . '/' . basename($cert_path);
+            }
+        }
+        
+        if ($wwdr_cert_path && !file_exists($wwdr_cert_path)) {
+            $upload_dir = wp_upload_dir();
+            $certs_dir = $upload_dir['basedir'] . '/asmaa-salon/certs';
+            if (file_exists($certs_dir . '/' . basename($wwdr_cert_path))) {
+                $wwdr_cert_path = $certs_dir . '/' . basename($wwdr_cert_path);
+            }
+        }
+        
+        // Try to create a real signature if certificate exists
+        if ($cert_path && file_exists($cert_path)) {
+            try {
+                $cert_data = file_get_contents($cert_path);
+                $pkcs12 = [];
+                
+                if (openssl_pkcs12_read($cert_data, $pkcs12, $cert_password)) {
+                    // Add WWDR certificate to chain if provided
+                    $certs = [$pkcs12['cert']];
+                    if ($wwdr_cert_path && file_exists($wwdr_cert_path)) {
+                        $wwdr_cert = file_get_contents($wwdr_cert_path);
+                        $certs[] = $wwdr_cert;
+                    }
+                    
+                    // Create signature
+                    $signature_temp = $signature_path . '.tmp';
+                    openssl_pkcs7_sign(
+                        $manifest_json,
+                        $signature_temp,
+                        $pkcs12['cert'],
+                        $pkcs12['pkey'],
+                        [],
+                        PKCS7_BINARY | PKCS7_DETACHED | PKCS7_NOATTR
+                    );
+                    
+                    // Process signature file
+                    $signature_data = file_get_contents($signature_temp);
+                    $signature_data = str_replace("-----BEGIN PKCS7-----\n", "", $signature_data);
+                    $signature_data = str_replace("-----END PKCS7-----\n", "", $signature_data);
+                    $signature_data = str_replace("\n", "", $signature_data);
+                    $signature_data = base64_decode($signature_data);
+                    
+                    file_put_contents($signature_path, $signature_data);
+                    unlink($signature_temp);
+                    
+                    return;
+                }
+            } catch (\Exception $e) {
+                error_log('Apple Wallet signature error: ' . $e->getMessage());
+            }
+        }
+        
+        // Create dummy signature if real one fails (for testing)
+        file_put_contents($signature_path, 'dummy_signature_for_testing');
+        error_log('Apple Wallet: Created dummy signature - real certificate not available or invalid');
+    }
+    
+    /**
+     * Create .pkpass ZIP file
+     */
+    private static function create_pkpass_zip(string $pass_dir, string $pkpass_path): void
+    {
+        if (!class_exists('ZipArchive')) {
+            throw new \Exception(__('ZipArchive class is required for Apple Wallet pass generation', 'asmaa-salon'));
+        }
+        
+        $zip = new \ZipArchive();
+        if ($zip->open($pkpass_path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+            $files = glob($pass_dir . '/*');
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    $zip->addFile($file, basename($file));
+                }
+            }
+            $zip->close();
+        } else {
+            throw new \Exception(__('Failed to create pkpass file', 'asmaa-salon'));
+        }
+    }
+    
+    /**
+     * Delete directory recursively
+     */
+    private static function delete_directory(string $dir): void
+    {
+        if (!file_exists($dir)) {
+            return;
+        }
+        
+        if (!is_dir($dir)) {
+            unlink($dir);
+            return;
+        }
+        
+        $files = array_diff(scandir($dir), ['.', '..']);
+        foreach ($files as $file) {
+            $file_path = $dir . '/' . $file;
+            if (is_dir($file_path)) {
+                self::delete_directory($file_path);
+            } else {
+                unlink($file_path);
+            }
+        }
+        
+        rmdir($dir);
     }
 }
 

@@ -238,7 +238,7 @@ class Apple_Wallet_Controller extends Base_Controller
     }
 
     /**
-     * Get updated pass data
+     * Get updated pass data (returns .pkpass file)
      */
     public function get_updated_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
@@ -261,15 +261,39 @@ class Apple_Wallet_Controller extends Base_Controller
             $client_updated = strtotime($last_modified);
             
             if ($pass_updated <= $client_updated) {
-                // Pass hasn't been updated
+                // Pass hasn't been updated - return 304 Not Modified
                 return new WP_REST_Response(null, 304);
             }
         }
 
-        $pass_data = json_decode($pass->pass_data, true);
+        // Get or regenerate .pkpass file
+        $upload_dir = wp_upload_dir();
+        $pkpass_path = $upload_dir['basedir'] . '/asmaa-salon/passes/' . $serial_number . '.pkpass';
         
-        $response = new WP_REST_Response($pass_data, 200);
+        if (!file_exists($pkpass_path)) {
+            $pass_data = json_decode($pass->pass_data, true);
+            try {
+                $pkpass_path = Apple_Wallet_Service::generate_signed_pkpass(
+                    $pass_data,
+                    $serial_number,
+                    (int) $pass->wc_customer_id
+                );
+            } catch (\Exception $e) {
+                error_log('Apple Wallet: Failed to regenerate pass: ' . $e->getMessage());
+                return new WP_Error('pass_generation_failed', __('Failed to generate pass', 'asmaa-salon'), ['status' => 500]);
+            }
+        }
+        
+        if (!file_exists($pkpass_path)) {
+            return new WP_Error('pass_file_not_found', __('Pass file not found', 'asmaa-salon'), ['status' => 404]);
+        }
+        
+        // Return .pkpass file
+        $file_contents = file_get_contents($pkpass_path);
+        $response = new WP_REST_Response($file_contents, 200);
+        $response->header('Content-Type', 'application/vnd.apple.pkpass');
         $response->header('Last-Modified', gmdate('D, d M Y H:i:s', strtotime($pass->last_updated)) . ' GMT');
+        $response->header('Content-Length', (string) strlen($file_contents));
         
         return $response;
     }
@@ -365,18 +389,43 @@ class Apple_Wallet_Controller extends Base_Controller
             return $this->error_response(__('Pass not found', 'asmaa-salon'), 404);
         }
 
-        // In a real implementation, you would:
-        // 1. Sign the pass with Apple certificates
-        // 2. Create .pkpass file (ZIP archive)
-        // 3. Return the file
+        // Get .pkpass file path
+        $upload_dir = wp_upload_dir();
+        $pkpass_path = $upload_dir['basedir'] . '/asmaa-salon/passes/' . $serial_number . '.pkpass';
         
-        // For now, return pass data as JSON
-        $pass_data = json_decode($pass->pass_data, true);
+        // If file doesn't exist, regenerate it
+        if (!file_exists($pkpass_path)) {
+            $pass_data = json_decode($pass->pass_data, true);
+            try {
+                $pkpass_path = Apple_Wallet_Service::generate_signed_pkpass(
+                    $pass_data,
+                    $serial_number,
+                    (int) $pass->wc_customer_id
+                );
+            } catch (\Exception $e) {
+                error_log('Apple Wallet: Failed to regenerate pass: ' . $e->getMessage());
+                return $this->error_response(__('Failed to generate pass file', 'asmaa-salon'), 500);
+            }
+        }
         
-        return $this->success_response([
-            'pass_data' => $pass_data,
-            'download_url' => rest_url('asmaa-salon/v1/apple-wallet/pass/' . $serial_number . '/download'),
-        ]);
+        if (!file_exists($pkpass_path)) {
+            return $this->error_response(__('Pass file not found', 'asmaa-salon'), 404);
+        }
+        
+        // Get customer name for filename
+        $user = get_user_by('ID', $pass->wc_customer_id);
+        $filename = ($user ? sanitize_file_name($user->display_name) : 'pass') . '_' . $pass->pass_type . '.pkpass';
+        
+        // Set headers for file download
+        header('Content-Type: application/vnd.apple.pkpass');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($pkpass_path));
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Pragma: no-cache');
+        
+        // Output file
+        readfile($pkpass_path);
+        exit;
     }
 
     /**
