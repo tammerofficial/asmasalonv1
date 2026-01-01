@@ -7,6 +7,7 @@ use WP_REST_Response;
 use WP_Error;
 use AsmaaSalon\Services\ActivityLogger;
 use AsmaaSalon\Services\NotificationDispatcher;
+use AsmaaSalon\Services\Commission_Service;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -242,7 +243,7 @@ class Orders_Controller extends Base_Controller
             'completed' => 'completed', 'cancelled' => 'cancelled', 'refunded' => 'cancelled', 'failed' => 'cancelled',
         ];
         
-        $payment_status = $wc_order->is_paid() ? 'paid' : ($wc_order->get_total_paid() > 0 ? 'partial' : 'unpaid');
+        $payment_status = $wc_order->is_paid() ? 'paid' : (\AsmaaSalon\Services\Unified_Order_Service::get_total_paid_for_order($order_id) > 0 ? 'partial' : 'unpaid');
 
         // Items
         $items = [];
@@ -459,8 +460,8 @@ class Orders_Controller extends Base_Controller
             
             $wc_order->save();
 
-            // Auto-create staff commissions for service items
-            $this->create_staff_commissions_for_order($wc_order_id, $booking_id, $created_items);
+            // Auto-create staff commissions for service items using unified service
+            Commission_Service::calculate_from_wc_order($wc_order_id, $booking_id);
 
             // Activity log
             ActivityLogger::log_order('created', $wc_order_id, $customer_id, [
@@ -502,127 +503,6 @@ class Orders_Controller extends Base_Controller
         }
     }
 
-    /**
-     * Create staff commission records for order items based on Order Item Meta.
-     * Note: order_id is now wc_order_id (WooCommerce order ID)
-     */
-    protected function create_staff_commissions_for_order(int $wc_order_id, ?int $booking_id, array $items): void
-    {
-        // Use the new method that reads from WC Order directly
-        $this->calculate_order_commissions($wc_order_id, $booking_id);
-    }
-
-    /**
-     * Calculate order commissions based on Order Item Meta
-     */
-    protected function calculate_order_commissions(int $wc_order_id, ?int $booking_id = null): array
-    {
-        $wc_order = wc_get_order($wc_order_id);
-        if (!$wc_order) {
-            return [];
-        }
-        
-        global $wpdb;
-        $commissions_table = $wpdb->prefix . 'asmaa_staff_commissions';
-        $extended_table = $wpdb->prefix . 'asmaa_staff_extended_data';
-        $ratings_table = $wpdb->prefix . 'asmaa_staff_ratings';
-        $commissions = [];
-        
-        // الحصول على إعدادات العمولات الافتراضية
-        $settings_table = $wpdb->prefix . 'asmaa_commission_settings';
-        $settings = $wpdb->get_row("SELECT * FROM {$settings_table} ORDER BY id DESC LIMIT 1");
-        $default_service_rate = $settings ? (float) $settings->service_commission_rate : 0.0;
-        $default_product_rate = $settings ? (float) ($settings->product_commission_rate ?? 0.0) : 0.0;
-        $bonus_5_star = $settings ? (float) $settings->rating_bonus_5_star : 0.0;
-        $bonus_4_star = $settings ? (float) $settings->rating_bonus_4_star : 0.0;
-        
-        foreach ($wc_order->get_items() as $item) {
-            $staff_id = $item->get_meta('_asmaa_staff_id');
-            
-            if (!$staff_id) {
-                continue; // تخطي العناصر بدون موظفة
-            }
-            
-            $item_total = (float) $item->get_total();
-            if ($item_total <= 0) {
-                continue;
-            }
-            
-            // تحديد نوع العنصر
-            $is_service = false;
-            if ($item instanceof \WC_Order_Item_Product) {
-                $product = $item->get_product();
-                $is_service = $product && $product->is_virtual();
-            }
-            
-            // جلب نسبة عمولة الموظفة (من الجدول الممتد أو الافتراضي)
-            $extended = $wpdb->get_row($wpdb->prepare(
-                "SELECT commission_rate FROM {$extended_table} WHERE wp_user_id = %d",
-                (int) $staff_id
-            ));
-            
-            $rate = $extended && $extended->commission_rate !== null
-                ? (float) $extended->commission_rate
-                : ($is_service ? $default_service_rate : $default_product_rate);
-            
-            if ($rate <= 0) {
-                continue;
-            }
-            
-            $commission_amount = round($item_total * ($rate / 100), 3);
-            
-            if ($commission_amount <= 0) {
-                continue;
-            }
-            
-            // Rating bonus based on booking rating (latest)
-            $rating_bonus = 0.0;
-            if ($booking_id) {
-                $rating = $wpdb->get_row($wpdb->prepare(
-                    "SELECT rating FROM {$ratings_table} WHERE booking_id = %d ORDER BY created_at DESC LIMIT 1",
-                    (int) $booking_id
-                ));
-                
-                if ($rating) {
-                    if ((int) $rating->rating === 5 && $bonus_5_star > 0) {
-                        $rating_bonus = $bonus_5_star;
-                    } elseif ((int) $rating->rating === 4 && $bonus_4_star > 0) {
-                        $rating_bonus = $bonus_4_star;
-                    }
-                }
-            }
-            
-            $final_amount = $commission_amount + $rating_bonus;
-            
-            // تسجيل العمولة في الجدول
-            $wpdb->insert($commissions_table, [
-                'wp_user_id' => (int) $staff_id,
-                'order_id' => $wc_order_id,
-                'order_item_id' => $item->get_id(),
-                'booking_id' => $booking_id ?: null,
-                'base_amount' => $item_total,
-                'commission_rate' => $rate,
-                'commission_amount' => $commission_amount,
-                'rating_bonus' => $rating_bonus,
-                'final_amount' => $final_amount,
-                'status' => 'pending',
-                'notes' => sprintf(
-                    'Auto commission from WC order #%d for %s: %s',
-                    $wc_order_id,
-                    $is_service ? 'service' : 'product',
-                    $item->get_name()
-                ),
-            ]);
-            
-            $commissions[] = [
-                'staff_id' => (int) $staff_id,
-                'item_id' => $item->get_id(),
-                'amount' => $final_amount,
-            ];
-        }
-        
-        return $commissions;
-    }
 
     public function update_item(WP_REST_Request $request): WP_REST_Response|WP_Error
     {

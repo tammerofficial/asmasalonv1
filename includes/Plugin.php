@@ -60,6 +60,9 @@ class Plugin
         
         // Update related tables columns if needed
         $this->maybe_update_related_tables_columns();
+
+        // Ensure invoices table has payment_id column (used across POS/Invoices/Payments linking)
+        $this->maybe_add_invoice_payment_id_column();
         
         // Drop legacy tables if needed
         $this->maybe_drop_legacy_tables();
@@ -161,6 +164,15 @@ class Plugin
             if (\AsmaaSalon\Database\Migrations\Update_Related_Tables_Columns::needs_migration()) {
                 \AsmaaSalon\Database\Migrations\Update_Related_Tables_Columns::migrate();
                 update_option('asmaa_salon_related_tables_updated', true, false);
+            }
+        }
+    }
+
+    protected function maybe_add_invoice_payment_id_column(): void
+    {
+        if (class_exists('\AsmaaSalon\Database\Migrations\Add_Invoice_Payment_Id_Column')) {
+            if (\AsmaaSalon\Database\Migrations\Add_Invoice_Payment_Id_Column::needs_migration()) {
+                \AsmaaSalon\Database\Migrations\Add_Invoice_Payment_Id_Column::migrate();
             }
         }
     }

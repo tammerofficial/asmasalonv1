@@ -189,7 +189,7 @@ class Schema
         $table = $wpdb->prefix . 'asmaa_worker_calls';
         $sql = "CREATE TABLE {$table} (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            staff_id BIGINT UNSIGNED NOT NULL,
+            wp_user_id BIGINT UNSIGNED NOT NULL,
             ticket_id BIGINT UNSIGNED NULL,
             customer_name VARCHAR(255) NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'pending',
@@ -202,7 +202,7 @@ class Schema
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
-            KEY idx_staff_id (staff_id),
+            KEY idx_wp_user_id (wp_user_id),
             KEY idx_ticket_id (ticket_id),
             KEY idx_status (status),
             KEY idx_created_at (created_at)
@@ -282,6 +282,7 @@ class Schema
             status VARCHAR(20) NOT NULL DEFAULT 'draft',
             notes TEXT NULL,
             wc_order_id BIGINT UNSIGNED NULL,
+            payment_id BIGINT UNSIGNED NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             deleted_at DATETIME NULL,
@@ -292,7 +293,8 @@ class Schema
             KEY idx_status (status),
             KEY idx_issue_date (issue_date),
             KEY idx_due_date (due_date),
-            KEY idx_wc_order_id (wc_order_id)
+            KEY idx_wc_order_id (wc_order_id),
+            KEY idx_payment_id (payment_id)
         ) {$charset};";
         dbDelta($sql);
 

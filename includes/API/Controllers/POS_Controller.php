@@ -6,6 +6,7 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
 use AsmaaSalon\Services\ActivityLogger;
+use AsmaaSalon\Services\Unified_Order_Service;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -67,315 +68,42 @@ class POS_Controller extends Base_Controller
     }
 
     /**
-     * Process POS order
+     * Process POS order using Unified Order Service
      */
     public function process_order(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
-        if (!class_exists('WooCommerce')) {
-            return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
-        }
-
-        global $wpdb;
-        $wpdb->query('START TRANSACTION');
-
         try {
-            // Validate request
-            $customer_id = $request->get_param('customer_id') ? (int) $request->get_param('customer_id') : null;
-            $items = $request->get_param('items');
-            $payment_method = sanitize_text_field($request->get_param('payment_method')) ?: 'cash';
-            $discount = (float) ($request->get_param('discount') ?? 0);
-            $booking_id = $request->get_param('booking_id') ? (int) $request->get_param('booking_id') : null;
-            $queue_ticket_id = $request->get_param('queue_ticket_id') ? (int) $request->get_param('queue_ticket_id') : null;
-
-            if (empty($customer_id)) {
-                throw new \Exception(__('Customer is required for POS sale', 'asmaa-salon'));
-            }
-
-            if (empty($items) || !is_array($items)) {
-                throw new \Exception(__('Items are required', 'asmaa-salon'));
-            }
-
-            // Calculate totals
-            $subtotal = 0;
-            foreach ($items as $item) {
-                if (empty($item['product_id']) && empty($item['service_id'])) {
-                    throw new \Exception(__('Each item must have product_id or service_id', 'asmaa-salon'));
-                }
-                $subtotal += (float) ($item['unit_price'] ?? 0) * (int) ($item['quantity'] ?? 1);
-            }
-
-            // Check for prepaid amounts (deposits) from previous orders
-            $prepaid_amount = 0.0;
-            if ($customer_id) {
-                $prepaid_orders = wc_get_orders([
-                    'customer_id' => $customer_id,
-                    'status' => ['processing', 'on-hold'],
-                    'limit' => 10,
-                ]);
-                
-                foreach ($prepaid_orders as $prepaid_order) {
-                    $prepaid_amount += (float) $prepaid_order->get_total_paid();
-                }
-            }
-
-            $total = max(0, $subtotal - $discount - $prepaid_amount);
-            
-            // Store prepaid amount info for response
-            $prepaid_info = [
-                'prepaid_amount' => $prepaid_amount,
-                'prepaid_orders_count' => count($prepaid_orders ?? []),
+            // Prepare parameters for unified service
+            $params = [
+                'customer_id' => $request->get_param('customer_id') ? (int) $request->get_param('customer_id') : null,
+                'items' => $request->get_param('items'),
+                'payment_method' => sanitize_text_field($request->get_param('payment_method')) ?: 'cash',
+                'discount' => (float) ($request->get_param('discount') ?? 0),
+                'booking_id' => $request->get_param('booking_id') ? (int) $request->get_param('booking_id') : null,
+                'queue_ticket_id' => $request->get_param('queue_ticket_id') ? (int) $request->get_param('queue_ticket_id') : null,
+                'source' => 'pos',
             ];
 
-            // Create WooCommerce Order directly
-            $wc_order = wc_create_order([
-                'customer_id' => $customer_id,
-                'status' => 'wc-completed',
-            ]);
-
-            if (is_wp_error($wc_order)) {
-                throw new \Exception($wc_order->get_error_message());
-            }
-
-            $wc_order_id = $wc_order->get_id();
-            $order_number = $wc_order->get_order_number();
-            $inventory_movements_table = $wpdb->prefix . 'asmaa_inventory_movements';
-            $created_order_items = [];
-
-            // Add items to WooCommerce order
-            foreach ($items as $item) {
-                $item_type = !empty($item['product_id']) ? 'product' : 'service';
-                $item_id = !empty($item['product_id']) ? (int) $item['product_id'] : (int) $item['service_id'];
-                $quantity = (int) ($item['quantity'] ?? 1);
-                $unit_price = (float) ($item['unit_price'] ?? 0);
-                $item_total = $unit_price * $quantity;
-                $staff_id = !empty($item['staff_id']) ? (int) $item['staff_id'] : null;
-                $item_name = sanitize_text_field($item['name'] ?? 'Item');
-
-                if ($item_type === 'product') {
-                    // Add product to WooCommerce order
-                    $wc_product = wc_get_product($item_id);
-                    if (!$wc_product) {
-                        throw new \Exception(__('Product not found', 'asmaa-salon'));
-                    }
-
-                    // Check stock before adding
-                    $current_stock = $wc_product->get_stock_quantity();
-                    $before_quantity = (int) ($current_stock ?? 0);
-                    $after_quantity = max(0, $before_quantity - $quantity);
-
-                    if ($after_quantity < 0) {
-                        throw new \Exception(__('Insufficient stock', 'asmaa-salon'));
-                    }
-
-                    // Add product to order
-                    $wc_order->add_product($wc_product, $quantity, [
-                        'subtotal' => $item_total,
-                        'total' => $item_total,
-                    ]);
-                    
-                    // Get the last added item and save staff_id in meta
-                    $items = $wc_order->get_items();
-                    $last_item = end($items);
-                    if ($last_item && $staff_id) {
-                        $last_item->add_meta_data('_asmaa_staff_id', $staff_id);
-                        $last_item->save();
-                    }
-
-                    // Update stock
-                    $wc_product->set_stock_quantity($after_quantity);
-                    $wc_product->save();
-
-                    // Check for low stock and send notification
-                    $extended_table = $wpdb->prefix . 'asmaa_product_extended_data';
-                    $extended = $wpdb->get_row(
-                        $wpdb->prepare("SELECT * FROM {$extended_table} WHERE wc_product_id = %d", $item_id)
-                    );
-                    
-                    $min_stock = (int) ($extended->min_stock_level ?? 0);
-                    if ($extended && $after_quantity <= $min_stock && $before_quantity > $min_stock) {
-                        \AsmaaSalon\Services\NotificationDispatcher::low_stock_alert($item_id, [
-                            'name' => $wc_product->get_name(),
-                            'current_stock' => $after_quantity,
-                            'min_stock_level' => $min_stock,
-                            'sku' => $wc_product->get_sku() ?? '',
-                        ]);
-                    }
-
-                    // Create inventory movement
-                    $wpdb->insert($inventory_movements_table, [
-                        'wc_product_id' => $item_id,
-                        'type' => 'sale',
-                        'quantity' => -$quantity,
-                        'before_quantity' => $before_quantity,
-                        'after_quantity' => $after_quantity,
-                        'unit_cost' => 0,
-                        'total_cost' => 0,
-                        'notes' => "POS Sale - WC Order #{$wc_order_id}",
-                        'wp_user_id' => get_current_user_id(),
-                        'movement_date' => current_time('mysql'),
-                    ]);
-                    if ($wpdb->last_error) {
-                        throw new \Exception(__('Failed to create inventory movement', 'asmaa-salon'));
-                    }
-                } else {
-                    // Add service as Virtual Product
-                    $service_product_id = \AsmaaSalon\Services\Product_Service::get_or_create_service_product(
-                        $item_id,
-                        $item_name,
-                        $unit_price
-                    );
-                    
-                    $wc_product = wc_get_product($service_product_id);
-                    if (!$wc_product) {
-                        throw new \Exception(__('Service product not found', 'asmaa-salon'));
-                    }
-                    
-                    // Add service as virtual product
-                    $wc_order->add_product($wc_product, $quantity, [
-                        'subtotal' => $item_total,
-                        'total' => $item_total,
-                    ]);
-                    
-                    // Get the last added item and save staff_id in meta
-                    $items = $wc_order->get_items();
-                    $last_item = end($items);
-                    if ($last_item && $staff_id) {
-                        $last_item->add_meta_data('_asmaa_staff_id', $staff_id);
-                        $last_item->save();
-                    }
-                }
-
-                // Store item info for loyalty/commissions
-                $created_order_items[] = [
-                    'id' => 0, // WC order items don't have our IDs
-                    'item_type' => $item_type,
-                    'item_id' => $item_id,
-                    'item_name' => $item_name,
-                    'quantity' => $quantity,
-                    'unit_price' => $unit_price,
-                    'total' => $item_total,
-                    'staff_id' => $staff_id,
-                ];
-            }
-
-            // Set order totals
-            $wc_order->set_subtotal($subtotal);
-            $wc_order->set_discount_total($discount);
-            $wc_order->set_total($total);
-            $wc_order->set_payment_method($payment_method);
-            $wc_order->set_payment_method_title($payment_method);
-            $wc_order->payment_complete(); // Mark as paid
-            $wc_order->add_order_note('POS Sale');
-            $wc_order->save();
-
-            // Create Invoice (still needed for our system)
-            $invoices_table = $wpdb->prefix . 'asmaa_invoices';
-            $invoice_number = 'INV-' . date('Ymd') . '-' . str_pad($wpdb->get_var("SELECT COUNT(*) + 1 FROM {$invoices_table}"), 4, '0', STR_PAD_LEFT);
-
-            $invoice_data = [
-                'wc_order_id' => $wc_order_id,
-                'wc_customer_id' => $customer_id,
-                'invoice_number' => $invoice_number,
-                'issue_date' => current_time('Y-m-d'),
-                'due_date' => current_time('Y-m-d'),
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-                'tax' => 0,
-                'total' => $total,
-                'paid_amount' => $total,
-                'due_amount' => 0,
-                'status' => 'paid',
-                'notes' => 'POS Sale',
-            ];
-
-            $wpdb->insert($invoices_table, $invoice_data);
-            if ($wpdb->last_error) {
-                throw new \Exception(__('Failed to create invoice', 'asmaa-salon'));
-            }
-            $invoice_id = $wpdb->insert_id;
-
-            // Create Invoice Items
-            $invoice_items_table = $wpdb->prefix . 'asmaa_invoice_items';
-            foreach ($items as $item) {
-                $quantity = (int) ($item['quantity'] ?? 1);
-                $unit_price = (float) ($item['unit_price'] ?? 0);
-                $item_total = $unit_price * $quantity;
-
-                $wpdb->insert($invoice_items_table, [
-                    'invoice_id' => $invoice_id,
-                    'description' => sanitize_text_field($item['name'] ?? 'Item'),
-                    'quantity' => $quantity,
-                    'unit_price' => $unit_price,
-                    'total' => $item_total,
-                ]);
-                if ($wpdb->last_error) {
-                    throw new \Exception(__('Failed to create invoice item', 'asmaa-salon'));
-                }
-            }
-
-            // Create Payment Record
-            $payments_table = $wpdb->prefix . 'asmaa_payments';
-            $payment_number = 'PAY-' . date('Ymd') . '-' . str_pad($invoice_id, 4, '0', STR_PAD_LEFT);
-            
-            $payment_data = [
-                'payment_number' => $payment_number,
-                'invoice_id' => $invoice_id,
-                'wc_customer_id' => $customer_id,
-                'wc_order_id' => $wc_order_id,
-                'amount' => $total,
-                'payment_method' => $payment_method,
-                'status' => 'completed',
-                'payment_date' => current_time('mysql'),
-                'notes' => 'POS Payment',
-                'wp_user_id' => get_current_user_id(),
-            ];
-
-            $wpdb->insert($payments_table, $payment_data);
-            if ($wpdb->last_error) {
-                throw new \Exception(__('Failed to create payment', 'asmaa-salon'));
-            }
-            $payment_id = $wpdb->insert_id;
-
-            // Update invoice with payment_id
-            $wpdb->update($invoices_table, ['payment_id' => $payment_id], ['id' => $invoice_id]);
+            // Process order through unified service
+            $result = Unified_Order_Service::process_order($params);
 
             // Update POS Session
-            $this->update_session($wc_order_id, $total, $payment_method);
-
-            // Process Loyalty Points (if customer exists)
-            if ($customer_id) {
-                $this->process_loyalty_points($customer_id, $wc_order_id, $order_number, $created_order_items, $total);
-            }
-
-            // Process Commissions (if staff assigned)
-            $this->process_commissions($wc_order_id, $created_order_items);
-
-            // Activity Log
-            ActivityLogger::log_order('created', $wc_order_id, $customer_id, [
-                'status' => 'completed',
-                'payment_status' => 'paid',
-                'total' => $total,
-                'items_count' => count($items),
-                'pos' => true,
-                'wc_order_id' => $wc_order_id,
-            ]);
-
-            $wpdb->query('COMMIT');
+            $this->update_session($result['wc_order_id'], $result['total'], $params['payment_method']);
 
             return $this->success_response([
-                'order_id' => $wc_order_id,
-                'order_number' => $order_number,
-                'invoice_id' => $invoice_id,
-                'invoice_number' => $invoice_number,
-                'payment_id' => $payment_id,
-                'payment_number' => $payment_number,
-                'customer_id' => $customer_id,
-                'total' => $total,
-                'prepaid_amount' => $prepaid_amount,
-                'prepaid_orders_count' => count($prepaid_orders ?? []),
+                'order_id' => $result['wc_order_id'],
+                'order_number' => $result['order_number'],
+                'invoice_id' => $result['invoice_id'],
+                'invoice_number' => $result['invoice_number'],
+                'payment_id' => $result['payment_id'],
+                'payment_number' => $result['payment_number'],
+                'customer_id' => $result['customer_id'],
+                'total' => $result['total'],
+                'prepaid_amount' => $result['prepaid_amount'],
+                'prepaid_orders_count' => $result['prepaid_orders_count'],
             ], __('Order processed successfully', 'asmaa-salon'), 201);
-        } catch (\Exception $e) {
-            $wpdb->query('ROLLBACK');
+        } catch (\Throwable $e) {
+            error_log('Asmaa Salon POS process_order error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->error_response($e->getMessage(), 500);
         }
     }
@@ -622,174 +350,6 @@ class POS_Controller extends Base_Controller
         }
     }
 
-    /**
-     * Process loyalty points for customer
-     */
-    private function process_loyalty_points(int $customer_id, int $order_id, string $order_number, array $order_items, float $total): void
-    {
-        global $wpdb;
-
-        $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
-        $transactions_table = $wpdb->prefix . 'asmaa_loyalty_transactions';
-
-        $extended = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$extended_table} WHERE wc_customer_id = %d",
-            $customer_id
-        ));
-        
-        if (!$extended) {
-            // Create extended data if doesn't exist
-            $wpdb->insert($extended_table, [
-                'wc_customer_id' => $customer_id,
-                'total_visits' => 1,
-                'total_spent' => $total,
-                'loyalty_points' => 0,
-            ]);
-            $extended = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$extended_table} WHERE wc_customer_id = %d",
-                $customer_id
-            ));
-        }
-
-        // Always update customer totals for purchases
-        $wpdb->query($wpdb->prepare(
-            "UPDATE {$extended_table}
-             SET total_visits = COALESCE(total_visits, 0) + 1,
-                 total_spent = COALESCE(total_spent, 0) + %f
-             WHERE wc_customer_id = %d",
-            $total,
-            $customer_id
-        ));
-
-        // Programs settings: apply ONE points value to all services + products
-        $programs = get_option('asmaa_salon_programs_settings', []);
-        $loyalty = is_array($programs) && isset($programs['loyalty']) && is_array($programs['loyalty']) ? $programs['loyalty'] : [];
-        $enabled = array_key_exists('enabled', $loyalty) ? (bool) $loyalty['enabled'] : true;
-        if (!$enabled) {
-            return;
-        }
-
-        $points_per_item = (int) ($loyalty['default_service_points'] ?? 1);
-        if ($points_per_item < 0) {
-            $points_per_item = 0;
-        }
-
-        $balance_before = (int) ($extended->loyalty_points ?? 0);
-        $balance_after = $balance_before;
-
-        foreach ($order_items as $row) {
-            $qty = max(1, (int) ($row['quantity'] ?? 1));
-            $points = $points_per_item * $qty;
-            if ($points <= 0) {
-                continue;
-            }
-
-            $next_balance = $balance_after + $points;
-            $desc = sprintf(
-                'Order %s: %s x%d',
-                $order_number,
-                (string) ($row['item_name'] ?? 'Item'),
-                $qty
-            );
-
-            $wpdb->insert($transactions_table, [
-                'wc_customer_id' => $customer_id,
-                'type' => 'earned',
-                'points' => $points,
-                'balance_before' => $balance_after,
-                'balance_after' => $next_balance,
-                'reference_type' => 'order_item',
-                'reference_id' => (int) ($row['id'] ?? 0),
-                'description' => $desc,
-                'wp_user_id' => get_current_user_id(),
-            ]);
-
-            if ($wpdb->last_error) {
-                throw new \Exception(__('Failed to create loyalty transaction', 'asmaa-salon'));
-            }
-
-            $balance_after = $next_balance;
-        }
-
-        if ($balance_after !== $balance_before) {
-            $wpdb->update($extended_table, ['loyalty_points' => $balance_after], ['wc_customer_id' => $customer_id]);
-            
-            // Update Apple Wallet pass
-            try {
-                \AsmaaSalon\Services\Apple_Wallet_Service::update_loyalty_pass($customer_id);
-            } catch (\Exception $e) {
-                error_log('Apple Wallet update failed: ' . $e->getMessage());
-            }
-        }
-    }
-
-    /**
-     * Process staff commissions
-     */
-    private function process_commissions(int $order_id, array $order_items): void
-    {
-        global $wpdb;
-
-        $commissions_table = $wpdb->prefix . 'asmaa_staff_commissions';
-
-        $programs = get_option('asmaa_salon_programs_settings', []);
-        $comm = is_array($programs) && isset($programs['commissions']) && is_array($programs['commissions']) ? $programs['commissions'] : [];
-        $enabled = array_key_exists('enabled', $comm) ? (bool) $comm['enabled'] : true;
-        if (!$enabled) {
-            return;
-        }
-
-        $default_service_rate = (float) ($comm['default_service_rate'] ?? 10.00);
-        $default_product_rate = (float) ($comm['default_product_rate'] ?? 5.00);
-        $staff_overrides = isset($comm['staff_overrides']) && is_array($comm['staff_overrides']) ? $comm['staff_overrides'] : [];
-
-        foreach ($order_items as $row) {
-            $staff_id = !empty($row['staff_id']) ? (int) $row['staff_id'] : null;
-            if (!$staff_id) {
-                continue;
-            }
-
-            $item_type = (string) ($row['item_type'] ?? '');
-            $base_amount = (float) ($row['total'] ?? 0);
-            if ($base_amount <= 0) {
-                continue;
-            }
-
-            $rate = $item_type === 'product' ? $default_product_rate : $default_service_rate;
-            if (isset($staff_overrides[(string) $staff_id]) && is_array($staff_overrides[(string) $staff_id])) {
-                $ov = $staff_overrides[(string) $staff_id];
-                $rate = $item_type === 'product'
-                    ? (float) ($ov['product_rate'] ?? $rate)
-                    : (float) ($ov['service_rate'] ?? $rate);
-            }
-            if ($rate < 0) {
-                $rate = 0;
-            }
-
-            $commission_amount = round($base_amount * ($rate / 100), 3);
-            if ($commission_amount <= 0) {
-                continue;
-            }
-
-            $wpdb->insert($commissions_table, [
-                'wp_user_id' => $staff_id,
-                'order_id' => $order_id,
-                'order_item_id' => (int) ($row['id'] ?? 0),
-                'booking_id' => null,
-                'base_amount' => $base_amount,
-                'commission_rate' => $rate,
-                'commission_amount' => $commission_amount,
-                'rating_bonus' => 0,
-                'final_amount' => $commission_amount,
-                'status' => 'pending',
-                'notes' => (string) ($row['item_name'] ?? ''),
-            ]);
-
-            if ($wpdb->last_error) {
-                throw new \Exception(__('Failed to create staff commission', 'asmaa-salon'));
-            }
-        }
-    }
 
     /**
      * Get prepaid orders for a customer
@@ -816,7 +376,7 @@ class POS_Controller extends Base_Controller
         $total_prepaid = 0.0;
 
         foreach ($prepaid_orders as $order) {
-            $paid = (float) $order->get_total_paid();
+            $paid = \AsmaaSalon\Services\Unified_Order_Service::get_total_paid_for_order($order->get_id());
             $total_prepaid += $paid;
             
             $prepaid_data[] = [
@@ -832,7 +392,8 @@ class POS_Controller extends Base_Controller
         // Update prepaid orders status to completed if fully paid
         if ($total_prepaid > 0) {
             foreach ($prepaid_orders as $order) {
-                if ((float) $order->get_total_paid() >= (float) $order->get_total()) {
+                $order_paid = \AsmaaSalon\Services\Unified_Order_Service::get_total_paid_for_order($order->get_id());
+                if ($order_paid >= (float) $order->get_total()) {
                     $order->update_status('completed', 'Completed via POS payment');
                 }
             }
