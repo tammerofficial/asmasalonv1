@@ -1088,7 +1088,7 @@ const exportData = () => {
   a.remove();
   URL.revokeObjectURL(url);
 
-  toast.success('✅ ' + t('common.export') + ' ' + t('queue.title'));
+  toast.success(t('common.export') + ' ' + t('queue.title'));
 };
 
 const toggleAutoRefresh = () => {

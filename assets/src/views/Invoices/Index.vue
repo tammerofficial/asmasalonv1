@@ -483,6 +483,9 @@
         </CButton>
       </CModalFooter>
     </CModal>
+
+    <!-- FAQ/Help Section (Rule #7) -->
+    <HelpSection page-key="invoices" />
   </div>
 </template>
 
@@ -513,6 +516,7 @@ import StatCard from '@/components/UI/StatCard.vue';
 import Card from '@/components/UI/Card.vue';
 import EmptyState from '@/components/UI/EmptyState.vue';
 import LoadingSpinner from '@/components/UI/LoadingSpinner.vue';
+import HelpSection from '@/components/Common/HelpSection.vue';
 import api from '@/utils/api';
 import { useToast } from '@/composables/useToast';
 
@@ -690,7 +694,7 @@ const exportData = () => {
   alert(t('common.export') + ' - ' + t('invoices.title'));
 };
 
-// ✅ Backend now creates Payment automatically - no need for frontend helper
+// Backend now creates Payment automatically - no need for frontend helper
 const markAsPaid = async (invoice) => {
   if (!confirm(`${t('invoices.markPaid')}: ${invoice.invoice_number || invoice.id}?`)) return;
   try {
@@ -769,7 +773,7 @@ const saveInvoiceEdits = async () => {
       paid_amount: Number(editForm.value.paid_amount || 0),
     });
     
-    // ✅ Backend creates Payment automatically when status changes to 'paid'
+    // Backend creates Payment automatically when status changes to 'paid'
     toast.success(t('common.save'));
     clearCache('/invoices');
     clearCache('/payments');
@@ -812,7 +816,7 @@ const printInvoice = async (invoice) => {
           subtotal: 'المجموع',
           discount: 'الخصم',
           grandTotal: 'الإجمالي النهائي',
-          thanks: 'شكراً لزيارتكم 💛',
+          thanks: 'شكراً لزيارتكم',
         }
       : {
           invoice: 'Invoice',
@@ -1124,7 +1128,7 @@ const createInvoice = async () => {
 
     const response = await api.post('/invoices', payload);
     
-    // ✅ Backend creates Payment automatically if status is 'paid'
+    // Backend creates Payment automatically if status is 'paid'
     toast.success(t('common.save'));
     clearCache('/invoices');
     clearCache('/payments');

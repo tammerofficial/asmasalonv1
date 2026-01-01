@@ -302,9 +302,9 @@
           <div class="payment-method mb-3">
             <label class="form-label">{{ t('pos.paymentMethod') }}</label>
             <CFormSelect v-model="paymentMethod">
-              <option value="cash">💵 {{ t('pos.cash') }}</option>
-              <option value="card">💳 {{ t('pos.card') }}</option>
-              <option value="knet">🏧 {{ t('pos.knet') }}</option>
+              <option value="cash">{{ t('pos.cash') }}</option>
+              <option value="card">{{ t('pos.card') }}</option>
+              <option value="knet">{{ t('pos.knet') }}</option>
             </CFormSelect>
           </div>
 
@@ -812,7 +812,7 @@ const processOrder = async () => {
         const orderNo = responsePayload.order_number || 'N/A';
         const invNo = responsePayload.invoice_number || responsePayload.invoice_id || 'N/A';
         
-        // ✅ Backend now creates Payment automatically - no need for frontend workaround
+        // Backend now creates Payment automatically - no need for frontend workaround
         toast.success(`${t('pos.orderProcessed')} ${orderNo} | Invoice: ${invNo}`);
         
         // Clear session after successful order

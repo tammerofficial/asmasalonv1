@@ -792,6 +792,8 @@
                 </div>
             </div>
         </div>
+        <!-- FAQ/Help Section (Rule #7) -->
+        <HelpSection page-key="booking" />
     </div>
 </template>
 
@@ -804,6 +806,7 @@ import { useTranslation } from '../../composables/useTranslation.js';
 import api from '@/utils/api';
 import BookingCalendar from './BookingCalendar.vue';
 import StatCard from '@/components/UI/StatCard.vue';
+import HelpSection from '@/components/Common/HelpSection.vue';
 import { CIcon } from '@coreui/icons-vue';
 import { CBadge } from '@coreui/vue';
 
@@ -1387,7 +1390,7 @@ const servicesAnalyticsTotals = computed(() => {
 <style scoped>
 .booking-page {
     min-height: 100vh;
-    background: #f5f7fa;
+    background: var(--bg-secondary);
 }
 
 .booking-header {
@@ -1509,31 +1512,31 @@ const servicesAnalyticsTotals = computed(() => {
 }
 
 .booking-tabs-nav {
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
-    padding: 0 2rem;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 var(--spacing-lg);
 }
 
 .tabs-container {
     max-width: 1400px;
     margin: 0 auto;
     display: flex;
-    gap: 0.5rem;
+    gap: var(--spacing-xs);
 }
 
 .tab-button {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 1rem 1.5rem;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-md) var(--spacing-lg);
     background: none;
     border: none;
     border-bottom: 3px solid transparent;
-    color: #64748b;
-    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
 }
 
 .tab-button:hover {
@@ -1555,16 +1558,16 @@ const servicesAnalyticsTotals = computed(() => {
 .tab-badge {
     background: var(--asmaa-primary);
     color: white;
-    font-size: 0.75rem;
-    padding: 0.125rem 0.5rem;
-    border-radius: 12px;
+    font-size: var(--font-size-xs);
+    padding: 2px 8px;
+    border-radius: var(--radius-lg);
     font-weight: 600;
 }
 
 .booking-content {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: var(--spacing-lg);
 }
 
 .tab-panel {
@@ -1590,65 +1593,65 @@ const servicesAnalyticsTotals = computed(() => {
 }
 
 .panel-title {
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-primary);
     margin: 0;
 }
 
 .header-actions {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--spacing-sm);
     align-items: center;
 }
 
 .header-filters {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--spacing-sm);
     align-items: center;
 }
 
 .filter-input,
 .filter-select {
-    padding: 0.5rem 1rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 0.875rem;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
 }
 
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
+    gap: var(--spacing-xs);
+    padding: 10px var(--spacing-lg);
     border: none;
-    border-radius: 8px;
-    font-size: 0.875rem;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
 }
 
 .btn-primary {
     background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.9) 100%);
     color: white;
     border: none;
-    box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-primary:hover {
     background: linear-gradient(135deg, rgba(187, 160, 122, 0.95) 0%, var(--asmaa-primary) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(187, 160, 122, 0.4);
+    box-shadow: var(--shadow-lg);
 }
 
 .btn-secondary {
-    background: #e2e8f0;
-    color: #475569;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
 }
 
 .btn-secondary:hover {
-    background: #cbd5e0;
+    background: var(--border-color);
 }
 
 .btn-icon {
@@ -1695,16 +1698,16 @@ const servicesAnalyticsTotals = computed(() => {
 
 .service-card,
 .staff-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s;
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
 }
 
 .service-card:hover,
 .staff-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-md);
     transform: translateY(-2px);
 }
 
@@ -1713,32 +1716,32 @@ const servicesAnalyticsTotals = computed(() => {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1rem;
+    margin-bottom: var(--spacing-md);
 }
 
 .service-title {
-    font-size: 1.125rem;
+    font-size: var(--font-size-lg);
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text-primary);
     margin: 0;
 }
 
 .service-actions,
 .staff-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--spacing-xs);
 }
 
 .action-btn {
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
 }
 
 .action-btn svg {

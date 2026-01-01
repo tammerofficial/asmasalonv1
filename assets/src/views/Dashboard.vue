@@ -348,6 +348,9 @@
         </button>
       </div>
     </Card>
+
+    <!-- FAQ/Help Section (Rule #7) -->
+    <HelpSection page-key="dashboard" />
   </div>
 </template>
 
@@ -376,6 +379,7 @@ import StatCard from '@/components/UI/StatCard.vue';
 import Card from '@/components/UI/Card.vue';
 import EmptyState from '@/components/UI/EmptyState.vue';
 import LoadingSpinner from '@/components/UI/LoadingSpinner.vue';
+import HelpSection from '@/components/Common/HelpSection.vue';
 import api, { clearCache } from '@/utils/api';
 import { useToast } from '@/composables/useToast';
 import { useUiStore } from '@/stores/ui';
@@ -723,15 +727,15 @@ watch(
 
 /* Header action buttons */
 .refresh-btn {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.9) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-900) 100%);
   border: none;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: var(--shadow-md);
   transition: all 0.3s;
 }
 
 .refresh-btn:hover {
-  background: linear-gradient(135deg, rgba(187, 160, 122, 0.95) 0%, var(--asmaa-primary) 100%);
-  box-shadow: 0 6px 16px rgba(187, 160, 122, 0.4);
+  background: linear-gradient(135deg, var(--asmaa-primary-dark) 0%, var(--asmaa-primary) 100%);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
 
@@ -739,38 +743,38 @@ watch(
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 /* Content Grid */
 .content-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 /* Charts */
 .charts-card :deep(.card-body) {
-  padding-top: 0.75rem;
+  padding-top: var(--spacing-sm);
 }
 .charts-grid {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
-  gap: 1rem;
+  gap: var(--spacing-base);
 }
 .chart-panel {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 1rem;
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-base);
 }
 .chart-title {
   font-weight: 900;
   color: var(--text-primary);
-  font-size: 0.9rem;
-  margin-bottom: 0.75rem;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-sm);
 }
 .chart-canvas {
   position: relative;
@@ -794,18 +798,18 @@ watch(
 .bookings-list-modern {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--spacing-sm);
 }
 
 .booking-item-modern {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: var(--spacing-base);
+  padding: var(--spacing-base);
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   cursor: pointer;
 }
 
@@ -813,7 +817,7 @@ watch(
   background: var(--bg-tertiary);
   border-color: var(--asmaa-primary);
   transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 [dir="rtl"] .booking-item-modern:hover {
@@ -822,7 +826,7 @@ watch(
 
 .booking-arrow {
   color: var(--text-muted);
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   flex-shrink: 0;
 }
 
@@ -836,7 +840,7 @@ watch(
 }
 
 .booking-number {
-  font-size: 1.25rem;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--asmaa-primary);
   min-width: 80px;
@@ -848,26 +852,26 @@ watch(
 }
 
 .booking-customer-name {
-  font-size: 0.9375rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.375rem;
+  margin-bottom: var(--spacing-xs);
 }
 
 .booking-meta-modern {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--spacing-sm);
 }
 
 .status-badge {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
-  padding: 0.25rem 0.625rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 .booking-time-modern {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   font-weight: 500;
 }
@@ -876,44 +880,44 @@ watch(
 .queue-list-modern {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--spacing-sm);
 }
 
 .queue-item-modern {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: var(--spacing-base);
+  padding: var(--spacing-base);
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  transition: all 0.2s;
+  transition: all var(--transition-base);
 }
 
 .queue-item-modern:hover {
   background: var(--bg-tertiary);
-  border-color: var(--border-color-light);
+  border-color: var(--border-color);
   transform: translateX(2px);
 }
 
 .queue-item-next {
   background: var(--asmaa-primary-soft);
-  border-color: var(--asmaa-primary-200);
+  border-color: var(--asmaa-primary-soft-border);
 }
 
 .queue-position-next {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-700) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-800) 100%);
   color: white;
   font-weight: 800;
 }
 
 .queue-status-badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.625rem;
+  font-size: var(--font-size-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 .queue-position {
-  font-size: 1.25rem;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--asmaa-primary);
   min-width: 40px;
@@ -926,14 +930,14 @@ watch(
 }
 
 .queue-customer-name {
-  font-size: 0.9375rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.375rem;
+  margin-bottom: var(--spacing-xs);
 }
 
 .queue-service-modern {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   font-weight: 500;
   display: flex;
@@ -944,19 +948,19 @@ watch(
 .quick-actions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
+  gap: var(--spacing-base);
 }
 
 .quick-action-btn {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1.25rem;
+  gap: var(--spacing-base);
+  padding: var(--spacing-lg);
   background: var(--bg-primary);
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-base);
   text-align: left;
   width: 100%;
 }
@@ -975,11 +979,11 @@ watch(
 .quick-action-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: var(--font-size-xl);
   flex-shrink: 0;
 }
 
@@ -995,12 +999,12 @@ watch(
 
 .quick-action-icon.brown {
   background: var(--asmaa-primary-soft);
-  color: var(--asmaa-primary-700);
+  color: var(--asmaa-primary-800);
 }
 
 .quick-action-icon.pink {
-  background: var(--asmaa-primary-200);
-  color: var(--asmaa-primary-700);
+  background: var(--asmaa-primary-soft);
+  color: var(--asmaa-primary-800);
 }
 
 .quick-action-content {
@@ -1009,20 +1013,20 @@ watch(
 }
 
 .quick-action-title {
-  font-size: 0.9375rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--spacing-xs);
 }
 
 .quick-action-desc {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
 }
 
 .quick-action-arrow {
   color: var(--text-muted);
-  transition: all 0.3s;
+  transition: all var(--transition-base);
   flex-shrink: 0;
 }
 
@@ -1044,7 +1048,7 @@ watch(
 
 @media (max-width: 768px) {
   .asmaa-salon-dashboard {
-    padding: 1rem;
+    padding: var(--spacing-base);
   }
 
   .stats-grid {

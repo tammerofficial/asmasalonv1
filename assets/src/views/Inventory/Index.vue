@@ -23,7 +23,7 @@
     <!-- Low Stock Alert -->
     <Card v-if="lowStockItems.length > 0" color="warning" icon="cil-warning">
       <template #title>
-        <strong>⚠️ Low Stock Alert</strong>
+        <strong>Low Stock Alert</strong>
       </template>
       <template #default>
         <p class="mb-0">{{ lowStockItems.length }} {{ t('inventory.product') }} with low stock</p>

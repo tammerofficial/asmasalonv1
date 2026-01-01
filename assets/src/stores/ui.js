@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
+import { prefetch } from '../utils/api';
 
 export const useUiStore = defineStore('ui', () => {
   // Load saved theme from localStorage or default to 'light'
   const savedTheme = localStorage.getItem('asmaa-salon-theme') || 'light';
   const theme = ref(savedTheme);
+  const prefetched = ref(false);
   
   // Apply theme to document
   const applyTheme = (newTheme) => {
@@ -63,11 +65,26 @@ export const useUiStore = defineStore('ui', () => {
   watch(theme, (newTheme) => {
     applyTheme(newTheme);
   });
+
+  // Rule #4: Mandatory prefetch method
+  async function prefetchUi(params = {}) {
+    try {
+      // UI store doesn't have a direct API resource, but we implement prefetch for compliance
+      // or to pre-load essential UI settings if they existed in an endpoint.
+      // For now, we'll just set prefetched to true.
+      prefetched.value = true;
+      return { data: { theme: theme.value } };
+    } catch (error) {
+      console.error('Error prefetching UI:', error);
+    }
+  }
   
   return {
     theme,
+    prefetched,
     setTheme,
     toggleTheme,
+    prefetchUi,
     locale: ref('en'), // Add locale support for bookings
   };
 });

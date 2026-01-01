@@ -368,6 +368,9 @@
         </CButton>
       </CModalFooter>
     </CModal>
+
+    <!-- FAQ/Help Section (Rule #7) -->
+    <HelpSection page-key="payments" />
   </div>
 </template>
 
@@ -397,6 +400,7 @@ import StatCard from '@/components/UI/StatCard.vue';
 import Card from '@/components/UI/Card.vue';
 import EmptyState from '@/components/UI/EmptyState.vue';
 import LoadingSpinner from '@/components/UI/LoadingSpinner.vue';
+import HelpSection from '@/components/Common/HelpSection.vue';
 import api from '@/utils/api';
 import { useToast } from '@/composables/useToast';
 
