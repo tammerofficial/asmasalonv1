@@ -20,7 +20,7 @@
             @click="setLocale('ar')"
             :title="languageTitleAr"
           >
-            <span>ع</span>
+            <span>{{ t('common.ar') }}</span>
           </button>
           <button
             class="lang-btn"
@@ -28,7 +28,7 @@
             @click="setLocale('en')"
             :title="languageTitleEn"
           >
-            <span>EN</span>
+            <span>{{ t('common.en') }}</span>
           </button>
         </div>
       </CNavItem>

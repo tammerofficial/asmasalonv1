@@ -4,7 +4,7 @@
       <div class="logo">
         <img
           :src="logoSrc"
-          alt="Asmaa Al-Jarallah Salon"
+          :alt="t('common.brand')"
           class="logo-image"
           @error="onLogoError"
         />

@@ -3,7 +3,7 @@
     <!-- Page Header -->
     <PageHeader 
       :title="t('staff.title')"
-      :subtitle="t('staff.title') + ' - ' + t('dashboard.subtitle')"
+      :subtitle="t('staff.subtitle')"
     >
       <template #icon>
         <CIcon icon="cil-user" />
@@ -25,7 +25,7 @@
       <StatCard 
         :label="t('staff.title')"
         :value="stats.total || staffList.length"
-        :badge="stats.active + ' ' + t('status.active')"
+        :badge="t('staff.activeCount', { count: stats.active })"
         badge-variant="success"
         color="gold"
       >
@@ -46,9 +46,9 @@
       </StatCard>
 
       <StatCard 
-        label="Average Rating"
+        :label="t('staff.averageRating')"
         :value="Number(stats.averageRating || 0).toFixed(1)"
-        :badge="stats.totalRatings + ' ratings'"
+        :badge="stats.totalRatings + ' ' + t('common.ratings')"
         badge-variant="info"
         color="gold"
       >
@@ -58,7 +58,7 @@
       </StatCard>
 
       <StatCard 
-        label="Total Revenue"
+        :label="t('staff.totalRevenue')"
         :value="formatCurrencyShort(stats.totalRevenue)"
         badge-variant="info"
         color="gold"
@@ -122,17 +122,17 @@
         <CTable hover responsive class="table-modern staff-table">
           <thead>
             <tr class="table-header-row">
-              <th class="th-id">#</th>
-              <th class="th-name">{{ t('staff.name') }}</th>
+              <th class="th-id">{{ t('common.id') }}</th>
+              <th class="th-name">{{ t('staff.fullName') }}</th>
               <th class="th-phone">{{ t('staff.phone') }}</th>
               <th class="th-email">{{ t('staff.email') }}</th>
               <th class="th-role">{{ t('staff.role') }}</th>
-              <th class="th-salary">Salary</th>
-              <th class="th-commission">Commission</th>
-              <th class="th-hire-date">Hire Date</th>
-              <th class="th-rating">Rating</th>
-              <th class="th-services">Services</th>
-              <th class="th-revenue">Revenue</th>
+              <th class="th-salary">{{ t('staff.salary') }}</th>
+              <th class="th-commission">{{ t('staff.commission') }}</th>
+              <th class="th-hire-date">{{ t('staff.hireDate') }}</th>
+              <th class="th-rating">{{ t('staff.rating') }}</th>
+              <th class="th-services">{{ t('staff.services') }}</th>
+              <th class="th-revenue">{{ t('staff.revenue') }}</th>
               <th class="th-status">{{ t('common.status') }}</th>
               <th class="th-actions">{{ t('common.actions') }}</th>
             </tr>
@@ -303,22 +303,22 @@
             <div class="stat-item">
               <CIcon icon="cil-star" class="stat-icon" />
               <div class="stat-content">
-                <div class="stat-label">Rating</div>
+                <div class="stat-label">{{ t('staff.rating') }}</div>
                 <div class="stat-value">{{ Number(viewingStaff.rating || 0).toFixed(1) }}</div>
-                <div class="stat-subtext">({{ viewingStaff.total_ratings || 0 }} ratings)</div>
+                <div class="stat-subtext">({{ viewingStaff.total_ratings || 0 }} {{ t('common.ratings') }})</div>
               </div>
             </div>
             <div class="stat-item">
               <CIcon icon="cil-spreadsheet" class="stat-icon" />
               <div class="stat-content">
-                <div class="stat-label">Services</div>
+                <div class="stat-label">{{ t('staff.services') }}</div>
                 <div class="stat-value">{{ viewingStaff.total_services || 0 }}</div>
               </div>
             </div>
             <div class="stat-item">
               <CIcon icon="cil-money" class="stat-icon" />
               <div class="stat-content">
-                <div class="stat-label">Revenue</div>
+                <div class="stat-label">{{ t('staff.revenue') }}</div>
                 <div class="stat-value">{{ formatCurrency(viewingStaff.total_revenue || 0) }}</div>
               </div>
             </div>
@@ -357,8 +357,8 @@
             </div>
             <div class="info-row" v-if="viewingStaff.salary">
               <div class="info-label">
-                <CIcon icon="cil-dollar" class="me-2" />
-                Salary
+                <CIcon icon="cil-money" class="me-2" />
+                {{ t('staff.salary') }}
               </div>
               <div class="info-value">{{ formatCurrency(viewingStaff.salary) }}</div>
             </div>
@@ -372,7 +372,7 @@
             <div class="info-row" v-if="viewingStaff.hire_date">
               <div class="info-label">
                 <CIcon icon="cil-calendar" class="me-2" />
-                Hire Date
+                {{ t('staff.hireDate') }}
               </div>
               <div class="info-value">
                 {{ viewingStaff.hire_date ? new Date(viewingStaff.hire_date).toLocaleDateString() : '-' }}
@@ -410,13 +410,13 @@
           <CFormInput v-model="form.position" :label="t('staff.role')" />
           <CRow>
             <CCol :md="6">
-              <CFormInput v-model="form.salary" type="number" step="0.001" label="Salary (KWD)" />
+              <CFormInput v-model="form.salary" type="number" step="0.001" :label="t('staff.salary') + ' (KWD)'" />
             </CCol>
             <CCol :md="6">
               <CFormInput v-model="form.commission_rate" type="number" step="0.01" :label="t('staff.commission')" />
             </CCol>
           </CRow>
-          <CFormInput v-model="form.hire_date" type="date" label="Hire Date" />
+          <CFormInput v-model="form.hire_date" type="date" :label="t('staff.hireDate')" />
           <CFormCheck v-model="form.is_active" :label="t('status.active')" />
           
           <!-- Staff Services Assignment -->

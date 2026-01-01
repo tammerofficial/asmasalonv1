@@ -81,8 +81,8 @@
               <div class="pref-subtitle">{{ t('core.languageHint') }}</div>
             </div>
             <div class="lang-actions">
-              <button class="chip" type="button" :class="{ active: uiStore.locale === 'en' }" @click="setLocale('en')">EN</button>
-              <button class="chip" type="button" :class="{ active: uiStore.locale === 'ar' }" @click="setLocale('ar')">AR</button>
+              <button class="chip" type="button" :class="{ active: uiStore.locale === 'en' }" @click="setLocale('en')">{{ t('common.en') }}</button>
+              <button class="chip" type="button" :class="{ active: uiStore.locale === 'ar' }" @click="setLocale('ar')">{{ t('common.ar') }}</button>
             </div>
           </div>
         </div>
