@@ -204,6 +204,28 @@
             </div>
           </template>
 
+          <!-- Smart Upsell Recommendations (Receptionist Magic) -->
+          <div v-if="posStore.cart.length > 0 && activeTab === 'services'" class="smart-upsell-bar px-3 py-2 border-bottom bg-light d-flex align-items-center gap-3 overflow-auto">
+            <div class="upsell-title small fw-bold text-nowrap text-primary">
+              <CIcon icon="cil-lightbulb" class="me-1" />
+              {{ t('pos.smartUpsellTitle') || 'هل فكرتِ في هذا؟' }}
+            </div>
+            <div class="upsell-items d-flex gap-2">
+              <CBadge 
+                v-for="item in upsellRecommendations" 
+                :key="item.id" 
+                color="info" 
+                shape="rounded-pill" 
+                variant="outline"
+                class="upsell-badge"
+                style="cursor: pointer"
+                @click="handleItemClick(item)"
+              >
+                + {{ item.name_ar || item.name }}
+              </CBadge>
+            </div>
+          </div>
+
           <div class="catalog-grid-wrapper">
             <LoadingSpinner v-if="posStore.loading.products || posStore.loading.services" />
             
@@ -285,23 +307,34 @@
             </div>
             
             <div v-else class="cart-list">
-              <div v-for="(item, index) in posStore.cart" :key="index" class="cart-item">
-                <div class="item-info">
-                  <div class="item-name">{{ item.name }}</div>
-                  <div class="item-staff" v-if="item.staff_name">
-                    <CIcon icon="cil-user" class="me-1" />{{ item.staff_name }}
+              <div v-for="(item, index) in posStore.cart" :key="index" class="cart-item-wrapper">
+                <div class="cart-item">
+                  <div class="item-info">
+                    <div class="item-name">{{ item.name }}</div>
+                    <div class="item-staff" v-if="item.staff_name">
+                      <CIcon icon="cil-user" class="me-1" />{{ item.staff_name }}
+                    </div>
+                  </div>
+                  <div class="item-controls">
+                    <div class="quantity-picker">
+                      <button @click="updateQty(index, -1)">-</button>
+                      <span>{{ item.quantity }}</span>
+                      <button @click="updateQty(index, 1)">+</button>
+                    </div>
+                    <div class="item-total">{{ formatCurrency(item.unit_price * item.quantity) }}</div>
+                    <CButton size="sm" color="danger" variant="ghost" @click="posStore.removeFromCart(index)">
+                      <CIcon icon="cil-trash" />
+                    </CButton>
                   </div>
                 </div>
-                <div class="item-controls">
-                  <div class="quantity-picker">
-                    <button @click="updateQty(index, -1)">-</button>
-                    <span>{{ item.quantity }}</span>
-                    <button @click="updateQty(index, 1)">+</button>
-                  </div>
-                  <div class="item-total">{{ formatCurrency(item.unit_price * item.quantity) }}</div>
-                  <CButton size="sm" color="danger" variant="ghost" @click="posStore.removeFromCart(index)">
-                    <CIcon icon="cil-trash" />
-                  </CButton>
+                <!-- Cart Item Note (Receptionist Secret) -->
+                <div class="cart-item-note">
+                  <CFormInput 
+                    size="sm" 
+                    v-model="item.note" 
+                    :placeholder="t('pos.itemNote') || 'ملاحظة خاصة بالخدمة...'"
+                    class="border-0 bg-transparent py-0 px-2 tiny"
+                  />
                 </div>
               </div>
             </div>
@@ -326,6 +359,12 @@
                 <span>{{ t('pos.total') }}</span>
                 <span class="total-amount">{{ formatCurrency(posStore.total) }}</span>
               </div>
+            </div>
+
+            <!-- Loyalty Points Preview (Receptionist Insight) -->
+            <div v-if="posStore.selectedCustomer && posStore.potentialPoints > 0" class="loyalty-preview-banner mt-2 p-2 rounded-3 text-center small fw-bold">
+              <CIcon icon="cil-star" class="text-warning me-1" />
+              {{ t('pos.pointsEarnedPreview', { points: posStore.potentialPoints }) || `ستكسبين ${posStore.potentialPoints} نقطة من هذا الطلب` }}
             </div>
 
             <!-- Payment Methods -->
@@ -454,6 +493,7 @@
                   <option value="">{{ t('pos.selectStaff') }}</option>
                   <option v-for="s in posStore.staff" :key="s.id" :value="s.id">
                     {{ s.name }} ({{ getStaffCurrentLoad(s.id) }} {{ t('pos.activeCustomers') }})
+                    {{ Number(s.id) === Number(bestStaffId) ? ' ✨ ' + (t('pos.bestStaffMatch') || 'الأكثر توافراً') : '' }}
                   </option>
                 </CFormSelect>
                 <div v-if="estimatedCommission > 0" class="mt-2 small text-success fw-bold">
@@ -683,6 +723,13 @@ const getPaymentColor = (method) => {
   }
 };
 
+const bestStaffId = computed(() => {
+  if (!posStore.staff.length) return null;
+  // Sort staff by current load and pick the first one
+  const sorted = [...posStore.staff].sort((a, b) => getStaffCurrentLoad(a.id) - getStaffCurrentLoad(b.id));
+  return sorted[0].id;
+});
+
 const estimatedCommission = computed(() => {
   if (!selectedStaffId.value || !selectedItem.value) return 0;
   const staffMember = posStore.staff.find(s => Number(s.id) === Number(selectedStaffId.value));
@@ -709,6 +756,18 @@ const filteredItems = computed(() => {
 });
 
 // Methods
+const upsellRecommendations = computed(() => {
+  if (posStore.cart.length === 0) return [];
+  
+  // Logic: Find items not in cart that are 'popular' or complementary
+  const inCartIds = posStore.cart.map(i => i.service_id || i.product_id);
+  const pool = activeTab.value === 'services' ? posStore.services : posStore.products;
+  
+  return pool
+    .filter(item => !inCartIds.includes(item.id))
+    .slice(0, 3); // Just pick first 3 available for now
+});
+
 const handleItemClick = (item) => {
   if (activeTab.value === 'products' && (item.stock_quantity || 0) <= 0) {
     toast.error(t('pos.outOfStock') || 'المنتج غير متوفر في المخزون');
@@ -1271,5 +1330,51 @@ onMounted(() => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Receptionist Superpowers CSS */
+.cart-item-wrapper {
+  margin-bottom: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+}
+
+.cart-item-note {
+  border-top: 1px dashed var(--border-color);
+  padding: 0.25rem 0.5rem;
+  background: rgba(187, 160, 122, 0.05);
+}
+
+.cart-item-note .tiny {
+  font-size: 0.7rem;
+}
+
+.loyalty-preview-banner {
+  background: linear-gradient(135deg, rgba(249, 177, 21, 0.1), rgba(187, 160, 122, 0.1));
+  color: var(--asmaa-primary);
+  border: 1px solid rgba(249, 177, 21, 0.2);
+}
+
+.smart-upsell-bar {
+  scrollbar-width: none;
+}
+
+.smart-upsell-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.upsell-badge:hover {
+  background-color: var(--asmaa-primary) !important;
+  color: white !important;
+  border-color: var(--asmaa-primary) !important;
 }
 </style>

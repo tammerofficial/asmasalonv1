@@ -62,6 +62,11 @@ export const usePOSStore = defineStore('pos', () => {
     return Math.max(0, subtotal.value - discount.value - prepaidAmount.value);
   });
 
+  const potentialPoints = computed(() => {
+    // Basic calculation: 1 point per 1 KWD, can be refined based on settings
+    return Math.floor(total.value);
+  });
+
   const selectedCustomer = computed(() => {
     if (!selectedCustomerId.value) return null;
     return customers.value.find(c => Number(c.id) === Number(selectedCustomerId.value)) || 
@@ -230,6 +235,7 @@ export const usePOSStore = defineStore('pos', () => {
     // Computed
     subtotal,
     total,
+    potentialPoints,
     selectedCustomer,
     splitPayments,
     customerAlerts,
