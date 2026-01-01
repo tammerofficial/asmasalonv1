@@ -36,3 +36,8 @@ yarn-error.log*
 includes/certs/*.p12
 includes/certs/*.cer
 includes/certs/*.pem
+includes/certs/*.key
+includes/certs/*.csr
+
+# Cursor
+.cursor/

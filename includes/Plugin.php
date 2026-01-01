@@ -225,6 +225,58 @@ class Plugin
 
         // Hide WP Admin Bar only on our standalone screens (front-end)
         add_filter('show_admin_bar', [$this, 'maybe_hide_admin_bar_on_standalone'], 1000);
+
+        // Standalone screens should be "app-only" (no theme JS). Dequeue everything except our plugin handles.
+        // This avoids console noise like "App element not found" from unrelated theme scripts.
+        add_action('wp_enqueue_scripts', [$this, 'maybe_dequeue_non_salon_assets'], 9999);
+    }
+
+    /**
+     * Determine if we're rendering the standalone dashboard/display page.
+     */
+    protected function is_standalone_screen(): bool
+    {
+        return (bool) (
+            get_query_var('asmaa_salon_dashboard') ||
+            get_query_var('asmaa_salon_display') ||
+            (isset($_GET['asmaa_salon_dashboard']) && $_GET['asmaa_salon_dashboard'] === '1') ||
+            (isset($_GET['asmaa_salon_display']) && $_GET['asmaa_salon_display'] === '1')
+        );
+    }
+
+    /**
+     * Dequeue/deregister all scripts/styles that are not part of this plugin on standalone screens.
+     */
+    public function maybe_dequeue_non_salon_assets(): void
+    {
+        if (!$this->is_standalone_screen()) {
+            return;
+        }
+
+        // Keep only plugin assets (we enqueue handles starting with "asmaa-salon-")
+        $keep_prefix = 'asmaa-salon-';
+
+        global $wp_scripts, $wp_styles;
+
+        if ($wp_scripts && isset($wp_scripts->queue) && is_array($wp_scripts->queue)) {
+            foreach ($wp_scripts->queue as $handle) {
+                if (is_string($handle) && str_starts_with($handle, $keep_prefix)) {
+                    continue;
+                }
+                wp_dequeue_script($handle);
+                wp_deregister_script($handle);
+            }
+        }
+
+        if ($wp_styles && isset($wp_styles->queue) && is_array($wp_styles->queue)) {
+            foreach ($wp_styles->queue as $handle) {
+                if (is_string($handle) && str_starts_with($handle, $keep_prefix)) {
+                    continue;
+                }
+                wp_dequeue_style($handle);
+                wp_deregister_style($handle);
+            }
+        }
     }
     
     public function add_rewrite_rules(): void
