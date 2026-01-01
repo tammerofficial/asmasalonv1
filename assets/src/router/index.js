@@ -116,6 +116,16 @@ const routes = [
     component: () => import('../views/Reports/Index.vue'),
   },
   {
+    path: '/settings/apple-wallet',
+    name: 'AppleWalletSettings',
+    component: () => import('../views/Settings/AppleWallet.vue')
+  },
+  {
+    path: '/apple-wallet/simulator',
+    name: 'AppleWalletSimulator',
+    component: () => import('../views/AppleWallet/Simulator.vue')
+  },
+  {
     path: '/notifications',
     name: 'Notifications',
     component: () => import('../views/Notifications/Index.vue'),

@@ -1,7 +1,7 @@
 /* ==========================
- * Google Fonts Import - Cairo (Arabic + English)
+ * Google Fonts Import - Tajawal (Arabic + English)
  * ========================== */
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&display=swap');
 
 /* Asmaa Salon Global Styles */
 :root {
@@ -9,8 +9,8 @@
    * Typography System
    * ========================== */
   /* Unified Font Family - Supports Arabic & English */
-  --font-family-base: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-family-mono: 'Courier New', 'Cairo', monospace;
+  --font-family-base: 'Tajawal', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'Courier New', 'Tajawal', monospace;
   
   /* Font Sizes - Unified Scale */
   --font-size-xs: 0.75rem;      /* 12px */

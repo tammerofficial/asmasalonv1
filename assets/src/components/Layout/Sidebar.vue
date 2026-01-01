@@ -21,6 +21,10 @@
       <div class="nav-section-divider">
         <span class="nav-section-label">{{ t('sidebar.sections.operations') || 'Operations' }}</span>
       </div>
+      <router-link to="/pos" class="nav-item" :class="{ 'router-link-active': $route.name === 'POS' }">
+        <CIcon icon="cil-cart" class="nav-icon" />
+        <span class="nav-text">POS</span>
+      </router-link>
       <router-link to="/bookings" class="nav-item" :class="{ 'router-link-active': $route.name === 'Bookings' }">
         <CIcon icon="cil-calendar" class="nav-icon" />
         <span class="nav-text">{{ t('nav.bookings') }}</span>
@@ -34,14 +38,10 @@
         <span class="nav-text">{{ t('nav.workerCalls') }}</span>
       </router-link>
       
-      <!-- Transactions Section -->
+      <!-- Sales & Finance Section -->
       <div class="nav-section-divider">
-        <span class="nav-section-label">{{ t('sidebar.sections.transactions') || 'Transactions' }}</span>
+        <span class="nav-section-label">{{ t('sidebar.sections.transactions') || 'Sales & Finance' }}</span>
       </div>
-      <router-link to="/pos" class="nav-item" :class="{ 'router-link-active': $route.name === 'POS' }">
-        <CIcon icon="cil-cart" class="nav-icon" />
-        <span class="nav-text">POS</span>
-      </router-link>
       <router-link to="/orders" class="nav-item" :class="{ 'router-link-active': $route.name === 'Orders' }">
         <CIcon icon="cil-cart" class="nav-icon" />
         <span class="nav-text">{{ t('nav.orders') }}</span>
@@ -53,6 +53,10 @@
       <router-link to="/payments" class="nav-item" :class="{ 'router-link-active': $route.name === 'Payments' }">
         <CIcon icon="cil-money" class="nav-icon" />
         <span class="nav-text">{{ t('nav.payments') }}</span>
+      </router-link>
+      <router-link to="/commissions" class="nav-item" :class="{ 'router-link-active': $route.name === 'Commissions' }">
+        <CIcon icon="cil-dollar" class="nav-icon" />
+        <span class="nav-text">{{ t('nav.commissions') }}</span>
       </router-link>
 
       <!-- Catalog Section -->
@@ -68,9 +72,9 @@
         <span class="nav-text">{{ t('nav.products') }}</span>
       </router-link>
       
-      <!-- People Section -->
+      <!-- Customers Section -->
       <div class="nav-section-divider">
-        <span class="nav-section-label">{{ t('sidebar.sections.people') || 'People' }}</span>
+        <span class="nav-section-label">{{ t('sidebar.sections.people') || 'Customers & CRM' }}</span>
       </div>
       <router-link to="/customers" class="nav-item" :class="{ 'router-link-active': $route.name === 'Customers' }">
         <CIcon icon="cil-people" class="nav-icon" />
@@ -80,15 +84,6 @@
         <CIcon icon="cil-wallet" class="nav-icon" />
         <span class="nav-text">{{ t('nav.walletMembers') || 'Wallet Members' }}</span>
       </router-link>
-      <router-link to="/staff" class="nav-item" :class="{ 'router-link-active': $route.name === 'Staff' }">
-        <CIcon icon="cil-user" class="nav-icon" />
-        <span class="nav-text">{{ t('nav.staff') }}</span>
-      </router-link>
-      
-      <!-- Programs Section -->
-      <div class="nav-section-divider">
-        <span class="nav-section-label">{{ t('sidebar.sections.programs') || 'Programs' }}</span>
-      </div>
       <router-link to="/loyalty" class="nav-item" :class="{ 'router-link-active': $route.name === 'Loyalty' }">
         <CIcon icon="cil-star" class="nav-icon" />
         <span class="nav-text">{{ t('nav.loyalty') }}</span>
@@ -97,22 +92,31 @@
         <CIcon icon="cil-credit-card" class="nav-icon" />
         <span class="nav-text">{{ t('nav.memberships') }}</span>
       </router-link>
-      <router-link to="/commissions" class="nav-item" :class="{ 'router-link-active': $route.name === 'Commissions' }">
-        <CIcon icon="cil-dollar" class="nav-icon" />
-        <span class="nav-text">{{ t('nav.commissions') }}</span>
+      <router-link to="/apple-wallet/simulator" class="nav-item" :class="{ 'router-link-active': $route.name === 'AppleWalletSimulator' }">
+        <CIcon icon="cil-screen-smartphone" class="nav-icon" />
+        <span class="nav-text">{{ t('nav.appleWalletSimulator') || 'Apple Wallet Simulator' }}</span>
+      </router-link>
+      
+      <!-- HR Section -->
+      <div class="nav-section-divider">
+        <span class="nav-section-label">{{ t('sidebar.sections.hr') || 'HR' }}</span>
+      </div>
+      <router-link to="/staff" class="nav-item" :class="{ 'router-link-active': $route.name === 'Staff' }">
+        <CIcon icon="cil-user" class="nav-icon" />
+        <span class="nav-text">{{ t('nav.staff') }}</span>
       </router-link>
       
       <!-- Analytics Section -->
       <div class="nav-section-divider">
         <span class="nav-section-label">{{ t('sidebar.sections.analytics') || 'Analytics' }}</span>
       </div>
-      <router-link to="/notifications" class="nav-item" :class="{ 'router-link-active': $route.name === 'Notifications' }">
-        <CIcon icon="cil-bell" class="nav-icon" />
-        <span class="nav-text">{{ t('nav.notifications') }}</span>
-      </router-link>
       <router-link to="/reports" class="nav-item" :class="{ 'router-link-active': $route.name === 'Reports' }">
         <CIcon icon="cil-chart-line" class="nav-icon" />
         <span class="nav-text">{{ t('nav.reports') }}</span>
+      </router-link>
+      <router-link to="/notifications" class="nav-item" :class="{ 'router-link-active': $route.name === 'Notifications' }">
+        <CIcon icon="cil-bell" class="nav-icon" />
+        <span class="nav-text">{{ t('nav.notifications') }}</span>
       </router-link>
 
       <!-- Settings Section -->
