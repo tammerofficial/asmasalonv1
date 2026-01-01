@@ -40,6 +40,10 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// #region agent log
+fetch('http://127.0.0.1:7244/ingest/a5ae396e-8687-4d24-bbbc-03f8cb9ce0e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.js:42',message:'API initialized',data:{baseURL:api.defaults.baseURL},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'api_init'})}).catch(()=>{});
+// #endregion
+
 // In-memory cache
 const responseCache = new Map();
 const cacheExpiration = new Map();

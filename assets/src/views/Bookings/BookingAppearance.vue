@@ -352,13 +352,13 @@ onMounted(async () => {
 const handleSave = async () => {
     try {
         await bookingStore.saveSettings('appearance', formData.value);
-        const successMsg = uiStore.locale === 'ar' ? '✅ تم حفظ إعدادات المظهر بنجاح' : '✅ Appearance settings saved successfully';
+        const successMsg = uiStore.locale === 'ar' ? 'تم حفظ إعدادات المظهر بنجاح' : 'Appearance settings saved successfully';
         toast.success(successMsg);
     } catch (error) {
         console.error('Failed to save appearance settings:', error);
         const errorMsg = uiStore.locale === 'ar' 
-            ? '❌ فشل حفظ الإعدادات: ' + (error.message || 'خطأ غير معروف')
-            : '❌ Failed to save settings: ' + (error.message || 'Unknown error');
+            ? 'فشل حفظ الإعدادات: ' + (error.message || 'خطأ غير معروف')
+            : 'Failed to save settings: ' + (error.message || 'Unknown error');
         toast.error(errorMsg);
     }
 };

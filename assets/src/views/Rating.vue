@@ -16,7 +16,7 @@
           @mouseenter="hoverRating = star"
           @mouseleave="hoverRating = 0"
         >
-          ⭐
+          <CIcon icon="cil-star" />
         </button>
       </div>
 
@@ -38,7 +38,7 @@
       </div>
 
       <div v-if="submitted" class="rating-success">
-        <p>✅ شكراً لك! تم إرسال تقييمك بنجاح.</p>
+        <p>شكراً لك! تم إرسال تقييمك بنجاح.</p>
       </div>
     </div>
   </div>
@@ -47,6 +47,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { CIcon } from '@coreui/icons-vue';
 import api from '@/utils/api';
 
 const route = useRoute();

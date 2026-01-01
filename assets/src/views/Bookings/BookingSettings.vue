@@ -207,13 +207,13 @@ onMounted(async () => {
 const handleSave = async (section, data) => {
     try {
         await bookingStore.saveSettings(section, data);
-        const successMsg = uiStore.locale === 'ar' ? '✅ تم حفظ الإعدادات بنجاح' : '✅ Settings saved successfully';
+        const successMsg = uiStore.locale === 'ar' ? 'تم حفظ الإعدادات بنجاح' : 'Settings saved successfully';
         toast.success(successMsg);
     } catch (error) {
         console.error('Failed to save settings:', error);
         const errorMsg = uiStore.locale === 'ar' 
-            ? '❌ فشل حفظ الإعدادات: ' + (error.message || 'خطأ غير معروف')
-            : '❌ Failed to save settings: ' + (error.message || 'Unknown error');
+            ? 'فشل حفظ الإعدادات: ' + (error.message || 'خطأ غير معروف')
+            : 'Failed to save settings: ' + (error.message || 'Unknown error');
         toast.error(errorMsg);
     }
 };

@@ -44,6 +44,9 @@ const toggleSidebar = () => {
 };
 
 onMounted(() => {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/a5ae396e-8687-4d24-bbbc-03f8cb9ce0e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.vue:47',message:'App mounted, checking environment',data:{theme:uiStore.theme,isDisplayMode:isDisplayMode.value,dir:dir.value},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'initial_check'})}).catch(()=>{});
+  // #endregion
   // Theme and locale are initialized in their respective stores/composables
 });
 </script>

@@ -474,7 +474,7 @@ const exportData = () => {
   a.remove();
   URL.revokeObjectURL(url);
 
-  toast.success('✅ Exported dashboard snapshot');
+  toast.success('Exported dashboard snapshot');
 };
 
 const refreshData = async () => {
@@ -484,10 +484,10 @@ const refreshData = async () => {
     await loadDashboardData();
     await loadRecentBookings();
     await loadQueue();
-    toast.success('✅ Dashboard refreshed');
+    toast.success('Dashboard refreshed');
   } catch (error) {
     console.error('Error refreshing data:', error);
-    toast.error('❌ Failed to refresh dashboard');
+    toast.error('Failed to refresh dashboard');
   } finally {
     loading.value = false;
   }
@@ -689,6 +689,9 @@ const loadQueue = async () => {
 };
 
 onMounted(async () => {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/a5ae396e-8687-4d24-bbbc-03f8cb9ce0e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.vue:693',message:'Dashboard mounting',data:{hasPrefetch: !!prefetchAllWithDelay},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'rule_5_check'})}).catch(()=>{});
+  // #endregion
   // Load essential dashboard data immediately
   await Promise.all([
     loadDashboardData(),
