@@ -84,9 +84,9 @@ class Loyalty_Service
 
             $next_balance = $balance_after + $points;
             $desc = sprintf(
-                'Order %s: %s x%d',
+                'طلب رقم %s: %s (عدد %d)',
                 $order_number,
-                (string) ($row['item_name'] ?? 'Item'),
+                (string) ($row['item_name'] ?? 'خدمة'),
                 $qty
             );
 
@@ -177,7 +177,7 @@ class Loyalty_Service
             'balance_after' => $balance_after,
             'reference_type' => $reference_type,
             'reference_id' => $reference_id,
-            'description' => sprintf('Redeemed %d points for %.3f KWD discount', $points, $discount_amount),
+            'description' => sprintf('استبدال %d نقطة مقابل خصم بقيمة %.3f د.ك', $points, $discount_amount),
             'wp_user_id' => get_current_user_id(),
         ]);
 

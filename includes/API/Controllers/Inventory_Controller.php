@@ -65,7 +65,7 @@ class Inventory_Controller extends Base_Controller
         ]);
     }
 
-    public function create_movement(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function create_movement(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');
@@ -187,7 +187,7 @@ class Inventory_Controller extends Base_Controller
         return $this->success_response($low_stock_products);
     }
 
-    public function adjust_stock(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function adjust_stock(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');

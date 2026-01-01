@@ -4,6 +4,7 @@ namespace AsmaaSalon\API\Controllers;
 
 use WP_REST_Request;
 use WP_REST_Response;
+use WP_Error;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -986,7 +987,7 @@ class Reports_Controller extends Base_Controller
      * Get booking efficiency report
      * Compares booking scheduled time with actual arrival time
      */
-    public function get_booking_efficiency(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function get_booking_efficiency(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         

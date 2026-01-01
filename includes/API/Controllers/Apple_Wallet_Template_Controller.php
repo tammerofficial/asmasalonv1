@@ -4,6 +4,7 @@ namespace AsmaaSalon\API\Controllers;
 
 use WP_REST_Request;
 use WP_REST_Response;
+use WP_Error;
 use AsmaaSalon\Config\Apple_Wallet_Config;
 
 class Apple_Wallet_Template_Controller extends Base_Controller

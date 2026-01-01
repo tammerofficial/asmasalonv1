@@ -240,7 +240,7 @@ class Apple_Wallet_Controller extends Base_Controller
     /**
      * Get updated pass data (returns .pkpass file)
      */
-    public function get_updated_pass(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function get_updated_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $serial_number = $request->get_param('serial_number');
 
@@ -317,7 +317,7 @@ class Apple_Wallet_Controller extends Base_Controller
     /**
      * Create pass for customer (legacy - creates loyalty pass)
      */
-    public function create_pass(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function create_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $customer_id = (int) $request->get_param('customer_id');
         $user = get_user_by('ID', $customer_id);
@@ -342,7 +342,7 @@ class Apple_Wallet_Controller extends Base_Controller
     /**
      * Create pass by type
      */
-    public function create_pass_by_type(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function create_pass_by_type(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $customer_id = (int) $request->get_param('customer_id');
         $pass_type = sanitize_text_field($request->get_param('pass_type'));
@@ -394,7 +394,7 @@ class Apple_Wallet_Controller extends Base_Controller
     /**
      * Get all passes for customer/staff
      */
-    public function get_all_passes(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function get_all_passes(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $customer_id = (int) $request->get_param('customer_id');
 
@@ -409,7 +409,7 @@ class Apple_Wallet_Controller extends Base_Controller
     /**
      * Download pass file (.pkpass)
      */
-    public function download_pass(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function download_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $serial_number = $request->get_param('serial_number');
 
@@ -471,7 +471,7 @@ class Apple_Wallet_Controller extends Base_Controller
     /**
      * Get all customers who have at least one Apple Wallet pass
      */
-    public function get_wallet_members(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function get_wallet_members(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $passes_table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
@@ -504,7 +504,7 @@ class Apple_Wallet_Controller extends Base_Controller
     /**
      * Scan QR code and get customer info
      */
-    public function scan_qr_code(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function scan_qr_code(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $encoded_data = $request->get_param('encoded_data');
         

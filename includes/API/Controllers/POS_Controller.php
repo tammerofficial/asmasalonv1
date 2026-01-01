@@ -70,7 +70,7 @@ class POS_Controller extends Base_Controller
     /**
      * Process POS order using Unified Order Service
      */
-    public function process_order(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function process_order(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         try {
             // Prepare parameters for unified service
@@ -126,7 +126,7 @@ class POS_Controller extends Base_Controller
     /**
      * Create new POS session
      */
-    public function create_session(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function create_session(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         
@@ -147,7 +147,7 @@ class POS_Controller extends Base_Controller
     /**
      * Close POS session
      */
-    public function close_session(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function close_session(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         
@@ -354,7 +354,7 @@ class POS_Controller extends Base_Controller
     /**
      * Get prepaid orders for a customer
      */
-    public function get_prepaid_orders(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function get_prepaid_orders(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         if (!class_exists('WooCommerce')) {
             return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
@@ -409,7 +409,7 @@ class POS_Controller extends Base_Controller
     /**
      * Sync pending orders from offline storage (Idempotency)
      */
-    public function sync_pending_orders(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function sync_pending_orders(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         if (!class_exists('WooCommerce')) {
             return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);

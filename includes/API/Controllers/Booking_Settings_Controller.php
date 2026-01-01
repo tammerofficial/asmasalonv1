@@ -4,6 +4,7 @@ namespace AsmaaSalon\API\Controllers;
 
 use WP_REST_Request;
 use WP_REST_Response;
+use WP_Error;
 
 if (!defined('ABSPATH')) {
     exit;

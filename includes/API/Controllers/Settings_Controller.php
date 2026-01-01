@@ -49,7 +49,7 @@ class Settings_Controller extends Base_Controller
         ]);
     }
 
-    public function update_woocommerce_settings(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function update_woocommerce_settings(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $settings = $request->get_json_params();
 

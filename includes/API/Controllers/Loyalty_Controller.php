@@ -135,7 +135,7 @@ class Loyalty_Controller extends Base_Controller
         ]);
     }
 
-    public function earn_points(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function earn_points(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');
@@ -226,7 +226,7 @@ class Loyalty_Controller extends Base_Controller
         }
     }
 
-    public function redeem_points(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function redeem_points(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');
@@ -322,7 +322,7 @@ class Loyalty_Controller extends Base_Controller
         }
     }
 
-    public function adjust_points(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function adjust_points(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');
@@ -358,7 +358,7 @@ class Loyalty_Controller extends Base_Controller
                 'points' => $points,
                 'balance_before' => $balance_before,
                 'balance_after' => $balance_after,
-                'description' => $description ?: __('Manual adjustment', 'asmaa-salon'),
+                'description' => $description ?: __('تعديل يدوي للميزان', 'asmaa-salon'),
                 'performed_by' => get_current_user_id(),
             ]);
 

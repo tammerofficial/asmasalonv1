@@ -146,7 +146,7 @@ class Users_Controller extends Base_Controller
     /**
      * Get single user
      */
-    public function get_user(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function get_user(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $user_id = (int) $request->get_param('id');
         $user = get_user_by('id', $user_id);
@@ -164,7 +164,7 @@ class Users_Controller extends Base_Controller
     /**
      * Create new user
      */
-    public function create_user(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function create_user(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $username = sanitize_user($request->get_param('username'));
         $email = sanitize_email($request->get_param('email'));
@@ -213,7 +213,7 @@ class Users_Controller extends Base_Controller
     /**
      * Update user
      */
-    public function update_user(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function update_user(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $user_id = (int) $request->get_param('id');
         $user = get_user_by('id', $user_id);
@@ -262,7 +262,7 @@ class Users_Controller extends Base_Controller
     /**
      * Delete user
      */
-    public function delete_user(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function delete_user(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $user_id = (int) $request->get_param('id');
         $user = get_user_by('id', $user_id);
@@ -292,7 +292,7 @@ class Users_Controller extends Base_Controller
     /**
      * Assign role to user
      */
-    public function assign_role(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function assign_role(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $user_id = (int) $request->get_param('id');
         $role = $request->get_param('role');
@@ -398,7 +398,7 @@ class Users_Controller extends Base_Controller
     /**
      * Get role capabilities
      */
-    public function get_role_capabilities(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function get_role_capabilities(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $role_key = $request->get_param('role');
         $role = get_role($role_key);

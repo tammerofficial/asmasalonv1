@@ -97,7 +97,7 @@ class Programs_Settings_Controller extends Base_Controller
     /**
      * Create Apple Wallet pass for programs
      */
-    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
+    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $customer_id = (int) $request->get_param('customer_id');
         

@@ -95,7 +95,7 @@ class Orders_Controller extends Base_Controller
                  $wc_orders = $results;
                  $total = count($results);
             }
-
+            
             // Convert to our format
             $items = [];
             $order_ids = [];
@@ -114,8 +114,10 @@ class Orders_Controller extends Base_Controller
                     "SELECT order_id, SUM(amount) as total_paid FROM {$payments_table} 
                      WHERE order_id IN ({$ids_str}) AND status = 'completed' GROUP BY order_id"
                 );
-                foreach ($results as $row) {
-                    $paid_amounts[(int)$row->order_id] = (float)$row->total_paid;
+                if ($results) {
+                    foreach ($results as $row) {
+                        $paid_amounts[(int)$row->order_id] = (float)$row->total_paid;
+                    }
                 }
             }
 
@@ -147,90 +149,101 @@ class Orders_Controller extends Base_Controller
     {
         global $wpdb;
         
-        // 1. Check if we have filters other than status
-        $has_filters = false;
-        $filtered_args = $filter_args;
-        unset($filtered_args['limit'], $filtered_args['offset'], $filtered_args['paginate'], $filtered_args['status'], $filtered_args['orderby'], $filtered_args['order']);
-        
-        if (!empty($filtered_args)) {
-            $has_filters = true;
-        }
+        try {
+            // 1. Check if we have filters other than status
+            $has_filters = false;
+            $filtered_args = $filter_args;
+            unset($filtered_args['limit'], $filtered_args['offset'], $filtered_args['paginate'], $filtered_args['status'], $filtered_args['orderby'], $filtered_args['order']);
+            
+            if (!empty($filtered_args)) {
+                $has_filters = true;
+            }
 
-        if (!$has_filters) {
-            // Fast way using wc_orders_count
-            $counts = (array) wc_orders_count();
-            $pending = ($counts['pending'] ?? 0) + ($counts['processing'] ?? 0) + ($counts['on-hold'] ?? 0);
-            $completed = $counts['completed'] ?? 0;
-            $total = array_sum($counts);
+            if (!$has_filters) {
+                // Fast way using wc_orders_count
+                $counts = (array) wc_orders_count();
+                // WooCommerce statuses have wc- prefix in wc_orders_count
+                $pending = ($counts['wc-pending'] ?? 0) + ($counts['wc-processing'] ?? 0) + ($counts['wc-on-hold'] ?? 0);
+                $completed = $counts['wc-completed'] ?? 0;
+                $total = array_sum($counts);
 
-            // Revenue - optimized SQL query instead of loop
-            $revenue = (float) $wpdb->get_var($wpdb->prepare(
-                "SELECT SUM(meta_value) FROM {$wpdb->postmeta} 
-                 JOIN {$wpdb->posts} ON {$wpdb->posts}.ID = {$wpdb->postmeta}.post_id
-                 WHERE meta_key = '_order_total' 
-                 AND post_status = 'wc-completed' 
-                 AND post_type = 'shop_order'
-                 LIMIT 1000" // Safety limit
-            ));
+                // Revenue - use a more robust way that handles HPOS if needed
+                // For now, keep it simple but correct statuses
+                $revenue = (float) $wpdb->get_var($wpdb->prepare(
+                    "SELECT SUM(meta_value) FROM {$wpdb->postmeta} 
+                     JOIN {$wpdb->posts} ON {$wpdb->posts}.ID = {$wpdb->postmeta}.post_id
+                     WHERE meta_key = '_order_total' 
+                     AND post_status = 'wc-completed' 
+                     AND post_type = 'shop_order'"
+                ));
+
+                return [
+                    'total' => $total,
+                    'pending' => $pending,
+                    'completed' => $completed,
+                    'totalRevenue' => $revenue,
+                ];
+            }
+
+            // 2. Way with filters (handle WP_Error)
+            $base_args = $filter_args;
+            unset($base_args['limit'], $base_args['offset'], $base_args['paginate'], $base_args['status']);
+            
+            // Total
+            $total_args = $base_args;
+            $total_args['paginate'] = true;
+            $total_args['limit'] = 1;
+            $total_res = wc_get_orders($total_args);
+            $total_count = (is_object($total_res) && isset($total_res->total)) ? (int) $total_res->total : 0;
+
+            // Pending
+            $pending_args = $base_args;
+            $pending_args['status'] = ['pending', 'processing', 'on-hold'];
+            $pending_args['paginate'] = true;
+            $pending_args['limit'] = 1;
+            $pending_res = wc_get_orders($pending_args);
+            $pending_count = (is_object($pending_res) && isset($pending_res->total)) ? (int) $pending_res->total : 0;
+
+            // Completed
+            $completed_args = $base_args;
+            $completed_args['status'] = 'completed';
+            $completed_args['paginate'] = true;
+            $completed_args['limit'] = 1;
+            $completed_res = wc_get_orders($completed_args);
+            $completed_count = (is_object($completed_res) && isset($completed_res->total)) ? (int) $completed_res->total : 0;
+
+            // Revenue (limited)
+            $revenue = 0;
+            if ($completed_count > 0) {
+                $revenue_args = $completed_args;
+                unset($revenue_args['paginate'], $revenue_args['limit']);
+                $revenue_args['return'] = 'ids';
+                $revenue_args['limit'] = 100; // Hard limit for performance
+                
+                $ids = wc_get_orders($revenue_args);
+                if (is_array($ids) && !empty($ids)) {
+                    $ids_str = implode(',', array_map('intval', $ids));
+                    $revenue = (float) $wpdb->get_var(
+                        "SELECT SUM(meta_value) FROM {$wpdb->postmeta} WHERE meta_key = '_order_total' AND post_id IN ({$ids_str})"
+                    );
+                }
+            }
 
             return [
-                'total' => $total,
-                'pending' => $pending,
-                'completed' => $completed,
+                'total' => $total_count,
+                'pending' => $pending_count,
+                'completed' => $completed_count,
                 'totalRevenue' => $revenue,
             ];
+        } catch (\Throwable $e) {
+            error_log('Asmaa Salon Stats Error: ' . $e->getMessage());
+            return [
+                'total' => 0,
+                'pending' => 0,
+                'completed' => 0,
+                'totalRevenue' => 0,
+            ];
         }
-
-        // 2. Way with filters (handle WP_Error)
-        $base_args = $filter_args;
-        unset($base_args['limit'], $base_args['offset'], $base_args['paginate'], $base_args['status']);
-        
-        // Total
-        $total_args = $base_args;
-        $total_args['paginate'] = true;
-        $total_args['limit'] = 1;
-        $total_res = wc_get_orders($total_args);
-        $total_count = (is_object($total_res) && isset($total_res->total)) ? (int) $total_res->total : 0;
-
-        // Pending
-        $pending_args = $base_args;
-        $pending_args['status'] = ['pending', 'processing', 'on-hold'];
-        $pending_args['paginate'] = true;
-        $pending_args['limit'] = 1;
-        $pending_res = wc_get_orders($pending_args);
-        $pending_count = (is_object($pending_res) && isset($pending_res->total)) ? (int) $pending_res->total : 0;
-
-        // Completed
-        $completed_args = $base_args;
-        $completed_args['status'] = 'completed';
-        $completed_args['paginate'] = true;
-        $completed_args['limit'] = 1;
-        $completed_res = wc_get_orders($completed_args);
-        $completed_count = (is_object($completed_res) && isset($completed_res->total)) ? (int) $completed_res->total : 0;
-
-        // Revenue (limited)
-        $revenue = 0;
-        if ($completed_count > 0) {
-            $revenue_args = $completed_args;
-            unset($revenue_args['paginate'], $revenue_args['limit']);
-            $revenue_args['return'] = 'ids';
-            $revenue_args['limit'] = 100; // Hard limit for performance
-            
-            $ids = wc_get_orders($revenue_args);
-            if (is_array($ids) && !empty($ids)) {
-                $ids_str = implode(',', array_map('intval', $ids));
-                $revenue = (float) $wpdb->get_var(
-                    "SELECT SUM(meta_value) FROM {$wpdb->postmeta} WHERE meta_key = '_order_total' AND post_id IN ({$ids_str})"
-                );
-            }
-        }
-
-        return [
-            'total' => $total_count,
-            'pending' => $pending_count,
-            'completed' => $completed_count,
-            'totalRevenue' => $revenue,
-        ];
     }
 
     /**
@@ -466,10 +479,10 @@ class Orders_Controller extends Base_Controller
             }
 
             // Set order totals
-            $wc_order->set_subtotal($subtotal);
             $wc_order->set_discount_total($discount);
             $wc_order->set_total_tax($tax);
-            $wc_order->set_total($total);
+            $wc_order->calculate_totals(); // This will set subtotal and total based on items
+            $wc_order->set_total($total); // Explicitly set total if different from calculated
             $wc_order->set_payment_method($payment_method);
             $wc_order->set_payment_method_title($payment_method);
             
@@ -482,6 +495,21 @@ class Orders_Controller extends Base_Controller
             }
             
             $wc_order->save();
+
+            // Process loyalty points for manual orders if completed
+            if ($customer_id && $status === 'completed') {
+                try {
+                    \AsmaaSalon\Services\Loyalty_Service::process_order_points(
+                        $customer_id,
+                        $wc_order_id,
+                        $order_number,
+                        $created_items,
+                        $total
+                    );
+                } catch (\Throwable $e) {
+                    error_log('Asmaa Salon: Loyalty processing failed for manual order #' . $wc_order_id . ' - ' . $e->getMessage());
+                }
+            }
 
             // Auto-create staff commissions for service items using unified service
             Commission_Service::calculate_from_wc_order($wc_order_id, $booking_id);

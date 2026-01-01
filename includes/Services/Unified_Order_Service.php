@@ -297,9 +297,9 @@ class Unified_Order_Service
             }
 
             // Set order totals
-            $wc_order->set_subtotal($subtotal);
             $wc_order->set_discount_total($discount);
-            $wc_order->set_total($total);
+            $wc_order->calculate_totals(); // This will set subtotal and total based on items
+            $wc_order->set_total($total); // Explicitly set total if different from calculated
             $wc_order->set_payment_method($payment_method);
             $wc_order->set_payment_method_title($payment_method);
             $wc_order->payment_complete();

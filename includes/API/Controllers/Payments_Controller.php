@@ -202,7 +202,8 @@ class Payments_Controller extends Base_Controller
             }
 
             // Auto-earn loyalty points based on payment amount (10 points per 1 KWD)
-            $this->auto_earn_loyalty_points($data);
+            // Disabled to avoid double counting with per-item points from Loyalty_Service
+            // $this->auto_earn_loyalty_points($data);
 
             // Update WooCommerce order payment status
             if ($data['order_id'] && class_exists('WooCommerce')) {
