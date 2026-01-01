@@ -109,6 +109,18 @@ try {
     } else {
         info("Schema class غير متوفر - تخطي إنشاء الجداول");
     }
+
+    // Enable commissions in settings for testing
+    $programs = get_option('asmaa_salon_programs_settings', []);
+    if (!isset($programs['commissions'])) {
+        $programs['commissions'] = [
+            'enabled' => true,
+            'default_service_rate' => 10.0,
+            'default_product_rate' => 5.0,
+        ];
+        update_option('asmaa_salon_programs_settings', $programs);
+        info("تم تفعيل نظام العمولات في الإعدادات للاختبار");
+    }
     
     // ============================================================
     // المرحلة 1: إعداد البيانات الأساسية
@@ -126,28 +138,38 @@ try {
     $staff_table = $wpdb->prefix . 'asmaa_staff';
     $staff = $wpdb->get_row("SELECT * FROM {$staff_table} WHERE is_active = 1 LIMIT 1");
     
-    if (!$staff) {
+    if (!$staff || empty($staff->user_id)) {
         // Create test staff user
-        $staff_user_id = wp_create_user('staff_test_' . time(), 'password123', 'staff@test.com');
+        $staff_email = 'staff_test_' . time() . '@test.com';
+        $staff_user_id = wp_create_user('staff_test_' . time(), 'password123', $staff_email);
         if (is_wp_error($staff_user_id)) {
-            $staff_user_id = get_user_by('email', 'staff@test.com')->ID ?? null;
+            $existing_user = get_user_by('email', $staff_email);
+            $staff_user_id = $existing_user ? $existing_user->ID : null;
         }
         
-        $wpdb->insert($staff_table, [
-            'user_id' => $staff_user_id,
-            'name' => 'فاطمة علي (Test)',
-            'phone' => '+96512345678',
-            'email' => 'staff@test.com',
-            'position' => 'Stylist',
-            'commission_rate' => 10.00,
-            'is_active' => 1,
-        ]);
-        $staff_id = $wpdb->insert_id;
-        info("تم إنشاء موظفة جديدة (ID: {$staff_id})");
+        if ($staff) {
+            // Update existing staff record with new user ID
+            $wpdb->update($staff_table, ['user_id' => $staff_user_id], ['id' => $staff->id]);
+            $staff_id = $staff->id;
+            info("تم ربط موظفة موجودة (ID: {$staff_id}) بحساب مستخدم جديد (User ID: {$staff_user_id})");
+        } else {
+            // Create new staff record
+            $wpdb->insert($staff_table, [
+                'user_id' => $staff_user_id,
+                'name' => 'فاطمة علي (Test)',
+                'phone' => '+96512345678',
+                'email' => $staff_email,
+                'position' => 'Stylist',
+                'commission_rate' => 10.00,
+                'is_active' => 1,
+            ]);
+            $staff_id = $wpdb->insert_id;
+            info("تم إنشاء موظفة جديدة (ID: {$staff_id}) مرتبطة بحساب مستخدم (User ID: {$staff_user_id})");
+        }
     } else {
         $staff_id = $staff->id;
         $staff_user_id = $staff->user_id;
-        info("استخدام موظفة موجودة (ID: {$staff_id})");
+        info("استخدام موظفة موجودة (ID: {$staff_id}, User ID: {$staff_user_id})");
     }
     success("الموظفة جاهزة (Staff ID: {$staff_id}, User ID: {$staff_user_id})");
     
@@ -645,9 +667,11 @@ try {
     
     step("8.1: التحقق من حركات المخزون");
     $inventory_table = $wpdb->prefix . 'asmaa_inventory_movements';
+    // Check both columns since we updated the service to fill both
     $movements = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM {$inventory_table} WHERE product_id = %d ORDER BY created_at DESC LIMIT 5",
-        $product_id
+        "SELECT * FROM {$inventory_table} WHERE (product_id = %d OR wc_product_id = %d) ORDER BY created_at DESC LIMIT 5",
+        $product_id,
+        $wc_product_id
     ));
     
     if (!empty($movements)) {
@@ -719,8 +743,8 @@ try {
     step("10.1: إضافة تقييم");
     $ratings_table = $wpdb->prefix . 'asmaa_staff_ratings';
     $wpdb->insert($ratings_table, [
-        'staff_id' => $staff_id,
-        'customer_id' => $customer_id,
+        'wp_user_id' => $staff_user_id,
+        'wc_customer_id' => $customer_user_id,
         'booking_id' => $booking_id,
         'rating' => 5,
         'comment' => 'خدمة ممتازة! (Test)',

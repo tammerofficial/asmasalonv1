@@ -170,7 +170,17 @@ class Unified_Order_Service
 
                 if ($item_type === 'product') {
                     // Handle product
-                    $wc_product = wc_get_product($item_id);
+                    // Lookup WooCommerce Product ID if System ID was provided
+                    $actual_wc_id = $item_id;
+                    $product_row = $wpdb->get_row($wpdb->prepare(
+                        "SELECT wc_product_id FROM {$wpdb->prefix}asmaa_products WHERE id = %d",
+                        $item_id
+                    ));
+                    if ($product_row && !empty($product_row->wc_product_id)) {
+                        $actual_wc_id = (int) $product_row->wc_product_id;
+                    }
+
+                    $wc_product = wc_get_product($actual_wc_id);
                     if (!$wc_product) {
                         throw new \Exception(__('Product not found', 'asmaa-salon'));
                     }
@@ -180,7 +190,7 @@ class Unified_Order_Service
                     $before_quantity = (int) ($current_stock ?? 0);
                     $after_quantity = max(0, $before_quantity - $quantity);
 
-                    if ($after_quantity < 0) {
+                    if ($before_quantity < $quantity) {
                         throw new \Exception(__('Insufficient stock', 'asmaa-salon'));
                     }
 
@@ -205,12 +215,12 @@ class Unified_Order_Service
                     // Check for low stock and send notification
                     $extended_table = $wpdb->prefix . 'asmaa_product_extended_data';
                     $extended = $wpdb->get_row(
-                        $wpdb->prepare("SELECT * FROM {$extended_table} WHERE wc_product_id = %d", $item_id)
+                        $wpdb->prepare("SELECT * FROM {$extended_table} WHERE wc_product_id = %d", $actual_wc_id)
                     );
                     
                     $min_stock = (int) ($extended->min_stock_level ?? 0);
                     if ($extended && $after_quantity <= $min_stock && $before_quantity > $min_stock) {
-                        NotificationDispatcher::low_stock_alert($item_id, [
+                        NotificationDispatcher::low_stock_alert($actual_wc_id, [
                             'name' => $wc_product->get_name(),
                             'current_stock' => $after_quantity,
                             'min_stock_level' => $min_stock,
@@ -234,10 +244,15 @@ class Unified_Order_Service
                     ];
 
                     if ($inv_product_col) {
-                        $movement_data[$inv_product_col] = $item_id;
+                        $movement_data[$inv_product_col] = $actual_wc_id;
                     }
                     if ($inv_user_col) {
                         $movement_data[$inv_user_col] = get_current_user_id();
+                    }
+                    
+                    // Always fill 'product_id' if it exists in the table (for legacy support)
+                    if (self::table_has_column($inventory_movements_table, 'product_id')) {
+                        $movement_data['product_id'] = $item_id;
                     }
 
                     // Inventory movements should never block POS processing (audit only).

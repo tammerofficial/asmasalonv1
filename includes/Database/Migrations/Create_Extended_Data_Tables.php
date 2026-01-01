@@ -89,12 +89,15 @@ class Create_Extended_Data_Tables
             barcode VARCHAR(100) NULL,
             brand VARCHAR(100) NULL,
             unit VARCHAR(50) NULL,
+            service_id BIGINT UNSIGNED NULL,
+            is_service TINYINT(1) NOT NULL DEFAULT 0,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (wc_product_id) REFERENCES {$wpdb->posts}(ID) ON DELETE CASCADE,
             KEY idx_barcode (barcode),
             KEY idx_brand (brand),
             KEY idx_min_stock_level (min_stock_level),
+            KEY idx_service_id (service_id),
             KEY idx_brand_barcode (brand, barcode)
         ) ENGINE=InnoDB {$charset};";
         dbDelta($sql);
