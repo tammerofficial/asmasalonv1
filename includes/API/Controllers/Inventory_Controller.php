@@ -31,7 +31,7 @@ class Inventory_Controller extends Base_Controller
         ]);
     }
 
-    public function get_movements(WP_REST_Request $request): WP_REST_Response
+    public function get_movements(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_inventory_movements';
@@ -65,7 +65,7 @@ class Inventory_Controller extends Base_Controller
         ]);
     }
 
-    public function create_movement(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function create_movement(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');
@@ -154,7 +154,7 @@ class Inventory_Controller extends Base_Controller
         }
     }
 
-    public function get_low_stock(): WP_REST_Response
+    public function get_low_stock(): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $extended_table = $wpdb->prefix . 'asmaa_product_extended_data';
@@ -187,7 +187,7 @@ class Inventory_Controller extends Base_Controller
         return $this->success_response($low_stock_products);
     }
 
-    public function adjust_stock(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function adjust_stock(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');

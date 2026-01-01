@@ -61,7 +61,7 @@ class Worker_Calls_Controller extends Base_Controller
     /**
      * Get worker calls with related queue / staff / customer / service info.
      */
-    public function get_items(WP_REST_Request $request): WP_REST_Response
+    public function get_items(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
 

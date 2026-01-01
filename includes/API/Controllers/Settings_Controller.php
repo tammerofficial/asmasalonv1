@@ -38,7 +38,7 @@ class Settings_Controller extends Base_Controller
         ]);
     }
 
-    public function get_woocommerce_settings(WP_REST_Request $request): WP_REST_Response
+    public function get_woocommerce_settings(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $settings = \AsmaaSalon\Services\WooCommerce_Integration_Service::get_settings();
         $is_active = \AsmaaSalon\Services\WooCommerce_Integration_Service::is_woocommerce_active();
@@ -49,7 +49,7 @@ class Settings_Controller extends Base_Controller
         ]);
     }
 
-    public function update_woocommerce_settings(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function update_woocommerce_settings(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         $settings = $request->get_json_params();
 
@@ -95,7 +95,7 @@ class Settings_Controller extends Base_Controller
     /**
      * Get Apple Wallet settings
      */
-    public function get_apple_wallet_settings(WP_REST_Request $request): WP_REST_Response
+    public function get_apple_wallet_settings(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $upload_dir = wp_upload_dir();
         $certs_dir = $upload_dir['basedir'] . '/asmaa-salon/certs';

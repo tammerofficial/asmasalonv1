@@ -28,7 +28,7 @@ class Invoices_Controller extends Base_Controller
         ]);
     }
 
-    public function get_items(WP_REST_Request $request): WP_REST_Response
+    public function get_items(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_invoices';

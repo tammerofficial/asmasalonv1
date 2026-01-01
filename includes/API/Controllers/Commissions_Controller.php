@@ -44,7 +44,7 @@ class Commissions_Controller extends Base_Controller
         ]);
     }
 
-    public function get_items(WP_REST_Request $request): WP_REST_Response
+    public function get_items(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_staff_commissions';
@@ -97,7 +97,7 @@ class Commissions_Controller extends Base_Controller
         ]);
     }
 
-    public function get_item(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function get_item(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_staff_commissions';
@@ -118,7 +118,7 @@ class Commissions_Controller extends Base_Controller
         return $this->success_response($item);
     }
 
-    public function approve_commissions(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function approve_commissions(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_staff_commissions';
@@ -154,7 +154,7 @@ class Commissions_Controller extends Base_Controller
         return $this->success_response(null, __('Commissions approved successfully', 'asmaa-salon'));
     }
 
-    public function get_settings(): WP_REST_Response
+    public function get_settings(): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_commission_settings';
@@ -176,7 +176,7 @@ class Commissions_Controller extends Base_Controller
         return $this->success_response($settings);
     }
 
-    public function update_settings(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function update_settings(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_commission_settings';
@@ -205,7 +205,7 @@ class Commissions_Controller extends Base_Controller
     /**
      * Create Apple Wallet pass for staff commissions
      */
-    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         $staff_id = (int) $request->get_param('staff_id');
         

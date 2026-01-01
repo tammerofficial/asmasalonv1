@@ -57,7 +57,7 @@ class Memberships_Controller extends Base_Controller
         ]);
     }
 
-    public function get_plans(WP_REST_Request $request): WP_REST_Response
+    public function get_plans(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_membership_plans';
@@ -69,7 +69,7 @@ class Memberships_Controller extends Base_Controller
         return $this->success_response($items);
     }
 
-    public function get_plan(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function get_plan(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_membership_plans';
@@ -84,7 +84,7 @@ class Memberships_Controller extends Base_Controller
         return $this->success_response($item);
     }
 
-    public function create_plan(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function create_plan(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_membership_plans';
@@ -116,7 +116,7 @@ class Memberships_Controller extends Base_Controller
         return $this->success_response($item, __('Membership plan created successfully', 'asmaa-salon'), 201);
     }
 
-    public function update_plan(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function update_plan(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_membership_plans';
@@ -156,7 +156,7 @@ class Memberships_Controller extends Base_Controller
         return $this->success_response($item, __('Membership plan updated successfully', 'asmaa-salon'));
     }
 
-    public function delete_plan(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function delete_plan(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_membership_plans';
@@ -172,7 +172,7 @@ class Memberships_Controller extends Base_Controller
         return $this->success_response(null, __('Membership plan deleted successfully', 'asmaa-salon'));
     }
 
-    public function get_customer_memberships(WP_REST_Request $request): WP_REST_Response
+    public function get_customer_memberships(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_customer_memberships';
@@ -229,7 +229,7 @@ class Memberships_Controller extends Base_Controller
         ]);
     }
 
-    public function create_membership(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function create_membership(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_customer_memberships';
@@ -280,7 +280,7 @@ class Memberships_Controller extends Base_Controller
         return $this->success_response($item, __('Membership created successfully', 'asmaa-salon'), 201);
     }
 
-    public function get_membership(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function get_membership(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_customer_memberships';
@@ -295,7 +295,7 @@ class Memberships_Controller extends Base_Controller
         return $this->success_response($item);
     }
 
-    public function update_membership(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function update_membership(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_customer_memberships';
@@ -333,7 +333,7 @@ class Memberships_Controller extends Base_Controller
         return $this->success_response($item, __('Membership updated successfully', 'asmaa-salon'));
     }
 
-    public function cancel_membership(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function cancel_membership(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_customer_memberships';
@@ -348,7 +348,7 @@ class Memberships_Controller extends Base_Controller
         return $this->success_response(null, __('Membership cancelled successfully', 'asmaa-salon'));
     }
 
-    public function renew_membership(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function renew_membership(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');
@@ -403,7 +403,7 @@ class Memberships_Controller extends Base_Controller
     /**
      * Create Apple Wallet pass for membership
      */
-    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         $customer_id = (int) $request->get_param('customer_id');
         

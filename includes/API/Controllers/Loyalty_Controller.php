@@ -64,7 +64,7 @@ class Loyalty_Controller extends Base_Controller
         ]);
     }
 
-    public function get_transactions(WP_REST_Request $request): WP_REST_Response
+    public function get_transactions(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $table = $wpdb->prefix . 'asmaa_loyalty_transactions';
@@ -116,7 +116,7 @@ class Loyalty_Controller extends Base_Controller
         ]);
     }
 
-    public function get_stats(WP_REST_Request $request): WP_REST_Response
+    public function get_stats(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $transactions_table = $wpdb->prefix . 'asmaa_loyalty_transactions';
@@ -135,7 +135,7 @@ class Loyalty_Controller extends Base_Controller
         ]);
     }
 
-    public function earn_points(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function earn_points(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');
@@ -226,7 +226,7 @@ class Loyalty_Controller extends Base_Controller
         }
     }
 
-    public function redeem_points(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function redeem_points(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');
@@ -322,7 +322,7 @@ class Loyalty_Controller extends Base_Controller
         }
     }
 
-    public function adjust_points(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function adjust_points(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         $wpdb->query('START TRANSACTION');

@@ -587,6 +587,7 @@ class Plugin
             \AsmaaSalon\API\Controllers\Users_Controller::class,
             \AsmaaSalon\API\Controllers\Settings_Controller::class,
             \AsmaaSalon\API\Controllers\Apple_Wallet_Controller::class,
+            \AsmaaSalon\API\Controllers\Apple_Wallet_Template_Controller::class,
             // More controllers will be added as we build them
         ];
 

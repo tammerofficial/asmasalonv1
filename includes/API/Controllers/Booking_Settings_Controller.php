@@ -48,7 +48,7 @@ class Booking_Settings_Controller extends Base_Controller
         ]);
     }
 
-    public function get_all(WP_REST_Request $request): WP_REST_Response
+    public function get_all(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $data = [
             'general'        => $this->get_option('general', $this->default_general()),
@@ -66,7 +66,7 @@ class Booking_Settings_Controller extends Base_Controller
         return $this->success_response($data);
     }
 
-    public function get_section(WP_REST_Request $request): WP_REST_Response
+    public function get_section(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $section = (string) $request->get_param('section');
 
@@ -87,7 +87,7 @@ class Booking_Settings_Controller extends Base_Controller
         return $this->success_response($this->get_option($section, $defaults));
     }
 
-    public function save_section(WP_REST_Request $request): WP_REST_Response
+    public function save_section(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $section = (string) $request->get_param('section');
         $payload = $request->get_json_params();

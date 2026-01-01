@@ -28,7 +28,7 @@ class Staff_Controller extends Base_Controller
         ]);
     }
 
-    public function get_items(WP_REST_Request $request): WP_REST_Response
+    public function get_items(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $params = $this->get_pagination_params($request);

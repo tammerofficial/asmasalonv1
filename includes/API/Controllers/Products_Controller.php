@@ -28,7 +28,7 @@ class Products_Controller extends Base_Controller
         ]);
     }
 
-    public function get_items(WP_REST_Request $request): WP_REST_Response
+    public function get_items(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         if (!class_exists('WooCommerce')) {
             return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);

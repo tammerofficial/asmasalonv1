@@ -85,7 +85,7 @@ class Reports_Controller extends Base_Controller
         ];
     }
 
-    public function get_overview(WP_REST_Request $request): WP_REST_Response
+    public function get_overview(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
 
@@ -439,7 +439,7 @@ class Reports_Controller extends Base_Controller
         ]);
     }
 
-    public function get_sales_report(WP_REST_Request $request): WP_REST_Response
+    public function get_sales_report(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         if (!class_exists('WooCommerce')) {
             return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
@@ -491,7 +491,7 @@ class Reports_Controller extends Base_Controller
         ]);
     }
 
-    public function get_bookings_report(WP_REST_Request $request): WP_REST_Response
+    public function get_bookings_report(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         
@@ -517,7 +517,7 @@ class Reports_Controller extends Base_Controller
         ]);
     }
 
-    public function get_customers_report(WP_REST_Request $request): WP_REST_Response
+    public function get_customers_report(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         
@@ -563,7 +563,7 @@ class Reports_Controller extends Base_Controller
         return $this->success_response($stats);
     }
 
-    public function get_staff_report(WP_REST_Request $request): WP_REST_Response
+    public function get_staff_report(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         
@@ -580,7 +580,7 @@ class Reports_Controller extends Base_Controller
         return $this->success_response($results);
     }
 
-    public function get_dashboard_stats(WP_REST_Request $request): WP_REST_Response
+    public function get_dashboard_stats(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         
@@ -775,7 +775,7 @@ class Reports_Controller extends Base_Controller
         return $this->success_response($stats);
     }
 
-    public function get_daily_sales(WP_REST_Request $request): WP_REST_Response
+    public function get_daily_sales(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         if (!class_exists('WooCommerce')) {
             return $this->error_response(__('WooCommerce is required', 'asmaa-salon'), 500);
@@ -868,7 +868,7 @@ class Reports_Controller extends Base_Controller
         ]);
     }
 
-    public function get_staff_performance(WP_REST_Request $request): WP_REST_Response
+    public function get_staff_performance(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $extended_staff_table = $wpdb->prefix . 'asmaa_staff_extended_data';
@@ -911,7 +911,7 @@ class Reports_Controller extends Base_Controller
         ]);
     }
 
-    public function get_queue_stats(WP_REST_Request $request): WP_REST_Response
+    public function get_queue_stats(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $queue_table = $wpdb->prefix . 'asmaa_queue_tickets';
@@ -940,7 +940,7 @@ class Reports_Controller extends Base_Controller
         ]);
     }
 
-    public function get_commissions_report(WP_REST_Request $request): WP_REST_Response
+    public function get_commissions_report(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         global $wpdb;
         $commissions_table = $wpdb->prefix . 'asmaa_staff_commissions';
@@ -986,7 +986,7 @@ class Reports_Controller extends Base_Controller
      * Get booking efficiency report
      * Compares booking scheduled time with actual arrival time
      */
-    public function get_booking_efficiency(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function get_booking_efficiency(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         global $wpdb;
         

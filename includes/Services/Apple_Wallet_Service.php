@@ -62,26 +62,19 @@ class Apple_Wallet_Service
     {
         global $wpdb;
         
-        // Check if pass already exists
-        $table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
-        $existing = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE wc_customer_id = %d AND pass_type = %s",
-                $wc_customer_id,
-                self::PASS_TYPE_LOYALTY
-            )
-        );
-        
-        if ($existing) {
-            // Update existing pass
-            return self::update_loyalty_pass($wc_customer_id);
-        }
-        
         // Get customer data
         $user = get_user_by('ID', $wc_customer_id);
         if (!$user) {
             throw new \Exception(__('Customer not found', 'asmaa-salon'));
         }
+
+        // Security check: only customers can have loyalty passes
+        if (!in_array('customer', (array) $user->roles)) {
+            throw new \Exception(__('Loyalty passes can only be created for customers', 'asmaa-salon'));
+        }
+        
+        // Check if pass already exists
+        $table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
         
         // Get extended data
         $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
@@ -109,44 +102,37 @@ class Apple_Wallet_Service
         $auth_token = wp_generate_password(32, false);
         $pass_type_id = Apple_Wallet_Config::PASS_TYPE_ID;
         
+        // Get template from database
+        $template = get_option('asmaa_salon_apple_wallet_loyalty_template', Apple_Wallet_Config::get_default_loyalty_template());
+        
         // Build pass data
         $pass_data = [
             'formatVersion' => 1,
             'passTypeIdentifier' => $pass_type_id,
             'serialNumber' => $serial_number,
             'teamIdentifier' => Apple_Wallet_Config::TEAM_ID,
-            'organizationName' => get_bloginfo('name'),
+            'organizationName' => Apple_Wallet_Config::ORGANIZATION_NAME,
             'description' => __('Loyalty Card', 'asmaa-salon'),
-            'logoText' => __('Asmaa Salon', 'asmaa-salon'),
-            'foregroundColor' => 'rgb(255, 255, 255)',
-            'backgroundColor' => 'rgb(187, 160, 122)',
+            'logoText' => $template['logoText'] ?? get_bloginfo('name'),
+            'foregroundColor' => $template['foregroundColor'] ?? 'rgb(255, 255, 255)',
+            'backgroundColor' => $template['backgroundColor'] ?? 'rgb(187, 160, 122)',
+            'labelColor' => $template['labelColor'] ?? 'rgb(255, 255, 255)',
             'storeCard' => [
-                'primaryFields' => [
-                    [
-                        'key' => 'points',
-                        'label' => __('Loyalty Points', 'asmaa-salon'),
-                        'value' => (string) ($extended->loyalty_points ?? 0),
-                    ],
-                ],
-                'secondaryFields' => [
-                    [
-                        'key' => 'membership',
-                        'label' => __('Membership', 'asmaa-salon'),
-                        'value' => $membership ? ($membership->plan_name_ar ?: $membership->plan_name) : __('None', 'asmaa-salon'),
-                    ],
-                    [
-                        'key' => 'expires',
-                        'label' => __('Expires', 'asmaa-salon'),
-                        'value' => $membership ? $membership->end_date : __('N/A', 'asmaa-salon'),
-                    ],
-                ],
-                'auxiliaryFields' => [
-                    [
-                        'key' => 'visits',
-                        'label' => __('Total Visits', 'asmaa-salon'),
-                        'value' => (string) ($extended->total_visits ?? 0),
-                    ],
-                ],
+                'headerFields' => array_map(function($f) use ($extended) {
+                    if ($f['key'] === 'points') $f['value'] = (string)($extended->loyalty_points ?? 0);
+                    return $f;
+                }, $template['headerFields'] ?? []),
+                'primaryFields' => array_map(function($f) use ($user) {
+                    if ($f['key'] === 'customer_name') $f['value'] = $user->display_name;
+                    return $f;
+                }, $template['primaryFields'] ?? []),
+                'secondaryFields' => array_map(function($f) use ($membership) {
+                    if ($f['key'] === 'membership') {
+                        $f['value'] = $membership ? ($membership->plan_name_ar ?: $membership->plan_name) : __('None', 'asmaa-salon');
+                    }
+                    return $f;
+                }, $template['secondaryFields'] ?? []),
+                'backFields' => $template['backFields'] ?? [],
                 'barcode' => [
                     'message' => $qr_data['json'],
                     'format' => 'PKBarcodeFormatQR',
@@ -265,15 +251,48 @@ class Apple_Wallet_Service
         // Generate new QR code
         $qr_data = QR_Code_Generator::generate_for_customer($wc_customer_id);
         
-        // Decode existing pass data
-        $pass_data = json_decode($pass->pass_data, true);
+        $pass_type_id = Apple_Wallet_Config::PASS_TYPE_ID;
         
-        // Update pass data
-        $pass_data['storeCard']['primaryFields'][0]['value'] = (string) ($extended->loyalty_points ?? 0);
-        $pass_data['storeCard']['secondaryFields'][0]['value'] = $membership ? ($membership->plan_name_ar ?: $membership->plan_name) : __('None', 'asmaa-salon');
-        $pass_data['storeCard']['secondaryFields'][1]['value'] = $membership ? $membership->end_date : __('N/A', 'asmaa-salon');
-        $pass_data['storeCard']['auxiliaryFields'][0]['value'] = (string) ($extended->total_visits ?? 0);
-        $pass_data['storeCard']['barcode']['message'] = $qr_data['json'];
+        // Get template from database
+        $template = get_option('asmaa_salon_apple_wallet_loyalty_template', Apple_Wallet_Config::get_default_loyalty_template());
+        
+        // Build pass data from template
+        $pass_data = [
+            'formatVersion' => 1,
+            'passTypeIdentifier' => $pass_type_id,
+            'serialNumber' => $pass->serial_number,
+            'teamIdentifier' => Apple_Wallet_Config::TEAM_ID,
+            'organizationName' => Apple_Wallet_Config::ORGANIZATION_NAME,
+            'description' => __('Loyalty Card', 'asmaa-salon'),
+            'logoText' => $template['logoText'] ?? get_bloginfo('name'),
+            'foregroundColor' => $template['foregroundColor'] ?? 'rgb(255, 255, 255)',
+            'backgroundColor' => $template['backgroundColor'] ?? 'rgb(187, 160, 122)',
+            'labelColor' => $template['labelColor'] ?? 'rgb(255, 255, 255)',
+            'storeCard' => [
+                'headerFields' => array_map(function($f) use ($extended) {
+                    if ($f['key'] === 'points') $f['value'] = (string)($extended->loyalty_points ?? 0);
+                    return $f;
+                }, $template['headerFields'] ?? []),
+                'primaryFields' => array_map(function($f) use ($user) {
+                    if ($f['key'] === 'customer_name') $f['value'] = $user->display_name;
+                    return $f;
+                }, $template['primaryFields'] ?? []),
+                'secondaryFields' => array_map(function($f) use ($membership) {
+                    if ($f['key'] === 'membership') {
+                        $f['value'] = $membership ? ($membership->plan_name_ar ?: $membership->plan_name) : __('None', 'asmaa-salon');
+                    }
+                    return $f;
+                }, $template['secondaryFields'] ?? []),
+                'backFields' => $template['backFields'] ?? [],
+                'barcode' => [
+                    'message' => $qr_data['json'],
+                    'format' => 'PKBarcodeFormatQR',
+                    'messageEncoding' => 'iso-8859-1',
+                ],
+            ],
+            'webServiceURL' => rest_url('asmaa-salon/v1/apple-wallet/'),
+            'authenticationToken' => $pass->authentication_token,
+        ];
         
         // Update database
         $wpdb->update($table, [
@@ -315,23 +334,17 @@ class Apple_Wallet_Service
     {
         global $wpdb;
         
-        $table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
-        $existing = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE wc_customer_id = %d AND pass_type = %s",
-                $wc_customer_id,
-                self::PASS_TYPE_MEMBERSHIP
-            )
-        );
-        
-        if ($existing) {
-            return self::update_membership_pass($wc_customer_id);
-        }
-        
         $user = get_user_by('ID', $wc_customer_id);
         if (!$user) {
             throw new \Exception(__('Customer not found', 'asmaa-salon'));
         }
+
+        // Security check: only customers can have membership passes
+        if (!in_array('customer', (array) $user->roles)) {
+            throw new \Exception(__('Membership passes can only be created for customers', 'asmaa-salon'));
+        }
+
+        $table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
         
         // Get active membership
         $memberships_table = $wpdb->prefix . 'asmaa_customer_memberships';
@@ -513,23 +526,17 @@ class Apple_Wallet_Service
     {
         global $wpdb;
         
-        $table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
-        $existing = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE wc_customer_id = %d AND pass_type = %s",
-                $wc_customer_id,
-                self::PASS_TYPE_PROGRAMS
-            )
-        );
-        
-        if ($existing) {
-            return self::update_programs_pass($wc_customer_id);
-        }
-        
         $user = get_user_by('ID', $wc_customer_id);
         if (!$user) {
             throw new \Exception(__('Customer not found', 'asmaa-salon'));
         }
+
+        // Security check: only customers can have programs passes
+        if (!in_array('customer', (array) $user->roles)) {
+            throw new \Exception(__('Programs passes can only be created for customers', 'asmaa-salon'));
+        }
+
+        $table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
         
         // Get loyalty points
         $extended_table = $wpdb->prefix . 'asmaa_customer_extended_data';
@@ -696,23 +703,25 @@ class Apple_Wallet_Service
     {
         global $wpdb;
         
-        $table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
-        $existing = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE wc_customer_id = %d AND pass_type = %s",
-                $wp_user_id,
-                self::PASS_TYPE_COMMISSIONS
-            )
-        );
-        
-        if ($existing) {
-            return self::update_commissions_pass($wp_user_id);
-        }
-        
         $user = get_user_by('ID', $wp_user_id);
         if (!$user) {
             throw new \Exception(__('Staff member not found', 'asmaa-salon'));
         }
+
+        // Security check: ensure user has staff/admin role
+        $is_staff = false;
+        $staff_roles = ['administrator', 'editor', 'author', 'huda_manager', 'huda_receptionist', 'huda_tailor', 'huda_worker'];
+        foreach ($staff_roles as $role) {
+            if (in_array($role, (array) $user->roles)) {
+                $is_staff = true;
+                break;
+            }
+        }
+        if (!$is_staff) {
+            throw new \Exception(__('Commissions passes can only be created for staff members', 'asmaa-salon'));
+        }
+
+        $table = $wpdb->prefix . 'asmaa_apple_wallet_passes';
         
         // Get commissions stats
         $commissions_table = $wpdb->prefix . 'asmaa_staff_commissions';
@@ -1041,73 +1050,139 @@ class Apple_Wallet_Service
         $manifest_json = $pass_dir . '/manifest.json';
         $signature_path = $pass_dir . '/signature';
         
-        // Get certificate paths from options
+        // Get certificate paths from config
         $cert_path = Apple_Wallet_Config::get_certificate_path();
         $cert_password = Apple_Wallet_Config::CERTIFICATE_PASSWORD;
         $wwdr_cert_path = Apple_Wallet_Config::get_wwdr_certificate_path();
         
-        // If using relative path, resolve to uploads directory
-        if ($cert_path && !file_exists($cert_path)) {
-            $upload_dir = wp_upload_dir();
-            $certs_dir = $upload_dir['basedir'] . '/asmaa-salon/certs';
-            if (file_exists($certs_dir . '/' . basename($cert_path))) {
-                $cert_path = $certs_dir . '/' . basename($cert_path);
-            }
+        // Verify certificate exists
+        if (!file_exists($cert_path)) {
+            throw new \Exception('Apple Wallet certificate not found at: ' . $cert_path);
         }
         
-        if ($wwdr_cert_path && !file_exists($wwdr_cert_path)) {
-            $upload_dir = wp_upload_dir();
-            $certs_dir = $upload_dir['basedir'] . '/asmaa-salon/certs';
-            if (file_exists($certs_dir . '/' . basename($wwdr_cert_path))) {
-                $wwdr_cert_path = $certs_dir . '/' . basename($wwdr_cert_path);
-            }
+        // Verify WWDR certificate exists
+        if (!file_exists($wwdr_cert_path)) {
+            throw new \Exception('Apple WWDR certificate not found at: ' . $wwdr_cert_path);
         }
         
-        // Try to create a real signature if certificate exists
-        if ($cert_path && file_exists($cert_path)) {
-            try {
-                $cert_data = file_get_contents($cert_path);
-                $pkcs12 = [];
+        try {
+            // Read certificate
+            $cert_data = file_get_contents($cert_path);
+            $pkcs12 = [];
+            
+            if (!openssl_pkcs12_read($cert_data, $pkcs12, $cert_password)) {
+                $error = openssl_error_string();
+                throw new \Exception('Failed to read certificate: ' . ($error ?: 'Invalid password or certificate format'));
+            }
+            
+            // Read WWDR certificate
+            $wwdr_cert = file_get_contents($wwdr_cert_path);
+            
+            // Convert WWDR from DER to PEM if needed
+            if (strpos($wwdr_cert, '-----BEGIN CERTIFICATE-----') === false) {
+                // It's in DER format, convert to PEM
+                $wwdr_pem = "-----BEGIN CERTIFICATE-----\n";
+                $wwdr_pem .= chunk_split(base64_encode($wwdr_cert), 64, "\n");
+                $wwdr_pem .= "-----END CERTIFICATE-----\n";
+                $wwdr_cert = $wwdr_pem;
+            }
+            
+            // Create certificate chain (pass cert first, then WWDR)
+            $cert_chain = [$pkcs12['cert'], $wwdr_cert];
+            
+            // Create signature using command line (more reliable)
+            $signature_temp = $signature_path . '.tmp';
+            $cert_pem_file = $pass_dir . '/cert.pem';
+            $key_pem_file = $pass_dir . '/key.pem';
+            $wwdr_pem_file = $pass_dir . '/wwdr.pem';
+            
+            // Write certificate and key to temporary files
+            file_put_contents($cert_pem_file, $pkcs12['cert']);
+            file_put_contents($key_pem_file, $pkcs12['pkey']);
+            file_put_contents($wwdr_pem_file, $wwdr_cert);
+            
+            // Create certificate chain file
+            $chain_file = $pass_dir . '/chain.pem';
+            file_put_contents($chain_file, $pkcs12['cert'] . "\n" . $wwdr_cert);
+            
+            // Use openssl command line for signing (more reliable)
+            $openssl_cmd = sprintf(
+                'openssl smime -binary -sign -certfile %s -signer %s -inkey %s -in %s -out %s -outform DER -nodetach',
+                escapeshellarg($wwdr_pem_file),
+                escapeshellarg($cert_pem_file),
+                escapeshellarg($key_pem_file),
+                escapeshellarg($manifest_json),
+                escapeshellarg($signature_temp)
+            );
+            
+            $output = [];
+            $return_var = 0;
+            exec($openssl_cmd . ' 2>&1', $output, $return_var);
+            
+            if ($return_var === 0 && file_exists($signature_temp) && filesize($signature_temp) > 0) {
+                // Signature created successfully
+                copy($signature_temp, $signature_path);
+                unlink($signature_temp);
                 
-                if (openssl_pkcs12_read($cert_data, $pkcs12, $cert_password)) {
-                    // Add WWDR certificate to chain if provided
-                    $certs = [$pkcs12['cert']];
-                    if ($wwdr_cert_path && file_exists($wwdr_cert_path)) {
-                        $wwdr_cert = file_get_contents($wwdr_cert_path);
-                        $certs[] = $wwdr_cert;
+                // Clean up temporary files
+                @unlink($cert_pem_file);
+                @unlink($key_pem_file);
+                @unlink($wwdr_pem_file);
+                @unlink($chain_file);
+                
+                return;
+            } else {
+                // Fallback to PHP openssl_pkcs7_sign
+                $signature_temp2 = $signature_path . '.tmp2';
+                $result = openssl_pkcs7_sign(
+                    $manifest_json,
+                    $signature_temp2,
+                    $pkcs12['cert'],
+                    $pkcs12['pkey'],
+                    $cert_chain,
+                    PKCS7_BINARY | PKCS7_DETACHED | PKCS7_NOATTR
+                );
+                
+                if ($result && file_exists($signature_temp2)) {
+                    // Extract DER signature from PKCS7
+                    $pkcs7_data = file_get_contents($signature_temp2);
+                    
+                    // Try to extract DER signature
+                    if (preg_match('/Content-Disposition: attachment; filename="smime\.p7s"\s*(.*?)(?=------)/s', $pkcs7_data, $matches)) {
+                        $signature_der = base64_decode(trim($matches[1]));
+                    } else {
+                        // Alternative: decode entire PKCS7
+                        $signature_der = base64_decode(preg_replace('/[^A-Za-z0-9+\/=]/', '', $pkcs7_data));
                     }
                     
-                    // Create signature
-                    $signature_temp = $signature_path . '.tmp';
-                    openssl_pkcs7_sign(
-                        $manifest_json,
-                        $signature_temp,
-                        $pkcs12['cert'],
-                        $pkcs12['pkey'],
-                        [],
-                        PKCS7_BINARY | PKCS7_DETACHED | PKCS7_NOATTR
-                    );
-                    
-                    // Process signature file
-                    $signature_data = file_get_contents($signature_temp);
-                    $signature_data = str_replace("-----BEGIN PKCS7-----\n", "", $signature_data);
-                    $signature_data = str_replace("-----END PKCS7-----\n", "", $signature_data);
-                    $signature_data = str_replace("\n", "", $signature_data);
-                    $signature_data = base64_decode($signature_data);
-                    
-                    file_put_contents($signature_path, $signature_data);
-                    unlink($signature_temp);
-                    
-                    return;
+                    if ($signature_der && strlen($signature_der) > 100) {
+                        file_put_contents($signature_path, $signature_der);
+                        unlink($signature_temp2);
+                        
+                        // Clean up
+                        @unlink($cert_pem_file);
+                        @unlink($key_pem_file);
+                        @unlink($wwdr_pem_file);
+                        @unlink($chain_file);
+                        
+                        return;
+                    }
                 }
-            } catch (\Exception $e) {
-                error_log('Apple Wallet signature error: ' . $e->getMessage());
+                
+                // Clean up on failure
+                @unlink($signature_temp);
+                @unlink($signature_temp2);
+                @unlink($cert_pem_file);
+                @unlink($key_pem_file);
+                @unlink($wwdr_pem_file);
+                @unlink($chain_file);
+                
+                throw new \Exception('Failed to create signature. OpenSSL error: ' . implode("\n", $output));
             }
+        } catch (\Exception $e) {
+            error_log('Apple Wallet signature error: ' . $e->getMessage());
+            throw $e; // Re-throw to prevent creating invalid pass
         }
-        
-        // Create dummy signature if real one fails (for testing)
-        file_put_contents($signature_path, 'dummy_signature_for_testing');
-        error_log('Apple Wallet: Created dummy signature - real certificate not available or invalid');
     }
     
     /**
@@ -1119,17 +1194,57 @@ class Apple_Wallet_Service
             throw new \Exception(__('ZipArchive class is required for Apple Wallet pass generation', 'asmaa-salon'));
         }
         
-        $zip = new \ZipArchive();
-        if ($zip->open($pkpass_path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
-            $files = glob($pass_dir . '/*');
-            foreach ($files as $file) {
-                if (is_file($file)) {
-                    $zip->addFile($file, basename($file));
-                }
+        // Verify required files exist
+        $required_files = ['pass.json', 'manifest.json', 'signature'];
+        foreach ($required_files as $file) {
+            $file_path = $pass_dir . '/' . $file;
+            if (!file_exists($file_path)) {
+                throw new \Exception(__('Required file missing: ', 'asmaa-salon') . $file);
             }
-            $zip->close();
-        } else {
+        }
+        
+        // Verify signature is valid (not dummy and has reasonable size)
+        $signature_path = $pass_dir . '/signature';
+        $signature_size = filesize($signature_path);
+        if ($signature_size < 100) {
+            throw new \Exception(__('Invalid signature file. Size: ', 'asmaa-salon') . $signature_size . ' bytes. Certificate signing may have failed.');
+        }
+        
+        $zip = new \ZipArchive();
+        if ($zip->open($pkpass_path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
             throw new \Exception(__('Failed to create pkpass file', 'asmaa-salon'));
+        }
+        
+        // Add files in correct order (important for Apple Wallet)
+        $files_to_add = ['pass.json', 'manifest.json', 'signature'];
+        
+        // Add image files if they exist
+        $image_files = ['logo.png', 'logo@2x.png', 'logo@3x.png', 'icon.png', 'icon@2x.png', 'icon@3x.png'];
+        foreach ($image_files as $img) {
+            $img_path = $pass_dir . '/' . $img;
+            if (file_exists($img_path)) {
+                $files_to_add[] = $img;
+            }
+        }
+        
+        // Add files to ZIP
+        foreach ($files_to_add as $file) {
+            $file_path = $pass_dir . '/' . $file;
+            if (file_exists($file_path)) {
+                $zip->addFile($file_path, $file);
+            }
+        }
+        
+        $zip->close();
+        
+        // Verify ZIP was created and has reasonable size (> 1KB)
+        if (!file_exists($pkpass_path)) {
+            throw new \Exception(__('Generated pkpass file was not created', 'asmaa-salon'));
+        }
+        
+        $pkpass_size = filesize($pkpass_path);
+        if ($pkpass_size < 1024) {
+            throw new \Exception(__('Generated pkpass file is too small. Size: ', 'asmaa-salon') . $pkpass_size . ' bytes. This usually indicates a signature problem.');
         }
     }
     

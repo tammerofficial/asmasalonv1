@@ -46,7 +46,7 @@ class Programs_Settings_Controller extends Base_Controller
         ]);
     }
 
-    public function get_settings(WP_REST_Request $request): WP_REST_Response
+    public function get_settings(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $settings = get_option('asmaa_salon_programs_settings', null);
         $settings = is_array($settings) ? $settings : $this->defaults();
@@ -57,7 +57,7 @@ class Programs_Settings_Controller extends Base_Controller
         return $this->success_response($settings);
     }
 
-    public function update_settings(WP_REST_Request $request): WP_REST_Response
+    public function update_settings(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $payload = $request->get_json_params();
         if (!is_array($payload)) {
@@ -97,7 +97,7 @@ class Programs_Settings_Controller extends Base_Controller
     /**
      * Create Apple Wallet pass for programs
      */
-    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error
+    public function create_apple_wallet_pass(WP_REST_Request $request): WP_REST_Response|WP_Error|WP_Error
     {
         $customer_id = (int) $request->get_param('customer_id');
         

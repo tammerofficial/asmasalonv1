@@ -36,7 +36,7 @@ class Orders_Controller extends Base_Controller
 
     }
 
-    public function get_items(WP_REST_Request $request): WP_REST_Response
+    public function get_items(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         if (!\AsmaaSalon\Services\WooCommerce_Integration_Service::is_woocommerce_active()) {
             return $this->success_response([
@@ -98,9 +98,31 @@ class Orders_Controller extends Base_Controller
 
             // Convert to our format
             $items = [];
+            $order_ids = [];
             foreach ($wc_orders as $wc_order) {
                 if ($wc_order instanceof \WC_Order) {
-                    $items[] = $this->format_wc_order($wc_order);
+                    $order_ids[] = $wc_order->get_id();
+                }
+            }
+
+            // Prefetch paid amounts to avoid N+1 queries
+            $paid_amounts = [];
+            if (!empty($order_ids)) {
+                $ids_str = implode(',', array_map('intval', $order_ids));
+                $payments_table = $wpdb->prefix . 'asmaa_payments';
+                $results = $wpdb->get_results(
+                    "SELECT order_id, SUM(amount) as total_paid FROM {$payments_table} 
+                     WHERE order_id IN ({$ids_str}) AND status = 'completed' GROUP BY order_id"
+                );
+                foreach ($results as $row) {
+                    $paid_amounts[(int)$row->order_id] = (float)$row->total_paid;
+                }
+            }
+
+            foreach ($wc_orders as $wc_order) {
+                if ($wc_order instanceof \WC_Order) {
+                    $id = $wc_order->get_id();
+                    $items[] = $this->format_wc_order($wc_order, $paid_amounts[$id] ?? 0);
                 }
             }
 
@@ -123,6 +145,8 @@ class Orders_Controller extends Base_Controller
      */
     protected function get_optimized_stats(array $filter_args): array
     {
+        global $wpdb;
+        
         // 1. Check if we have filters other than status
         $has_filters = false;
         $filtered_args = $filter_args;
@@ -139,22 +163,15 @@ class Orders_Controller extends Base_Controller
             $completed = $counts['completed'] ?? 0;
             $total = array_sum($counts);
 
-            // Revenue - for total overview, we can't easily get it without SQL or looping
-            // We'll only calculate it if requested or for a small set
-            $revenue = 0;
-            // For now, let's skip revenue in overview if it's too slow, or use a cached value
-            // But if the user wants it, we'll use a limited loop
-            $revenue_args = [
-                'status' => 'completed',
-                'limit' => 100, // Limit to last 100 orders for performance
-                'return' => 'ids',
-            ];
-            $ids = wc_get_orders($revenue_args);
-            if (is_array($ids)) {
-                foreach ($ids as $id) {
-                    $revenue += (float) get_post_meta($id, '_order_total', true);
-                }
-            }
+            // Revenue - optimized SQL query instead of loop
+            $revenue = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT SUM(meta_value) FROM {$wpdb->postmeta} 
+                 JOIN {$wpdb->posts} ON {$wpdb->posts}.ID = {$wpdb->postmeta}.post_id
+                 WHERE meta_key = '_order_total' 
+                 AND post_status = 'wc-completed' 
+                 AND post_type = 'shop_order'
+                 LIMIT 1000" // Safety limit
+            ));
 
             return [
                 'total' => $total,
@@ -164,7 +181,7 @@ class Orders_Controller extends Base_Controller
             ];
         }
 
-        // 2. Slow way with filters
+        // 2. Way with filters (handle WP_Error)
         $base_args = $filter_args;
         unset($base_args['limit'], $base_args['offset'], $base_args['paginate'], $base_args['status']);
         
@@ -173,7 +190,7 @@ class Orders_Controller extends Base_Controller
         $total_args['paginate'] = true;
         $total_args['limit'] = 1;
         $total_res = wc_get_orders($total_args);
-        $total_count = is_object($total_res) ? ($total_res->total ?? 0) : 0;
+        $total_count = (is_object($total_res) && isset($total_res->total)) ? (int) $total_res->total : 0;
 
         // Pending
         $pending_args = $base_args;
@@ -181,7 +198,7 @@ class Orders_Controller extends Base_Controller
         $pending_args['paginate'] = true;
         $pending_args['limit'] = 1;
         $pending_res = wc_get_orders($pending_args);
-        $pending_count = is_object($pending_res) ? ($pending_res->total ?? 0) : 0;
+        $pending_count = (is_object($pending_res) && isset($pending_res->total)) ? (int) $pending_res->total : 0;
 
         // Completed
         $completed_args = $base_args;
@@ -189,7 +206,7 @@ class Orders_Controller extends Base_Controller
         $completed_args['paginate'] = true;
         $completed_args['limit'] = 1;
         $completed_res = wc_get_orders($completed_args);
-        $completed_count = is_object($completed_res) ? ($completed_res->total ?? 0) : 0;
+        $completed_count = (is_object($completed_res) && isset($completed_res->total)) ? (int) $completed_res->total : 0;
 
         // Revenue (limited)
         $revenue = 0;
@@ -200,10 +217,11 @@ class Orders_Controller extends Base_Controller
             $revenue_args['limit'] = 100; // Hard limit for performance
             
             $ids = wc_get_orders($revenue_args);
-            if (is_array($ids)) {
-                foreach ($ids as $id) {
-                    $revenue += (float) get_post_meta($id, '_order_total', true);
-                }
+            if (is_array($ids) && !empty($ids)) {
+                $ids_str = implode(',', array_map('intval', $ids));
+                $revenue = (float) $wpdb->get_var(
+                    "SELECT SUM(meta_value) FROM {$wpdb->postmeta} WHERE meta_key = '_order_total' AND post_id IN ({$ids_str})"
+                );
             }
         }
 
@@ -218,7 +236,7 @@ class Orders_Controller extends Base_Controller
     /**
      * Format WooCommerce order to our API format
      */
-    protected function format_wc_order($wc_order): object
+    protected function format_wc_order($wc_order, float $prefetched_paid = -1.0): object
     {
         if (!$wc_order instanceof \WC_Order) {
             return (object) [];
@@ -243,7 +261,12 @@ class Orders_Controller extends Base_Controller
             'completed' => 'completed', 'cancelled' => 'cancelled', 'refunded' => 'cancelled', 'failed' => 'cancelled',
         ];
         
-        $payment_status = $wc_order->is_paid() ? 'paid' : (\AsmaaSalon\Services\Unified_Order_Service::get_total_paid_for_order($order_id) > 0 ? 'partial' : 'unpaid');
+        $total_paid = $prefetched_paid;
+        if ($total_paid < 0) {
+            $total_paid = \AsmaaSalon\Services\Unified_Order_Service::get_total_paid_for_order($order_id);
+        }
+
+        $payment_status = $wc_order->is_paid() ? 'paid' : ($total_paid > 0 ? 'partial' : 'unpaid');
 
         // Items
         $items = [];
