@@ -34,10 +34,33 @@ class Orders_Controller extends Base_Controller
             ['methods' => 'POST', 'callback' => [$this, 'complete_order'], 'permission_callback' => $this->permission_callback('asmaa_orders_update')],
         ]);
 
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/stats', [
+            ['methods' => 'GET', 'callback' => [$this, 'get_stats_action'], 'permission_callback' => $this->permission_callback('asmaa_orders_view')],
+        ]);
+    }
+
+    public function get_stats_action(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        if (!\AsmaaSalon\Services\WooCommerce_Integration_Service::is_woocommerce_active()) {
+            return $this->success_response(['total' => 0, 'pending' => 0, 'completed' => 0, 'totalRevenue' => 0]);
+        }
+        
+        $wc_args = [
+            'status' => $request->get_param('status') ?: 'any',
+        ];
+        
+        if ($request->get_param('customer_id')) {
+            $wc_args['customer_id'] = (int) $request->get_param('customer_id');
+        }
+        
+        $stats = $this->get_optimized_stats($wc_args);
+        return $this->success_response($stats);
     }
 
     public function get_items(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
+        global $wpdb;
+        
         if (!\AsmaaSalon\Services\WooCommerce_Integration_Service::is_woocommerce_active()) {
             return $this->success_response([
                 'items' => [],
@@ -48,6 +71,7 @@ class Orders_Controller extends Base_Controller
 
         try {
             $params = $this->get_pagination_params($request);
+            // error_log('Asmaa POS: Fetching orders with params: ' . json_encode($params));
             
             // 1. Get stats and total count efficiently using SQL if possible
             // or use wc_get_orders with limited return for count
@@ -79,7 +103,9 @@ class Orders_Controller extends Base_Controller
             }
 
             // Get paginated orders
+            // error_log('Asmaa POS: wc_get_orders args: ' . json_encode($wc_args));
             $results = wc_get_orders($wc_args);
+            // error_log('Asmaa POS: wc_get_orders returned ' . (is_object($results) ? 'object' : 'array'));
             
             if (is_wp_error($results)) {
                 throw new \Exception($results->get_error_message());
@@ -129,7 +155,9 @@ class Orders_Controller extends Base_Controller
             }
 
             // 2. Get Statistics (Optimized)
+            // error_log('Asmaa POS: Calculating stats');
             $stats = $this->get_optimized_stats($wc_args);
+            // error_log('Asmaa POS: Stats: ' . json_encode($stats));
 
             return $this->success_response([
                 'items' => $items,
@@ -167,15 +195,27 @@ class Orders_Controller extends Base_Controller
                 $completed = $counts['wc-completed'] ?? 0;
                 $total = array_sum($counts);
 
-                // Revenue - use a more robust way that handles HPOS if needed
-                // For now, keep it simple but correct statuses
-                $revenue = (float) $wpdb->get_var($wpdb->prepare(
-                    "SELECT SUM(meta_value) FROM {$wpdb->postmeta} 
-                     JOIN {$wpdb->posts} ON {$wpdb->posts}.ID = {$wpdb->postmeta}.post_id
-                     WHERE meta_key = '_order_total' 
-                     AND post_status = 'wc-completed' 
-                     AND post_type = 'shop_order'"
-                ));
+                // Revenue - use WC built-in reports or a more robust query
+                // wc_get_orders is safer but can be slow for all orders. 
+                // Let's use a query that handles both HPOS and legacy if possible via WC_Order_Data_Store
+                $revenue = 0.0;
+                if (function_exists('wc_get_container')) {
+                    $data_store = \WC_Data_Store::load('order');
+                    if (method_exists($data_store, 'get_total_revenue_by_status')) {
+                        $revenue = (float) $data_store->get_total_revenue_by_status('completed');
+                    }
+                }
+                
+                if ($revenue <= 0) {
+                    // Fallback to legacy query if the above didn't work
+                    $revenue = (float) $wpdb->get_var("
+                        SELECT SUM(meta_value) FROM {$wpdb->postmeta} 
+                        JOIN {$wpdb->posts} ON {$wpdb->posts}.ID = {$wpdb->postmeta}.post_id
+                        WHERE meta_key = '_order_total' 
+                        AND post_status = 'wc-completed' 
+                        AND post_type = 'shop_order'
+                    ");
+                }
 
                 return [
                     'total' => $total,
@@ -222,10 +262,12 @@ class Orders_Controller extends Base_Controller
                 
                 $ids = wc_get_orders($revenue_args);
                 if (is_array($ids) && !empty($ids)) {
-                    $ids_str = implode(',', array_map('intval', $ids));
-                    $revenue = (float) $wpdb->get_var(
-                        "SELECT SUM(meta_value) FROM {$wpdb->postmeta} WHERE meta_key = '_order_total' AND post_id IN ({$ids_str})"
-                    );
+                    foreach ($ids as $id) {
+                        $order = wc_get_order($id);
+                        if ($order) {
+                            $revenue += (float) $order->get_total();
+                        }
+                    }
                 }
             }
 

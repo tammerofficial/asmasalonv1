@@ -58,9 +58,13 @@ class POS_Controller extends Base_Controller
             // Get open session
             $session = $this->get_open_session();
             
+            // Get popularity data
+            $popularity = $this->get_items_popularity();
+            
             return $this->success_response([
                 'active_customers' => $activeCustomers,
                 'open_session' => $session,
+                'popularity' => $popularity,
             ]);
         } catch (\Exception $e) {
             return $this->error_response($e->getMessage(), 500);
@@ -79,6 +83,7 @@ class POS_Controller extends Base_Controller
                 'items' => $request->get_param('items'),
                 'payment_method' => sanitize_text_field($request->get_param('payment_method')) ?: 'cash',
                 'discount' => (float) ($request->get_param('discount') ?? 0),
+                'discount_reason' => sanitize_text_field($request->get_param('discount_reason') ?? ''),
                 'booking_id' => $request->get_param('booking_id') ? (int) $request->get_param('booking_id') : null,
                 'queue_ticket_id' => $request->get_param('queue_ticket_id') ? (int) $request->get_param('queue_ticket_id') : null,
                 'source' => 'pos',
@@ -182,6 +187,39 @@ class POS_Controller extends Base_Controller
         } catch (\Exception $e) {
             return $this->error_response($e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Get items popularity based on sales in the last 30 days
+     */
+    private function get_items_popularity(): array
+    {
+        global $wpdb;
+        $order_items_table = $wpdb->prefix . 'asmaa_order_items';
+        
+        $results = $wpdb->get_results(
+            "SELECT item_type, item_id, SUM(quantity) as total_sold
+             FROM {$order_items_table}
+             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+             GROUP BY item_type, item_id
+             ORDER BY total_sold DESC
+             LIMIT 20"
+        );
+        
+        $popularity = [
+            'services' => [],
+            'products' => []
+        ];
+        
+        foreach ($results as $row) {
+            if ($row->item_type === 'service') {
+                $popularity['services'][] = (int) $row->item_id;
+            } else {
+                $popularity['products'][] = (int) $row->item_id;
+            }
+        }
+        
+        return $popularity;
     }
 
     /**

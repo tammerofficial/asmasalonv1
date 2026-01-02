@@ -104,6 +104,7 @@ class Unified_Order_Service
             $items = $params['items'] ?? [];
             $payment_method = sanitize_text_field($params['payment_method'] ?? 'cash');
             $discount = (float) ($params['discount'] ?? 0);
+            $discount_reason = sanitize_text_field($params['discount_reason'] ?? '');
             $booking_id = !empty($params['booking_id']) ? (int) $params['booking_id'] : null;
             $queue_ticket_id = !empty($params['queue_ticket_id']) ? (int) $params['queue_ticket_id'] : null;
             $source = sanitize_text_field($params['source'] ?? 'pos');
@@ -317,6 +318,10 @@ class Unified_Order_Service
             $wc_order->set_total($total); // Explicitly set total if different from calculated
             $wc_order->set_payment_method($payment_method);
             $wc_order->set_payment_method_title($payment_method);
+            if (!empty($discount_reason)) {
+                $wc_order->add_meta_data('_asmaa_discount_reason', $discount_reason);
+                $wc_order->add_order_note(sprintf(__('Discount Reason: %s', 'asmaa-salon'), $discount_reason));
+            }
             $wc_order->payment_complete();
             $wc_order->add_order_note(sprintf('%s Order - Source: %s', ucfirst($source), $source));
             $wc_order->save();
@@ -340,6 +345,7 @@ class Unified_Order_Service
                 'due_amount' => 0,
                 'status' => 'paid',
                 'notes' => sprintf('%s Order', ucfirst($source)),
+                'discount_reason' => $discount_reason,
             ];
 
             if ($invoice_customer_col) {

@@ -40,6 +40,11 @@ class Reports_Controller extends Base_Controller
             ['methods' => 'GET', 'callback' => [$this, 'get_dashboard_stats'], 'permission_callback' => $this->permission_callback('asmaa_reports_view')],
         ]);
 
+        // Support for /dashboard/stats as called by frontend
+        register_rest_route($this->namespace, '/dashboard/stats', [
+            ['methods' => 'GET', 'callback' => [$this, 'get_dashboard_stats'], 'permission_callback' => $this->permission_callback('asmaa_reports_view')],
+        ]);
+
         register_rest_route($this->namespace, '/' . $this->rest_base . '/daily-sales', [
             ['methods' => 'GET', 'callback' => [$this, 'get_daily_sales'], 'permission_callback' => $this->permission_callback('asmaa_reports_sales')],
         ]);
@@ -151,16 +156,6 @@ class Reports_Controller extends Base_Controller
             $sales_orders[] = $data['orders'];
             $sales_revenue[] = $data['revenue'];
             $sales_paid[] = $data['paid'];
-        }
-        $sales_labels = [];
-        $sales_orders = [];
-        $sales_revenue = [];
-        $sales_paid = [];
-        foreach ($sales_rows as $r) {
-            $sales_labels[] = (string) ($r->p ?? '');
-            $sales_orders[] = (int) ($r->orders ?? 0);
-            $sales_revenue[] = (float) ($r->revenue ?? 0);
-            $sales_paid[] = (float) ($r->paid ?? 0);
         }
 
         // 2) Bookings status distribution (range)
@@ -691,7 +686,31 @@ class Reports_Controller extends Base_Controller
             'avg_order' => $avg_order,
             'top_customer' => $top_customer ? (string) ($top_customer->name ?? '') : '',
             'top_customer_spent' => $top_customer ? (float) ($top_customer->total_spent ?? 0) : 0,
+            'loyaltyPoints' => (int) $wpdb->get_var("SELECT SUM(points_balance) FROM {$extended_customers_table}"),
         ];
+
+        // Top Stylists (Staff with most bookings in last 30 days)
+        $stats['topStylists'] = $wpdb->get_results(
+            "SELECT u.display_name as name, COUNT(b.id) as bookings
+             FROM {$wpdb->users} u
+             INNER JOIN {$bookings_table} b ON b.staff_id = u.ID
+             WHERE b.booking_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+             AND b.deleted_at IS NULL
+             GROUP BY u.ID
+             ORDER BY bookings DESC
+             LIMIT 5"
+        );
+
+        // Recent Activity (Mix of bookings and orders)
+        $recent_bookings = $wpdb->get_results(
+            "SELECT 'booking' as type, b.booking_date as date, u.display_name as name, b.status, b.created_at
+             FROM {$bookings_table} b
+             LEFT JOIN {$wpdb->users} u ON b.customer_id = u.ID
+             WHERE b.deleted_at IS NULL
+             ORDER BY b.created_at DESC
+             LIMIT 5"
+        );
+        $stats['recentActivity'] = $recent_bookings;
 
         // Charts data (safe additive fields)
         // 1) Sales last 7 days (revenue + orders) - from WooCommerce

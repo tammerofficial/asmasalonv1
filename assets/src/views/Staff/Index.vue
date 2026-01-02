@@ -1,20 +1,24 @@
 <template>
-  <div class="staff-page p-4">
+  <div class="staff-page p-4 nano-banana-theme">
     <!-- Modern Nano Header -->
-    <div class="pos-header-top d-flex justify-content-between align-items-center mb-4">
+    <div class="pos-header-top d-flex justify-content-between align-items-center mb-4 p-3 bg-white rounded-4 shadow-sm border border-light">
       <div class="header-left d-flex align-items-center gap-3">
-        <h2 class="mb-0 fw-bold text-primary">{{ t('staff.title') }}</h2>
-        <CBadge color="gold" shape="rounded-pill" class="px-3 py-2 fw-bold text-dark">
-          <CIcon icon="cil-user" class="me-1" />
-          {{ stats.total || staffList.length }} {{ t('staff.title') }}
-        </CBadge>
+        <div class="avatar-circle-nano">
+          <CIcon icon="cil-people" />
+        </div>
+        <div>
+          <h2 class="mb-0 fw-bold text-navy">{{ t('staff.title') }}</h2>
+          <CBadge color="primary" shape="rounded-pill" class="px-3 py-1 fw-bold">
+            {{ stats.total || staffList.length }} {{ t('staff.title') }}
+          </CBadge>
+        </div>
       </div>
       <div class="header-right d-flex gap-2">
         <CButton color="primary" class="nano-btn" @click="openCreateModal">
           <CIcon icon="cil-plus" class="me-2" />
           {{ t('staff.addNew') }}
         </CButton>
-        <CButton color="secondary" variant="ghost" @click="loadStaff" :disabled="loading">
+        <CButton color="secondary" variant="ghost" class="nano-btn-icon" @click="loadStaff" :disabled="loading">
           <CIcon icon="cil-reload" :class="{ 'spinning': loading }" />
         </CButton>
       </div>
@@ -25,7 +29,7 @@
       <div class="stat-card-nano">
         <div class="stat-icon-bg staff"><CIcon icon="cil-user" /></div>
         <div class="stat-info">
-          <div class="stat-value">{{ stats.active || 0 }}</div>
+          <div class="stat-value text-navy">{{ stats.active || 0 }}</div>
           <div class="stat-label">{{ t('staff.activeCount', { count: '' }).replace('{count}', '').trim() || 'موظفة نشطة' }}</div>
         </div>
       </div>
@@ -53,105 +57,112 @@
     </div>
 
     <!-- Modern Filters Bar -->
-    <div class="nano-filters-bar p-3 bg-secondary rounded-4 mb-4 shadow-sm border border-light">
+    <div class="nano-filters-bar p-3 bg-white rounded-4 mb-4 shadow-sm border border-light">
       <CRow class="g-3 align-items-center">
         <CCol md="6">
-          <CInputGroup>
+          <CInputGroup class="nano-input-group">
             <CInputGroupText class="bg-transparent border-0"><CIcon icon="cil-magnifying-glass" /></CInputGroupText>
             <CFormInput v-model="filters.search" :placeholder="t('common.search')" @input="debounceSearch" class="border-0 bg-transparent" />
           </CInputGroup>
         </CCol>
         <CCol md="3">
-          <CFormSelect v-model="filters.is_active" @change="loadStaff" class="rounded-3">
+          <CFormSelect v-model="filters.is_active" @change="loadStaff" class="rounded-3 nano-select">
             <option value="">{{ t('common.status') }}</option>
             <option value="1">{{ t('status.active') }}</option>
             <option value="0">{{ t('status.inactive') }}</option>
           </CFormSelect>
         </CCol>
         <CCol md="3">
-          <CButton color="primary" variant="ghost" class="w-100" @click="resetFilters">
+          <CButton color="secondary" variant="ghost" class="w-100 rounded-pill" @click="resetFilters">
             <CIcon icon="cil-filter-x" class="me-1" />{{ t('common.reset') }}
           </CButton>
         </CCol>
       </CRow>
-      </div>
+    </div>
 
     <!-- Staff Cards Grid -->
-    <div class="nano-panel">
+    <div class="nano-panel p-4 bg-white rounded-5 shadow-luxury border border-light">
       <div v-if="loading" class="text-center p-5">
         <CSpinner color="primary" />
-          </div>
+      </div>
       <div v-else-if="staffList.length === 0" class="text-center p-5">
         <EmptyState :title="t('common.noData')" :description="t('staff.title')" />
-        </div>
+      </div>
       <div v-else class="nano-grid">
         <div v-for="staff in staffList" :key="staff.id" class="staff-nano-card" @click="editStaff(staff)">
           <div class="staff-status-dot" :class="staff.is_active ? 'active' : 'inactive'"></div>
-          <div class="staff-avatar-main">{{ staff.name?.charAt(0) }}</div>
+          <div class="staff-avatar-main">
+            <span v-if="!staff.photo">{{ staff.name?.charAt(0) }}</span>
+            <img v-else :src="staff.photo" class="staff-img" />
+          </div>
           <div class="staff-main-info mt-3 text-center">
-            <h5 class="fw-bold mb-1">{{ staff.name }}</h5>
+            <h5 class="fw-bold mb-1 text-navy">{{ staff.name }}</h5>
             <p class="text-muted small mb-2">{{ staff.position || t('staff.role') }}</p>
             <div class="rating-stars mb-3">
-              <CIcon icon="cil-star" v-for="i in 5" :key="i" :class="i <= (staff.average_rating || 0) ? 'text-warning' : 'text-muted'" />
-              <span class="small ms-1">({{ staff.total_ratings || 0 }})</span>
+              <CIcon icon="cil-star" v-for="i in 5" :key="i" :class="i <= (staff.rating || 0) ? 'text-warning' : 'text-gray-300'" />
+              <span class="small ms-1 text-muted">({{ staff.total_ratings || 0 }})</span>
             </div>
-            </div>
+          </div>
           <div class="staff-stats-row d-flex justify-content-between border-top pt-3">
             <div class="stat">
               <span class="label">{{ t('staff.commission') }}</span>
               <span class="value text-primary fw-bold">{{ staff.commission_rate }}%</span>
-          </div>
+            </div>
             <div class="stat">
               <span class="label">{{ t('staff.revenue') }}</span>
               <span class="value text-success fw-bold">{{ formatCurrencyShort(staff.total_revenue || 0) }}</span>
-              </div>
-            </div>
-          <div class="staff-actions-hover mt-3">
-            <CButton size="sm" color="info" variant="ghost" @click.stop="editStaff(staff)">
-              <CIcon icon="cil-pencil" />
-            </CButton>
-            <CButton size="sm" color="primary" variant="ghost" @click.stop="viewHistory(staff)">
-              <CIcon icon="cil-history" />
-            </CButton>
-            <CButton size="sm" color="danger" variant="ghost" @click.stop="confirmDelete(staff)">
-              <CIcon icon="cil-trash" />
-            </CButton>
-              </div>
-              </div>
             </div>
           </div>
+          <div class="staff-actions-hover mt-3">
+            <CButton size="sm" color="info" variant="ghost" class="action-btn" @click.stop="editStaff(staff)">
+              <CIcon icon="cil-pencil" />
+            </CButton>
+            <CButton size="sm" color="primary" variant="ghost" class="action-btn" @click.stop="viewHistory(staff)">
+              <CIcon icon="cil-history" />
+            </CButton>
+            <CButton size="sm" color="danger" variant="ghost" class="action-btn" @click.stop="confirmDelete(staff)">
+              <CIcon icon="cil-trash" />
+            </CButton>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Modals -->
-    <CModal :visible="showModal" @close="showModal = false" size="lg" alignment="center">
-      <CModalHeader>
-        <CModalTitle>{{ isEditing ? t('staff.edit') : t('staff.addNew') }}</CModalTitle>
+    <CModal :visible="showModal" @close="showModal = false" size="lg" alignment="center" class="nano-modal">
+      <CModalHeader class="border-0 pb-0">
+        <CModalTitle class="fw-bold text-navy">{{ isEditing ? t('staff.edit') : t('staff.addNew') }}</CModalTitle>
       </CModalHeader>
       <CModalBody class="p-4">
         <CRow class="g-3">
           <CCol md="6">
-            <label class="form-label fw-bold">{{ t('staff.fullName') }} *</label>
-            <CFormInput v-model="staffForm.name" required />
-            </CCol>
-          <CCol md="6">
-            <label class="form-label fw-bold">{{ t('staff.role') }}</label>
-            <CFormInput v-model="staffForm.position" />
+            <label class="form-label fw-bold small text-muted">{{ t('staff.fullName') }} *</label>
+            <CFormInput v-model="staffForm.name" required class="rounded-3" />
           </CCol>
           <CCol md="6">
-            <label class="form-label fw-bold">{{ t('staff.commission') }} (%)</label>
-            <CFormInput v-model.number="staffForm.commission_rate" type="number" min="0" max="100" />
+            <label class="form-label fw-bold small text-muted">{{ t('staff.role') }}</label>
+            <CFormInput v-model="staffForm.position" class="rounded-3" />
           </CCol>
           <CCol md="6">
-            <label class="form-label fw-bold">{{ t('common.status') }}</label>
-            <CFormSelect v-model="staffForm.is_active">
+            <label class="form-label fw-bold small text-muted">{{ t('staff.commission') }} (%)</label>
+            <CFormInput v-model.number="staffForm.commission_rate" type="number" min="0" max="100" class="rounded-3" />
+          </CCol>
+          <CCol md="6">
+            <label class="form-label fw-bold small text-muted">{{ t('common.status') }}</label>
+            <CFormSelect v-model="staffForm.is_active" class="rounded-3">
               <option :value="1">{{ t('status.active') }}</option>
               <option :value="0">{{ t('status.inactive') }}</option>
             </CFormSelect>
-            </CCol>
-          </CRow>
+          </CCol>
+          <CCol md="12">
+            <label class="form-label fw-bold small text-muted">{{ t('common.notes') }}</label>
+            <CFormTextarea v-model="staffForm.notes" rows="3" class="rounded-3" />
+          </CCol>
+        </CRow>
       </CModalBody>
-      <CModalFooter>
-        <CButton color="secondary" variant="ghost" @click="showModal = false">{{ t('common.cancel') }}</CButton>
-        <CButton color="primary" class="nano-btn" @click="saveStaff" :disabled="saving">
+      <CModalFooter class="border-0 pt-0">
+        <CButton color="light" class="rounded-pill px-4" @click="showModal = false">{{ t('common.cancel') }}</CButton>
+        <CButton color="primary" class="nano-btn px-4" @click="saveStaff" :disabled="saving">
           {{ saving ? t('common.saving') : t('common.save') }}
         </CButton>
       </CModalFooter>
@@ -162,11 +173,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import {
   CButton, CBadge, CRow, CCol, CSpinner, CFormInput, CFormSelect, 
   CInputGroup, CInputGroupText, CModal, CModalHeader, 
-  CModalTitle, CModalBody, CModalFooter 
+  CModalTitle, CModalBody, CModalFooter, CFormTextarea
 } from '@coreui/vue';
 import { CIcon } from '@coreui/icons-vue';
 import { useTranslation } from '@/composables/useTranslation';
@@ -189,7 +200,8 @@ const stats = ref({
   active: 0,
   averageRating: 0,
   totalRatings: 0,
-  totalRevenue: 0
+  totalRevenue: 0,
+  todayCalls: 0
 });
 const filters = ref({
   search: '',
@@ -204,7 +216,8 @@ const staffForm = ref({
   name: '',
   position: '',
   commission_rate: 10,
-  is_active: 1
+  is_active: 1,
+  notes: ''
 });
 
 // Methods
@@ -212,15 +225,17 @@ const loadStaff = async () => {
   loading.value = true;
   try {
     const response = await api.get('/staff', {
-      params: { ...filters.value }
+      params: { ...filters.value },
+      noCache: true
     });
     staffList.value = response.data?.data?.items || response.data?.items || [];
     
     // Load stats
-    const statsRes = await api.get('/staff/stats');
+    const statsRes = await api.get('/staff/stats', { noCache: true });
     stats.value = statsRes.data?.data || statsRes.data || stats.value;
   } catch (e) {
     console.error('Failed to load staff:', e);
+    toast.error(t('common.errorLoading'));
   } finally {
     loading.value = false;
   }
@@ -239,7 +254,7 @@ const resetFilters = () => {
 const openCreateModal = () => {
   isEditing.value = false;
   editingId.value = null;
-  staffForm.value = { name: '', position: '', commission_rate: 10, is_active: 1 };
+  staffForm.value = { name: '', position: '', commission_rate: 10, is_active: 1, notes: '' };
   showModal.value = true;
 };
 
@@ -251,32 +266,36 @@ const editStaff = (staff) => {
 };
 
 const saveStaff = async () => {
+  if (!staffForm.value.name) {
+    toast.error(t('common.requiredFields') || 'الاسم مطلوب');
+    return;
+  }
   saving.value = true;
   try {
     if (isEditing.value) {
       await api.put(`/staff/${editingId.value}`, staffForm.value);
-      toast.success('Staff updated');
+      toast.success(t('staff.updated') || 'تم تحديث البيانات');
     } else {
       await api.post('/staff', staffForm.value);
-      toast.success('Staff added');
+      toast.success(t('staff.added') || 'تم إضافة الموظفة');
     }
     showModal.value = false;
     loadStaff();
   } catch (e) {
-    toast.error('Failed to save staff');
+    toast.error(t('common.errorLoading'));
   } finally {
     saving.value = false;
   }
 };
 
 const confirmDelete = async (staff) => {
-  if (confirm(`Delete staff member ${staff.name}?`)) {
-  try {
-    await api.delete(`/staff/${staff.id}`);
-      toast.success('Staff deleted');
-    loadStaff();
+  if (confirm(t('common.confirmDelete') || `هل تريد حذف ${staff.name}؟`)) {
+    try {
+      await api.delete(`/staff/${staff.id}`);
+      toast.success(t('staff.deleted') || 'تم الحذف');
+      loadStaff();
     } catch (e) {
-      toast.error('Failed to delete staff');
+      toast.error(t('common.errorLoading'));
     }
   }
 };
@@ -301,25 +320,48 @@ onMounted(() => {
 
 <style scoped>
 .staff-page {
-  font-family: var(--font-family-body);
-  background: var(--bg-primary);
+  font-family: 'Manrope', 'Cairo', sans-serif;
+  background: var(--color-gray-50);
   min-height: 100vh;
 }
 
-.nano-btn {
-  border-radius: var(--border-radius-lg);
-  padding: 0.75rem 1.5rem;
-  font-weight: 700;
-  box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
-  border: none;
-  color: white;
+.text-navy { color: var(--color-navy); }
+
+.avatar-circle-nano {
+  width: 50px;
+  height: 50px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
+.nano-btn {
+  border-radius: var(--radius-pill);
+  padding: 0.6rem 1.5rem;
+  font-weight: 700;
+  transition: var(--transition-smooth);
+  box-shadow: var(--shadow-md);
+  border: none;
+}
 .nano-btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  background: linear-gradient(135deg, var(--asmaa-primary-dark) 0%, var(--asmaa-primary) 100%);
+}
+
+.nano-btn-icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-100);
 }
 
 .nano-stats-bar {
@@ -329,25 +371,24 @@ onMounted(() => {
 }
 
 .stat-card-nano {
-  background: var(--bg-secondary);
+  background: var(--color-white);
   border-radius: 24px;
   padding: 1.5rem;
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.3s;
-  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-luxury);
+  border: 1px solid var(--color-gray-100);
+  transition: var(--transition-smooth);
 }
 .stat-card-nano:hover {
   transform: translateY(-5px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--asmaa-primary-soft-border);
+  border-color: var(--color-primary-light);
 }
 
 .stat-icon-bg {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -355,43 +396,40 @@ onMounted(() => {
   font-size: 1.25rem;
   color: white;
 }
-.stat-icon-bg.staff { background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%); }
-.stat-icon-bg.rating { background: linear-gradient(135deg, var(--asmaa-warning) 0%, #d97706 100%); }
-.stat-icon-bg.revenue { background: linear-gradient(135deg, var(--asmaa-success) 0%, #059669 100%); }
-.stat-icon-bg.calls { background: linear-gradient(135deg, var(--asmaa-info) 0%, #0284c7 100%); }
+.stat-icon-bg.staff { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); }
+.stat-icon-bg.rating { background: linear-gradient(135deg, var(--color-warning) 0%, #d97706 100%); }
+.stat-icon-bg.revenue { background: linear-gradient(135deg, var(--color-success) 0%, #059669 100%); }
+.stat-icon-bg.calls { background: linear-gradient(135deg, var(--color-info) 0%, #0284c7 100%); }
 
-.stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; color: var(--text-primary); }
-.stat-label { font-size: 0.8125rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+.stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 0.8rem; color: var(--color-gray-500); font-weight: 600; margin-top: 4px; }
 
 .nano-panel {
-  background: var(--bg-secondary);
-  border-radius: 24px;
-  padding: 2rem;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
+  background: var(--color-white);
+  border-radius: 30px;
+  border: 1px solid var(--color-gray-100);
 }
 
 .nano-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.5rem;
 }
 
 .staff-nano-card {
-  background: var(--bg-tertiary);
+  background: var(--color-gray-50);
   border-radius: 24px;
   padding: 1.5rem;
   position: relative;
-  border: 1px solid var(--border-color);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--color-gray-100);
+  transition: var(--transition-smooth);
   cursor: pointer;
-  overflow: hidden;
 }
 .staff-nano-card:hover {
   transform: translateY(-8px);
-  border-color: var(--asmaa-primary);
-  box-shadow: var(--shadow-md);
-  background: var(--bg-secondary);
+  border-color: var(--color-primary-light);
+  background: white;
+  box-shadow: var(--shadow-lg);
 }
 
 .staff-status-dot {
@@ -402,22 +440,30 @@ onMounted(() => {
   height: 10px;
   border-radius: 50%;
 }
-.staff-status-dot.active { background: var(--asmaa-success); box-shadow: 0 0 8px var(--asmaa-success); }
-.staff-status-dot.inactive { background: var(--asmaa-danger); }
+.staff-status-dot.active { background: var(--color-success); box-shadow: 0 0 8px var(--color-success); }
+.staff-status-dot.inactive { background: var(--color-danger); }
 
 .staff-avatar-main {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-light) 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
   color: white;
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  box-shadow: 0 4px 10px rgba(142, 126, 120, 0.3);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.staff-img { width: 100%; height: 100%; object-fit: cover; }
+
+.rating-stars {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
 }
 
 .staff-stats-row .stat {
@@ -425,8 +471,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
 }
-.staff-stats-row .stat .label { font-size: 0.625rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
-.staff-stats-row .stat .value { font-size: 0.875rem; color: var(--text-primary); }
+.staff-stats-row .stat .label { font-size: 0.65rem; text-transform: uppercase; color: var(--color-gray-500); font-weight: 700; }
+.staff-stats-row .stat .value { font-size: 0.9rem; }
 
 .staff-actions-hover {
   display: flex;
@@ -434,16 +480,38 @@ onMounted(() => {
   gap: 0.5rem;
   opacity: 0;
   transform: translateY(10px);
-  transition: all 0.3s;
+  transition: var(--transition-smooth);
 }
 .staff-nano-card:hover .staff-actions-hover {
   opacity: 1;
   transform: translateY(0);
 }
 
-.nano-filters-bar {
-  border: 1px solid var(--border-color);
+.action-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: white;
+  box-shadow: var(--shadow-sm);
 }
+
+.nano-input-group {
+  background: var(--color-gray-50);
+  border-radius: 12px;
+  padding: 0.25rem;
+}
+
+.nano-modal .modal-content {
+  border-radius: 24px;
+  border: none;
+  box-shadow: var(--shadow-lg);
+}
+
+.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
 @media (max-width: 768px) {
   .nano-stats-bar { grid-template-columns: 1fr 1fr; }

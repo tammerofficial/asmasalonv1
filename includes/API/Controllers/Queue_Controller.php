@@ -14,45 +14,50 @@ if (!defined('ABSPATH')) {
 
 class Queue_Controller extends Base_Controller
 {
-    protected string $rest_base = 'queue';
+    protected string $rest_base = 'queue/tickets';
 
     public function register_routes(): void
     {
-        register_rest_route($this->namespace, '/' . $this->rest_base, [
-            ['methods' => 'GET', 'callback' => [$this, 'get_items'], 'permission_callback' => $this->permission_callback('asmaa_queue_view')],
-            ['methods' => 'POST', 'callback' => [$this, 'create_item'], 'permission_callback' => $this->permission_callback('asmaa_queue_create')],
-        ]);
+        // Support both /queue and /queue/tickets for backward compatibility
+        $bases = ['queue', 'queue/tickets'];
+        
+        foreach ($bases as $base) {
+            register_rest_route($this->namespace, '/' . $base, [
+                ['methods' => 'GET', 'callback' => [$this, 'get_items'], 'permission_callback' => $this->permission_callback('asmaa_queue_view')],
+                ['methods' => 'POST', 'callback' => [$this, 'create_item'], 'permission_callback' => $this->permission_callback('asmaa_queue_create')],
+            ]);
 
-        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)', [
-            ['methods' => 'GET', 'callback' => [$this, 'get_item'], 'permission_callback' => $this->permission_callback('asmaa_queue_view')],
-            ['methods' => 'PUT', 'callback' => [$this, 'update_item'], 'permission_callback' => $this->permission_callback('asmaa_queue_update')],
-            ['methods' => 'DELETE', 'callback' => [$this, 'delete_item'], 'permission_callback' => $this->permission_callback('asmaa_queue_delete')],
-        ]);
+            register_rest_route($this->namespace, '/' . $base . '/(?P<id>\d+)', [
+                ['methods' => 'GET', 'callback' => [$this, 'get_item'], 'permission_callback' => $this->permission_callback('asmaa_queue_view')],
+                ['methods' => 'PUT', 'callback' => [$this, 'update_item'], 'permission_callback' => $this->permission_callback('asmaa_queue_update')],
+                ['methods' => 'DELETE', 'callback' => [$this, 'delete_item'], 'permission_callback' => $this->permission_callback('asmaa_queue_delete')],
+            ]);
 
-        // Custom endpoints
-        register_rest_route($this->namespace, '/' . $this->rest_base . '/next', [
-            ['methods' => 'GET', 'callback' => [$this, 'get_next'], 'permission_callback' => $this->permission_callback('asmaa_queue_view')],
-        ]);
+            // Custom endpoints
+            register_rest_route($this->namespace, '/' . $base . '/next', [
+                ['methods' => 'GET', 'callback' => [$this, 'get_next'], 'permission_callback' => $this->permission_callback('asmaa_queue_view')],
+            ]);
 
-        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/call', [
-            ['methods' => 'POST', 'callback' => [$this, 'call_ticket'], 'permission_callback' => $this->permission_callback('asmaa_queue_call')],
-        ]);
+            register_rest_route($this->namespace, '/' . $base . '/(?P<id>\d+)/call', [
+                ['methods' => 'POST', 'callback' => [$this, 'call_ticket'], 'permission_callback' => $this->permission_callback('asmaa_queue_call')],
+            ]);
 
-        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/start', [
-            ['methods' => 'POST', 'callback' => [$this, 'start_serving'], 'permission_callback' => $this->permission_callback('asmaa_queue_start')],
-        ]);
+            register_rest_route($this->namespace, '/' . $base . '/(?P<id>\d+)/start', [
+                ['methods' => 'POST', 'callback' => [$this, 'start_serving'], 'permission_callback' => $this->permission_callback('asmaa_queue_start')],
+            ]);
 
-        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/complete', [
-            ['methods' => 'POST', 'callback' => [$this, 'complete_ticket'], 'permission_callback' => $this->permission_callback('asmaa_queue_complete')],
-        ]);
+            register_rest_route($this->namespace, '/' . $base . '/(?P<id>\d+)/complete', [
+                ['methods' => 'POST', 'callback' => [$this, 'complete_ticket'], 'permission_callback' => $this->permission_callback('asmaa_queue_complete')],
+            ]);
 
-        register_rest_route($this->namespace, '/' . $this->rest_base . '/call-next', [
-            ['methods' => 'POST', 'callback' => [$this, 'call_next'], 'permission_callback' => $this->permission_callback('asmaa_queue_call')],
-        ]);
+            register_rest_route($this->namespace, '/' . $base . '/call-next', [
+                ['methods' => 'POST', 'callback' => [$this, 'call_next'], 'permission_callback' => $this->permission_callback('asmaa_queue_call')],
+            ]);
 
-        register_rest_route($this->namespace, '/' . $this->rest_base . '/(?P<id>\d+)/checkout', [
-            ['methods' => 'POST', 'callback' => [$this, 'checkout_ticket'], 'permission_callback' => $this->permission_callback('asmaa_pos_use')],
-        ]);
+            register_rest_route($this->namespace, '/' . $base . '/(?P<id>\d+)/checkout', [
+                ['methods' => 'POST', 'callback' => [$this, 'checkout_ticket'], 'permission_callback' => $this->permission_callback('asmaa_pos_use')],
+            ]);
+        }
     }
 
     public function get_items(WP_REST_Request $request): WP_REST_Response|WP_Error
@@ -67,7 +72,14 @@ class Queue_Controller extends Base_Controller
         
         $status = $request->get_param('status');
         if ($status) {
-            $where[] = $wpdb->prepare('q.status = %s', $status);
+            $statuses = explode(',', $status);
+            $where[] = "q.status IN ('" . implode("','", array_map('sanitize_text_field', $statuses)) . "')";
+        }
+
+        $status_not = $request->get_param('status_not');
+        if ($status_not) {
+            $statuses = explode(',', $status_not);
+            $where[] = "q.status NOT IN ('" . implode("','", array_map('sanitize_text_field', $statuses)) . "')";
         }
 
         $where_clause = 'WHERE ' . implode(' AND ', $where);

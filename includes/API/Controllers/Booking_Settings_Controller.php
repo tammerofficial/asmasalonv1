@@ -201,11 +201,11 @@ class Booking_Settings_Controller extends Base_Controller
     private function default_appearance(): array
     {
         return [
-            'primary_color' => '#BBA07A',
-            'secondary_color' => '#764ba2',
+            'primary_color' => '#8E7E78',
+            'secondary_color' => '#181B31',
             'text_color' => '#1e293b',
             'background_color' => '#ffffff',
-            'button_color' => '#BBA07A',
+            'button_color' => '#8E7E78',
             'show_progress_tracker' => true,
             'progress_tracker_position' => 'top',
             'align_buttons_left' => false,

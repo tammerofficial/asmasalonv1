@@ -26,6 +26,54 @@ class Staff_Controller extends Base_Controller
             ['methods' => 'PUT', 'callback' => [$this, 'update_item'], 'permission_callback' => $this->permission_callback('asmaa_staff_update')],
             ['methods' => 'DELETE', 'callback' => [$this, 'delete_item'], 'permission_callback' => $this->permission_callback('asmaa_staff_delete')],
         ]);
+
+        register_rest_route($this->namespace, '/' . $this->rest_base . '/stats', [
+            ['methods' => 'GET', 'callback' => [$this, 'get_stats_action'], 'permission_callback' => $this->permission_callback('asmaa_staff_view')],
+        ]);
+    }
+
+    public function get_stats_action(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        global $wpdb;
+        $extended_table = $wpdb->prefix . 'asmaa_staff_extended_data';
+        
+        // Count staff from roles
+        $user_counts = count_users();
+        $staff_roles = [
+            'asmaa_staff', 'asmaa_manager', 'asmaa_admin', 'asmaa_super_admin',
+            'asmaa_accountant', 'asmaa_receptionist', 'asmaa_cashier',
+            'administrator', 'editor', 'author',
+            'huda_admin', 'huda_production', 'huda_tailor', 'huda_accountant',
+            'workshop_supervisor', 'customer_service_employee'
+        ];
+        $total_staff = 0;
+        foreach ($staff_roles as $role) {
+            $total_staff += $user_counts['avail_roles'][$role] ?? 0;
+        }
+        
+        $stats = $wpdb->get_row(
+            "SELECT 
+                COUNT(*) as active_staff,
+                AVG(rating) as avg_rating,
+                SUM(total_revenue) as total_revenue
+             FROM {$extended_table}
+             WHERE is_active = 1"
+        );
+        
+        // Today's staff calls/movements if applicable
+        $queue_table = $wpdb->prefix . 'asmaa_queue_tickets';
+        $today_calls = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$queue_table} WHERE status = 'called' AND DATE(called_at) = %s",
+            date('Y-m-d')
+        ));
+
+        return $this->success_response([
+            'total' => $total_staff,
+            'active' => (int) ($stats->active_staff ?? 0),
+            'avgRating' => round((float) ($stats->avg_rating ?? 0.0), 1),
+            'totalRevenue' => (float) ($stats->total_revenue ?? 0.0),
+            'todayCalls' => $today_calls
+        ]);
     }
 
     public function get_items(WP_REST_Request $request): WP_REST_Response|WP_Error
