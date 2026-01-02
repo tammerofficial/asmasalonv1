@@ -214,27 +214,27 @@ defineEmits(['click']);
 
 /* Color Variants */
 .stat-card-blue {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--asmaa-info) 0%, #2563eb 100%);
   color: white;
 }
 
 .stat-card-green {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--asmaa-success) 0%, #059669 100%);
   color: white;
 }
 
 .stat-card-yellow {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: linear-gradient(135deg, var(--asmaa-warning) 0%, #d97706 100%);
   color: white;
 }
 
 .stat-card-purple {
-  background: linear-gradient(135deg, #A68B5B 0%, #8B6F47 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   color: white;
 }
 
 .stat-card-pink {
-  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   color: white;
 }
 
@@ -244,7 +244,7 @@ defineEmits(['click']);
 }
 
 .stat-card-indigo {
-  background: linear-gradient(135deg, #9C7A5B 0%, #8B6F47 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   color: white;
 }
 
@@ -254,7 +254,7 @@ defineEmits(['click']);
 }
 
 .stat-card-gold {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.85) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   color: white;
 }
 
@@ -416,49 +416,8 @@ defineEmits(['click']);
   }
 }
 
-/* Ensure all stat cards use gold color by default */
-.stat-card-blue,
-.stat-card-green,
-.stat-card-yellow,
-.stat-card-purple,
-.stat-card-pink,
-.stat-card-teal,
-.stat-card-indigo,
-.stat-card-orange {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.85) 100%);
-  color: white;
-}
-
-/* Badge Variants */
-.badge-info {
-  background: rgba(255, 255, 255, 0.25);
-  color: white;
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
-}
-
-.badge-success {
-  background: rgba(16, 185, 129, 0.3);
-  color: white;
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
-}
-
-.badge-warning {
-  background: rgba(245, 158, 11, 0.3);
-  color: white;
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
-}
-
-.badge-danger {
-  background: rgba(239, 68, 68, 0.3);
-  color: white;
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
+/* Ensuring font consistency */
+.stat-card-label, .stat-card-value, .stat-card-badge {
+  font-family: var(--font-family-body);
 }
 </style>

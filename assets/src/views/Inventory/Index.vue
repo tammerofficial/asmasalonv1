@@ -69,7 +69,7 @@
         label="Total Value"
         :value="formatCurrencyShort(stats.totalValue)"
         badge-variant="info"
-        color="purple"
+        color="gold"
       >
         <template #icon>
           <CIcon icon="cil-dollar" />
@@ -375,9 +375,11 @@ onMounted(() => {
 
 <style scoped>
 .inventory-page {
+  font-family: var(--font-family-body);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding: var(--spacing-lg);
 }
 
 .stats-grid {
@@ -388,24 +390,42 @@ onMounted(() => {
 
 .table-modern {
   margin: 0;
+  color: var(--text-primary);
+}
+
+.table-modern thead th {
+  border-bottom: 2px solid var(--asmaa-primary-soft-border);
+  font-weight: 800;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  padding: 1rem;
 }
 
 .table-row {
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .table-row:hover {
-  background-color: var(--bg-tertiary);
+  background-color: var(--asmaa-primary-soft);
+}
+
+.table-row td {
+  padding: 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .movement-product-cell strong {
   display: block;
   color: var(--text-primary);
   margin-bottom: 0.25rem;
+  font-weight: 700;
 }
 
 .movement-product-cell small {
   font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .type-badge {
@@ -413,25 +433,42 @@ onMounted(() => {
   align-items: center;
   font-size: 0.875rem;
   padding: 0.375rem 0.625rem;
+  font-weight: 700;
 }
 
 .quantity-change {
   display: inline-flex;
   align-items: center;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.9375rem;
 }
 
 .quantity-before,
 .quantity-after {
   font-size: 0.9375rem;
+  color: var(--text-primary);
 }
 
 .cost-cell {
   display: inline-flex;
   align-items: center;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 0.875rem;
+  font-weight: 600;
+}
+
+:deep(.card) {
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.card-header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 800;
+  padding: 1.25rem;
 }
 
 /* Responsive */

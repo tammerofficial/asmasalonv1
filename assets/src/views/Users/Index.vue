@@ -450,9 +450,11 @@ onMounted(() => {
 
 <style scoped>
 .users-page {
+  font-family: var(--font-family-body);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding: var(--spacing-lg);
 }
 
 .header-actions {
@@ -464,26 +466,29 @@ onMounted(() => {
 .btn-refresh {
   border-color: var(--asmaa-primary) !important;
   color: var(--asmaa-primary) !important;
+  border-radius: var(--border-radius-md);
 }
 
 .btn-refresh:hover,
 .btn-refresh:focus {
-  background: rgba(142, 126, 120, 0.12) !important;
+  background: var(--asmaa-primary-soft) !important;
   border-color: var(--asmaa-primary) !important;
-  color: var(--asmaa-primary) !important;
+  color: var(--asmaa-primary-dark) !important;
 }
 
 .btn-add-user {
-  background: var(--asmaa-primary) !important;
-  border-color: var(--asmaa-primary) !important;
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%) !important;
+  border: none !important;
   color: #fff !important;
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--border-radius-md);
 }
 
 .btn-add-user:hover,
 .btn-add-user:focus {
-  background: rgba(142, 126, 120, 0.9) !important;
-  border-color: rgba(142, 126, 120, 0.9) !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, var(--asmaa-primary-dark) 0%, var(--asmaa-primary) 100%) !important;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .stats-grid {
@@ -494,18 +499,21 @@ onMounted(() => {
 
 .filters-card {
   border: 1px solid var(--border-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-secondary);
+  border-radius: 16px;
 }
 
 .filters-row {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .scope-group :deep(.btn) {
   font-weight: 800;
+  border-radius: var(--border-radius-md);
 }
 
 .search-box {
@@ -521,38 +529,30 @@ onMounted(() => {
   color: var(--text-muted);
   width: 18px;
   height: 18px;
+  z-index: 10;
 }
 
-[dir="ltr"] .search-icon {
-  left: 12px;
-}
-
-[dir="rtl"] .search-icon {
-  right: 12px;
-}
+[dir="ltr"] .search-icon { left: 12px; }
+[dir="rtl"] .search-icon { right: 12px; }
 
 .search-input {
   width: 100%;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 14px;
-  transition: all 0.2s;
+  transition: all 0.3s;
+  height: 42px;
 }
 
-[dir="ltr"] .search-input {
-  padding: 10px 12px 10px 40px;
-}
-
-[dir="rtl"] .search-input {
-  padding: 10px 40px 10px 12px;
-}
+[dir="ltr"] .search-input { padding: 10px 12px 10px 40px; }
+[dir="rtl"] .search-input { padding: 10px 40px 10px 12px; }
 
 .search-input:focus {
   outline: none;
   border-color: var(--asmaa-primary);
-  box-shadow: 0 0 0 3px rgba(142, 126, 120, 0.1);
+  box-shadow: 0 0 0 3px var(--asmaa-primary-soft);
 }
 
 .filter-select {
@@ -566,15 +566,16 @@ onMounted(() => {
 }
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--asmaa-primary-soft-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .user-name {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
@@ -585,38 +586,45 @@ onMounted(() => {
 
 .actions-cell {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
 .pagination-wrapper {
   display: flex;
   justify-content: center;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 }
 
 .table {
   color: var(--text-primary);
+  margin-bottom: 0;
 }
 
 .table thead th {
-  border-bottom: 2px solid var(--border-color);
-  font-weight: 700;
-  color: var(--text-secondary);
+  border-bottom: 2px solid var(--asmaa-primary-soft-border);
+  font-weight: 800;
+  color: var(--text-primary);
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 12px;
+  padding: 1rem;
+  background: var(--bg-secondary);
 }
 
 .table tbody td {
-  padding: 12px;
+  padding: 1rem;
   vertical-align: middle;
   border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .table tbody tr:hover {
-  background: var(--bg-tertiary);
+  background: var(--asmaa-primary-soft);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
 }
 </style>
 

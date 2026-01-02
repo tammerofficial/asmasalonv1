@@ -338,7 +338,7 @@ const handleSubmit = async () => {
 
 .form-control:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--asmaa-primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -372,7 +372,7 @@ const handleSubmit = async () => {
 }
 
 .btn-primary {
-    background: #667eea;
+    background: var(--asmaa-primary);
     color: white;
 }
 

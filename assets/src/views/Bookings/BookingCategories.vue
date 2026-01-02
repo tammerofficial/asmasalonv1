@@ -250,7 +250,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-    background: #667eea;
+    background: var(--asmaa-primary);
     color: white;
 }
 
@@ -285,7 +285,7 @@ onMounted(() => {
     width: 48px;
     height: 48px;
     border: 4px solid #e2e8f0;
-    border-top-color: #667eea;
+    border-top-color: var(--asmaa-primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -329,7 +329,7 @@ onMounted(() => {
 .category-icon {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -517,7 +517,7 @@ onMounted(() => {
 
 .form-input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--asmaa-primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 

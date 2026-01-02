@@ -82,15 +82,41 @@ onMounted(() => {
 <style scoped>
 .woocommerce-settings-page {
   padding: var(--spacing-lg);
+  font-family: var(--font-family-body);
 }
 
 .alert {
   padding: var(--spacing-md);
-  border-radius: var(--radius-md);
+  border-radius: var(--border-radius-md);
+}
+
+.alert-info {
+  background-color: var(--asmaa-info-soft);
+  border-color: var(--asmaa-info-soft-border);
+  color: var(--text-primary);
 }
 
 .alert ul {
   padding-left: var(--spacing-lg);
+}
+
+[dir="rtl"] .alert ul {
+  padding-left: 0;
+  padding-right: var(--spacing-lg);
+}
+
+:deep(.card) {
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.card-header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 800;
+  padding: 1.25rem;
 }
 </style>
 

@@ -222,18 +222,20 @@ const handleSave = async (section, data) => {
 <style scoped>
 .booking-settings-page {
     min-height: 100vh;
-    background: #f5f7fa;
-    padding: 2rem;
+    background: var(--bg-primary);
+    padding: var(--spacing-lg);
+    font-family: var(--font-family-body);
 }
 
 .settings-header {
     margin-bottom: 2rem;
-    padding: 2rem;
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
-    border-radius: 12px;
+    padding: 2.5rem;
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
+    border-radius: 20px;
     color: white;
     position: relative;
     overflow: hidden;
+    box-shadow: var(--shadow-md);
 }
 
 .header-logo-bg {
@@ -243,7 +245,7 @@ const handleSave = async (section, data) => {
     width: auto;
     height: 70%;
     max-height: 250px;
-    opacity: 0.08;
+    opacity: 0.1;
     pointer-events: none;
     overflow: visible;
     z-index: 0;
@@ -273,32 +275,27 @@ const handleSave = async (section, data) => {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    background: rgba(255, 255, 255, 0.2);
+    padding: 0.75rem 1.25rem;
+    background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
     color: white;
     font-size: 0.9375rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s;
     white-space: nowrap;
 }
 
 .back-button:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateX(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateX(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 [dir="rtl"] .back-button:hover {
-    transform: translateX(2px);
-}
-
-.back-button CIcon {
-    width: 18px;
-    height: 18px;
+    transform: translateX(4px);
 }
 
 .header-text-content {
@@ -306,8 +303,8 @@ const handleSave = async (section, data) => {
 }
 
 .settings-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 2.25rem;
+    font-weight: 800;
     color: white;
     display: flex;
     align-items: center;
@@ -316,15 +313,16 @@ const handleSave = async (section, data) => {
 }
 
 .header-icon {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     color: white;
 }
 
 .header-subtitle {
     color: rgba(255, 255, 255, 0.9);
-    font-size: 1rem;
+    font-size: 1.1rem;
     margin: 0;
+    font-weight: 500;
 }
 
 .settings-container {
@@ -335,53 +333,54 @@ const handleSave = async (section, data) => {
 }
 
 .settings-sidebar {
-    width: 250px;
+    width: 280px;
     flex-shrink: 0;
 }
 
 .settings-nav {
-    background: white;
-    border-radius: 12px;
-    padding: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    padding: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
 }
 
 .nav-item {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
     border: none;
     background: none;
-    border-radius: 8px;
-    color: #64748b;
+    border-radius: 12px;
+    color: var(--text-muted);
     font-size: 0.9375rem;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
     text-align: right;
 }
 
 .nav-item:hover {
-    background: rgba(142, 126, 120, 0.1);
+    background: var(--asmaa-primary-soft);
     color: var(--asmaa-primary);
-    transform: translateX(-2px);
+    transform: translateX(-4px);
 }
 
 [dir="rtl"] .nav-item:hover {
-    transform: translateX(2px);
+    transform: translateX(4px);
 }
 
 .nav-item.active {
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
     color: white;
-    box-shadow: 0 2px 8px rgba(142, 126, 120, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .nav-icon {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
 }
 
@@ -391,11 +390,12 @@ const handleSave = async (section, data) => {
 
 .settings-content {
     flex: 1;
-    background: white;
-    border-radius: 12px;
-    padding: 2rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: var(--shadow-sm);
     min-height: 600px;
+    border: 1px solid var(--border-color);
 }
 
 .loading-state {
@@ -404,33 +404,31 @@ const handleSave = async (section, data) => {
     align-items: center;
     justify-content: center;
     padding: 4rem 2rem;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #e2e8f0;
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border-color);
     border-top-color: var(--asmaa-primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
 
 .tab-content {
-    animation: fadeIn 0.3s;
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(15px);
     }
     to {
         opacity: 1;
@@ -439,24 +437,10 @@ const handleSave = async (section, data) => {
 }
 
 @media (max-width: 768px) {
-    .settings-container {
-        flex-direction: column;
-    }
-
-    .settings-sidebar {
-        width: 100%;
-    }
-
-    .settings-nav {
-        display: flex;
-        overflow-x: auto;
-        gap: 0.5rem;
-    }
-
-    .nav-item {
-        white-space: nowrap;
-        min-width: fit-content;
-    }
+    .settings-container { flex-direction: column; }
+    .settings-sidebar { width: 100%; }
+    .settings-nav { display: flex; overflow-x: auto; gap: 0.5rem; }
+    .nav-item { white-space: nowrap; min-width: fit-content; }
 }
 </style>
 

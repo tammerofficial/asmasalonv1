@@ -1,277 +1,339 @@
 <template>
-  <div class="customer-profile-page">
-    <PageHeader :title="profile.customer?.name || t('customers.title')" :subtitle="t('customers.profileSubtitle') || t('customers.title')">
-      <template #icon>
-        <CIcon icon="cil-user" />
-      </template>
-      <template #actions>
-        <CButton color="secondary" variant="outline" class="me-2" @click="goBack">
-          <CIcon icon="cil-arrow-left" class="me-2" />
-          {{ t('common.back') || 'Back' }}
+  <div class="customer-profile-page nano-banana-theme">
+    <!-- Modern Nano Header -->
+    <div class="pos-header-top d-flex justify-content-between align-items-center mb-4 p-3 bg-white rounded-4 shadow-sm border border-light">
+      <div class="header-left d-flex align-items-center gap-3">
+        <div class="avatar-circle-nano">
+          {{ profile.customer?.name?.charAt(0) || 'C' }}
+        </div>
+        <div>
+          <h2 class="mb-0 fw-bold text-navy">{{ profile.customer?.name || t('customers.title') }}</h2>
+          <p class="text-muted small mb-0">{{ profile.customer?.phone || t('customers.profileSubtitle') }}</p>
+        </div>
+      </div>
+      <div class="header-right d-flex gap-2">
+        <CButton color="secondary" variant="ghost" class="nano-btn-icon" @click="goBack">
+          <CIcon icon="cil-arrow-left" />
         </CButton>
-        <CButton color="primary" class="btn-primary-custom" @click="refresh">
-          <CIcon icon="cil-reload" class="me-2" />
-          {{ t('common.refresh') || 'Refresh' }}
+        <CButton color="primary" class="nano-btn" @click="refresh">
+          <CIcon icon="cil-reload" class="me-2" :class="{ 'spinning': loading }" />
+          {{ t('common.refresh') || 'تحديث' }}
         </CButton>
-      </template>
-    </PageHeader>
+      </div>
+    </div>
 
     <LoadingSpinner v-if="loading" :text="t('common.loading')" />
 
     <template v-else>
-      <div class="stats-grid">
-        <StatCard :label="t('customers.points')" :value="profile.customer?.loyalty_points || 0" badge-variant="info" color="gold">
-          <template #icon><CIcon icon="cil-star" /></template>
-        </StatCard>
-        <StatCard :label="t('customers.spending')" :value="formatCurrencyShort(profile.customer?.total_spent || 0)" badge-variant="info" color="gold">
-          <template #icon><CIcon icon="cil-money" /></template>
-        </StatCard>
-        <StatCard :label="t('customers.todaysPurchases') || 'Today Purchases'" :value="formatCurrencyShort(profile.today?.total_amount || 0)" badge-variant="success" color="gold">
-          <template #icon><CIcon icon="cil-cart" /></template>
-        </StatCard>
-        <StatCard :label="t('customers.todaysPoints') || 'Today Points'" :value="profile.today?.points_earned || 0" badge-variant="warning" color="gold">
-          <template #icon><CIcon icon="cil-gift" /></template>
-        </StatCard>
+      <!-- Quick Stats Bar (Nano Banana Style) -->
+      <div class="nano-stats-bar mb-4">
+        <div class="stat-card-nano">
+          <div class="stat-icon-bg points"><CIcon icon="cil-star" /></div>
+          <div class="stat-info">
+            <div class="stat-value text-warning">{{ profile.customer?.loyalty_points || 0 }}</div>
+            <div class="stat-label">{{ t('customers.points') }}</div>
+          </div>
+        </div>
+        <div class="stat-card-nano">
+          <div class="stat-icon-bg revenue"><CIcon icon="cil-money" /></div>
+          <div class="stat-info">
+            <div class="stat-value text-success">{{ formatCurrencyShort(profile.customer?.total_spent || 0) }}</div>
+            <div class="stat-label">{{ t('customers.spending') }}</div>
+          </div>
+        </div>
+        <div class="stat-card-nano">
+          <div class="stat-icon-bg purchases"><CIcon icon="cil-cart" /></div>
+          <div class="stat-info">
+            <div class="stat-value text-primary">{{ formatCurrencyShort(profile.today?.total_amount || 0) }}</div>
+            <div class="stat-label">{{ t('customers.todaysPurchases') || 'مشتريات اليوم' }}</div>
+          </div>
+        </div>
+        <div class="stat-card-nano">
+          <div class="stat-icon-bg gift"><CIcon icon="cil-gift" /></div>
+          <div class="stat-info">
+            <div class="stat-value text-info">{{ profile.today?.points_earned || 0 }}</div>
+            <div class="stat-label">{{ t('customers.todaysPoints') || 'نقاط اليوم' }}</div>
+          </div>
+        </div>
       </div>
 
-      <Card :title="t('customers.customerDetails') || 'Customer Details'" icon="cil-user" class="section-card">
-        <div class="details-grid">
-          <div class="detail-row">
-            <div class="detail-label">{{ t('customers.phone') }}</div>
-            <div class="detail-value">
-              <a v-if="profile.customer?.phone" :href="`tel:${profile.customer.phone}`" class="detail-link">{{ profile.customer.phone }}</a>
-              <span v-else>—</span>
+      <CRow class="g-4">
+        <!-- Customer Details -->
+        <CCol lg="4">
+          <Card :title="t('customers.customerDetails') || 'بيانات العميل'" icon="cil-user" class="h-100 nano-card-luxury">
+            <div class="details-list-nano">
+              <div class="detail-item-nano" v-if="profile.customer?.phone">
+                <div class="icon-wrap-nano"><CIcon icon="cil-phone" /></div>
+                <div class="content-wrap">
+                  <span class="label">{{ t('customers.phone') }}</span>
+                  <a :href="`tel:${profile.customer.phone}`" class="value link">{{ profile.customer.phone }}</a>
+                </div>
+              </div>
+              <div class="detail-item-nano" v-if="profile.customer?.email">
+                <div class="icon-wrap-nano"><CIcon icon="cil-envelope-open" /></div>
+                <div class="content-wrap">
+                  <span class="label">{{ t('customers.email') }}</span>
+                  <a :href="`mailto:${profile.customer.email}`" class="value link">{{ profile.customer.email }}</a>
+                </div>
+              </div>
+              <div class="detail-item-nano" v-if="profile.customer?.city">
+                <div class="icon-wrap-nano"><CIcon icon="cil-location-pin" /></div>
+                <div class="content-wrap">
+                  <span class="label">{{ t('customers.city') }}</span>
+                  <span class="value">{{ profile.customer.city }}</span>
+                </div>
+              </div>
+              <div class="detail-item-nano" v-if="profile.customer?.gender">
+                <div class="icon-wrap-nano"><CIcon icon="cil-people" /></div>
+                <div class="content-wrap">
+                  <span class="label">{{ t('customers.gender') }}</span>
+                  <span class="value">{{ profile.customer.gender }}</span>
+                </div>
+              </div>
+              <div class="detail-item-nano" v-if="profile.customer?.created_at">
+                <div class="icon-wrap-nano"><CIcon icon="cil-calendar" /></div>
+                <div class="content-wrap">
+                  <span class="label">{{ t('common.createdAt') || 'تاريخ التسجيل' }}</span>
+                  <span class="value">{{ formatDate(profile.customer.created_at) }}</span>
+                </div>
+              </div>
+              <div class="detail-item-nano" v-if="profile.customer?.notes">
+                <div class="icon-wrap-nano"><CIcon icon="cil-notes" /></div>
+                <div class="content-wrap">
+                  <span class="label">{{ t('customers.notes') }}</span>
+                  <p class="value small mb-0">{{ profile.customer.notes }}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </CCol>
+
+        <!-- Memberships & Wallet -->
+        <CCol lg="8">
+          <div class="d-flex flex-column gap-4">
+            <!-- Membership Card -->
+            <Card :title="t('memberships.title') || 'العضويات'" icon="cil-credit-card" class="nano-card-luxury">
+              <div class="membership-nano-content">
+                <div class="membership-info-box d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="membership-icon-large" :class="{ 'active': currentMembership }">
+                      <CIcon icon="cil-id-card" />
+                    </div>
+                    <div>
+                      <h4 class="mb-1 fw-bold">{{ currentMembership?.plan_name_ar || currentMembership?.plan_name || (t('memberships.noMembership') || 'لا توجد عضوية نشطة') }}</h4>
+                      <div v-if="currentMembership" class="text-muted small">
+                        <CIcon icon="cil-calendar" class="me-1" />
+                        {{ currentMembership.start_date }} → {{ currentMembership.end_date }}
+                        <span class="mx-2">|</span>
+                        <CBadge color="success" shape="rounded-pill">{{ currentMembership.status }}</CBadge>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <CButton v-if="!currentMembership" color="primary" class="nano-btn" @click="openAssignModal">
+                      <CIcon icon="cil-plus" class="me-2" />
+                      {{ t('memberships.assign') || 'إسناد عضوية' }}
+                    </CButton>
+                    <template v-else>
+                      <CButton color="warning" variant="ghost" class="nano-btn-icon" @click="openRenewModal">
+                        <CIcon icon="cil-history" />
+                      </CButton>
+                      <CButton color="danger" variant="ghost" class="nano-btn-icon" @click="cancelMembership">
+                        <CIcon icon="cil-trash" />
+                      </CButton>
+                    </template>
+                  </div>
+                </div>
+
+                <div v-if="currentMembership" class="membership-stats-row mt-4">
+                  <div class="m-stat">
+                    <div class="m-label">{{ t('common.usage') || 'الاستخدام' }}</div>
+                    <div class="m-value">
+                      <span class="text-primary">{{ currentMembership.services_used || 0 }}</span>
+                      <span class="mx-1 text-muted">/</span>
+                      <span>{{ currentMembership.services_limit ?? '∞' }}</span>
+                    </div>
+                    <div class="m-progress mt-2">
+                      <CProgress :value="calculateProgress(currentMembership.services_used, currentMembership.services_limit)" height="6" color="primary" />
+                    </div>
+                  </div>
+                  <div class="m-stat">
+                    <div class="m-label">{{ t('loyalty.multiplier') || 'مضاعف النقاط' }}</div>
+                    <div class="m-value text-warning">x{{ currentMembership.points_multiplier || 1 }}</div>
+                  </div>
+                  <div class="m-stat">
+                    <div class="m-label">{{ t('common.remaining') || 'المتبقي' }}</div>
+                    <div class="m-value">{{ getRemainingDays(currentMembership.end_date) }} {{ t('common.days') || 'أيام' }}</div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <!-- Wallet Passes -->
+            <Card :title="t('loyalty.appleWallet') || 'بطاقات Apple Wallet'" icon="cil-wallet" class="nano-card-luxury">
+              <div class="nano-wallet-grid">
+                <div class="nano-wallet-item loyalty">
+                  <div class="wallet-icon"><CIcon icon="cil-star" /></div>
+                  <div class="wallet-text">
+                    <div class="label">{{ t('loyalty.title') }}</div>
+                    <div class="desc">{{ profile.customer?.loyalty_points || 0 }} {{ t('customers.points') }}</div>
+                  </div>
+                  <CButton color="light" size="sm" class="rounded-pill px-3" @click="createTypedPass('loyalty')" :disabled="creatingPass">
+                    <CSpinner v-if="creatingPass && activePassType === 'loyalty'" size="sm" />
+                    <CIcon v-else icon="cil-plus" />
+                  </CButton>
+                </div>
+                <div class="nano-wallet-item membership" :class="{ 'disabled': !currentMembership }">
+                  <div class="wallet-icon"><CIcon icon="cil-credit-card" /></div>
+                  <div class="wallet-text">
+                    <div class="label">{{ t('memberships.title') }}</div>
+                    <div class="desc">{{ currentMembership?.plan_name_ar || t('memberships.noMembership') }}</div>
+                  </div>
+                  <CButton color="light" size="sm" class="rounded-pill px-3" @click="createTypedPass('membership')" :disabled="creatingPass || !currentMembership">
+                    <CSpinner v-if="creatingPass && activePassType === 'membership'" size="sm" />
+                    <CIcon v-else icon="cil-plus" />
+                  </CButton>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </CCol>
+      </CRow>
+
+      <!-- Activities Tables -->
+      <div class="nano-tabs-container mt-4">
+        <div class="d-flex gap-3 mb-4 tabs-header">
+          <div class="tab-banana" :class="{ 'active': activeTab === 'purchases' }" @click="activeTab = 'purchases'">
+            <CIcon icon="cil-cart" class="me-2" />
+            {{ t('customers.todayDetails') || 'مشتريات اليوم' }}
+          </div>
+          <div class="tab-banana" :class="{ 'active': activeTab === 'loyalty' }" @click="activeTab = 'loyalty'">
+            <CIcon icon="cil-star" class="me-2" />
+            {{ t('customers.todayLoyalty') || 'نقاط الولاء' }}
+          </div>
+        </div>
+
+        <div class="nano-panel">
+          <div v-if="activeTab === 'purchases'">
+            <div v-if="(profile.today?.items || []).length === 0" class="text-center p-5">
+              <EmptyState :title="t('customers.noPurchasesToday')" icon="cil-cart" />
+            </div>
+            <div v-else class="table-responsive nano-table-wrap">
+              <CTable align="middle" hover class="nano-table">
+                <thead>
+                  <tr>
+                    <th>{{ t('common.date') }}</th>
+                    <th>{{ t('customers.item') || 'البند' }}</th>
+                    <th>{{ t('customers.itemType') || 'النوع' }}</th>
+                    <th class="text-center">{{ t('customers.quantity') || 'الكمية' }}</th>
+                    <th class="text-end">{{ t('customers.amount') || 'القيمة' }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="it in profile.today.items" :key="it.id">
+                    <td class="small">{{ formatDate(it.created_at) }}</td>
+                    <td><strong>{{ it.item_name }}</strong></td>
+                    <td>
+                      <CBadge :color="it.item_type === 'product' ? 'info' : 'success'" shape="rounded-pill" class="px-2 py-1">
+                        <CIcon :icon="it.item_type === 'product' ? 'cil-basket' : 'cil-spreadsheet'" class="me-1" />
+                        {{ it.item_type }}
+                      </CBadge>
+                    </td>
+                    <td class="text-center">{{ it.quantity || 1 }}</td>
+                    <td class="text-end fw-bold text-navy">{{ formatCurrency(it.total || 0) }}</td>
+                  </tr>
+                </tbody>
+              </CTable>
             </div>
           </div>
-          <div class="detail-row" v-if="profile.customer?.email">
-            <div class="detail-label">{{ t('customers.email') }}</div>
-            <div class="detail-value">
-              <a :href="`mailto:${profile.customer.email}`" class="detail-link">{{ profile.customer.email }}</a>
+
+          <div v-else>
+            <div v-if="(profile.loyalty?.today_transactions || []).length === 0" class="text-center p-5">
+              <EmptyState :title="t('customers.noLoyaltyToday')" icon="cil-star" />
+            </div>
+            <div v-else class="table-responsive nano-table-wrap">
+              <CTable align="middle" hover class="nano-table">
+                <thead>
+                  <tr>
+                    <th>{{ t('common.date') }}</th>
+                    <th>{{ t('loyalty.type') || 'النوع' }}</th>
+                    <th>{{ t('loyalty.points') }}</th>
+                    <th>{{ t('loyalty.description') || 'الوصف' }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="tx in profile.loyalty.today_transactions" :key="tx.id">
+                    <td class="small">{{ formatDate(tx.created_at) }}</td>
+                    <td>
+                      <CBadge :color="tx.type === 'earned' ? 'success' : 'warning'" shape="rounded-pill">
+                        {{ tx.type }}
+                      </CBadge>
+                    </td>
+                    <td class="fw-bold" :class="tx.type === 'earned' ? 'text-success' : 'text-warning'">
+                      {{ tx.type === 'earned' ? '+' : '-' }}{{ tx.points }}
+                    </td>
+                    <td class="small text-muted">{{ tx.description || '—' }}</td>
+                  </tr>
+                </tbody>
+              </CTable>
             </div>
           </div>
-          <div class="detail-row" v-if="profile.customer?.city">
-            <div class="detail-label">{{ t('customers.city') }}</div>
-            <div class="detail-value">{{ profile.customer.city }}</div>
-          </div>
-          <div class="detail-row" v-if="profile.customer?.address">
-            <div class="detail-label">{{ t('customers.address') || 'Address' }}</div>
-            <div class="detail-value">{{ profile.customer.address }}</div>
-          </div>
-          <div class="detail-row" v-if="profile.customer?.gender">
-            <div class="detail-label">{{ t('customers.gender') }}</div>
-            <div class="detail-value">{{ profile.customer.gender }}</div>
-          </div>
-          <div class="detail-row" v-if="profile.customer?.notes">
-            <div class="detail-label">{{ t('customers.notes') }}</div>
-            <div class="detail-value">{{ profile.customer.notes }}</div>
-          </div>
-          <div class="detail-row" v-if="profile.customer?.created_at">
-            <div class="detail-label">{{ t('common.createdAt') || 'Created At' }}</div>
-            <div class="detail-value">{{ formatDate(profile.customer.created_at) }}</div>
-          </div>
         </div>
-      </Card>
+      </div>
 
-      <Card :title="t('memberships.title') || 'Memberships'" icon="cil-credit-card" class="section-card">
-        <div class="membership-header">
-          <div class="membership-summary">
-            <div class="membership-title">
-              <strong>{{ currentMembership?.plan_name_ar || currentMembership?.plan_name || (t('memberships.noMembership') || 'No membership') }}</strong>
-            </div>
-            <div v-if="currentMembership" class="membership-sub">
-              <span class="text-muted">{{ currentMembership.start_date }} → {{ currentMembership.end_date }}</span>
-              <span class="text-muted"> · </span>
-              <span class="text-muted">{{ t('common.status') }}: {{ currentMembership.status }}</span>
-            </div>
-          </div>
-
-          <div class="membership-actions">
-            <CButton color="primary" class="btn-primary-custom" @click="openAssignModal">
-              <CIcon icon="cil-user-follow" class="me-2" />
-              {{ t('memberships.assign') || 'Assign Membership' }}
-            </CButton>
-            <CButton v-if="currentMembership" color="secondary" variant="outline" class="ms-2" @click="openRenewModal">
-              <CIcon icon="cil-clock" class="me-2" />
-              {{ t('memberships.renew') || 'Renew' }}
-            </CButton>
-            <CButton v-if="currentMembership" color="secondary" variant="outline" class="ms-2" @click="cancelMembership">
-              <CIcon icon="cil-ban" class="me-2" />
-              {{ t('memberships.cancel') || 'Cancel' }}
-            </CButton>
-          </div>
-        </div>
-
-        <div v-if="currentMembership" class="membership-badges">
-          <CBadge class="unified-badge">
-            <CIcon icon="cil-spreadsheet" class="badge-icon" />
-            <span>{{ currentMembership.services_used || 0 }} / {{ currentMembership.services_limit ?? '∞' }}</span>
-          </CBadge>
-          <CBadge class="unified-badge">
-            <CIcon icon="cil-star" class="badge-icon" />
-            <span>x{{ currentMembership.points_multiplier || 1 }}</span>
-          </CBadge>
-        </div>
-      </Card>
-
-      <Card :title="t('loyalty.appleWallet') || 'Apple Wallet Passes'" icon="cil-wallet" class="section-card">
-        <div class="wallet-passes-grid">
-          <div class="wallet-pass-item">
-            <div class="pass-info">
-              <CIcon icon="cil-star" class="me-2" />
-              <strong>{{ t('loyalty.title') }}</strong>
-            </div>
-            <CButton color="secondary" variant="outline" size="sm" @click="createTypedPass('loyalty')" :disabled="creatingPass">
-              <CSpinner v-if="creatingPass && activePassType === 'loyalty'" size="sm" class="me-1" />
-              <CIcon v-else icon="cil-wallet" class="me-1" />
-              {{ t('common.create') }}
-            </CButton>
-          </div>
-          <div class="wallet-pass-item" v-if="currentMembership">
-            <div class="pass-info">
-              <CIcon icon="cil-credit-card" class="me-2" />
-              <strong>{{ t('memberships.title') }}</strong>
-            </div>
-            <CButton color="secondary" variant="outline" size="sm" @click="createTypedPass('membership')" :disabled="creatingPass">
-              <CSpinner v-if="creatingPass && activePassType === 'membership'" size="sm" class="me-1" />
-              <CIcon v-else icon="cil-wallet" class="me-1" />
-              {{ t('common.create') }}
-            </CButton>
-          </div>
-        </div>
-      </Card>
-
-      <Card :title="t('customers.todayDetails') || 'Today Details'" icon="cil-calendar" class="section-card">
-        <div class="today-header">
-          <div class="today-date">
-            <CIcon icon="cil-calendar" class="me-2" />
-            <strong>{{ profile.today?.date || '—' }}</strong>
-          </div>
-          <div class="today-meta">
-            <CBadge class="unified-badge">{{ (profile.today?.orders || []).length }} {{ t('customers.ordersToday') || 'orders' }}</CBadge>
-            <CBadge class="unified-badge">{{ (profile.today?.items || []).length }} {{ t('customers.itemsToday') || 'items' }}</CBadge>
-          </div>
-        </div>
-
-        <div v-if="(profile.today?.items || []).length === 0" class="text-muted">
-          {{ t('customers.noPurchasesToday') || 'No purchases today' }}
-        </div>
-
-        <div v-else class="table-wrapper">
-          <CTable hover responsive class="table-modern">
-            <thead>
-              <tr class="table-header-row">
-                <th>{{ t('common.date') }}</th>
-                <th>{{ t('customers.item') || 'Item' }}</th>
-                <th>{{ t('customers.itemType') || 'Type' }}</th>
-                <th class="text-center">{{ t('customers.quantity') || 'Qty' }}</th>
-                <th class="text-end">{{ t('customers.amount') || 'Amount' }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="it in profile.today.items" :key="it.id" class="table-row">
-                <td>{{ formatDate(it.created_at) }}</td>
-                <td><strong>{{ it.item_name }}</strong></td>
-                <td>
-                  <CBadge class="unified-badge" :class="it.item_type === 'product' ? 'badge-product' : 'badge-service'">
-                    <CIcon :icon="it.item_type === 'product' ? 'cil-basket' : 'cil-spreadsheet'" class="badge-icon" />
-                    <span>{{ it.item_type }}</span>
-                  </CBadge>
-                </td>
-                <td class="text-center">{{ it.quantity || 1 }}</td>
-                <td class="text-end"><strong class="unified-amount">{{ formatCurrency(it.total || 0) }}</strong></td>
-              </tr>
-            </tbody>
-          </CTable>
-        </div>
-      </Card>
-
-      <Card :title="t('customers.todayLoyalty') || 'Today Loyalty Transactions'" icon="cil-star" class="section-card">
-        <div v-if="(profile.loyalty?.today_transactions || []).length === 0" class="text-muted">
-          {{ t('customers.noLoyaltyToday') || 'No loyalty transactions today' }}
-        </div>
-        <div v-else class="table-wrapper">
-          <CTable hover responsive class="table-modern">
-            <thead>
-              <tr class="table-header-row">
-                <th>{{ t('common.date') }}</th>
-                <th>{{ t('loyalty.type') || 'Type' }}</th>
-                <th class="text-center">{{ t('loyalty.points') }}</th>
-                <th>{{ t('loyalty.description') || 'Description' }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="tx in profile.loyalty.today_transactions" :key="tx.id" class="table-row">
-                <td>{{ formatDate(tx.created_at) }}</td>
-                <td>
-                  <CBadge class="unified-badge" :class="tx.type === 'earned' ? 'badge-earned' : 'badge-other'">
-                    <CIcon :icon="tx.type === 'earned' ? 'cil-plus' : 'cil-info'" class="badge-icon" />
-                    <span>{{ tx.type }}</span>
-                  </CBadge>
-                </td>
-                <td class="text-center"><strong>{{ tx.points }}</strong></td>
-                <td>{{ tx.description || '—' }}</td>
-              </tr>
-            </tbody>
-          </CTable>
-        </div>
-      </Card>
-
-      <!-- Assign Membership Modal -->
-      <CModal :visible="showAssignModal" @close="closeAssignModal" size="lg">
-        <CModalHeader>
-          <CModalTitle>
-            <CIcon icon="cil-user-follow" class="me-2" />
-            {{ t('memberships.assign') || 'Assign Membership' }}
-          </CModalTitle>
+      <!-- Modals (Simplified Design) -->
+      <CModal :visible="showAssignModal" @close="closeAssignModal" alignment="center">
+        <CModalHeader class="border-0 pb-0">
+          <CModalTitle class="fw-bold">{{ t('memberships.assign') }}</CModalTitle>
         </CModalHeader>
-        <CModalBody>
-          <CRow class="g-3">
-            <CCol :md="12">
-              <CFormSelect v-model="assignForm.membership_plan_id" :label="t('memberships.plan') || 'Plan'">
+        <CModalBody class="p-4">
+          <div class="d-flex flex-column gap-3">
+            <div>
+              <label class="form-label small fw-bold">{{ t('memberships.plan') }}</label>
+              <CFormSelect v-model="assignForm.membership_plan_id" class="rounded-3 p-2">
                 <option value="">{{ t('common.select') }}</option>
                 <option v-for="p in plans" :key="p.id" :value="String(p.id)">{{ p.name_ar || p.name }}</option>
               </CFormSelect>
-            </CCol>
-            <CCol :md="6">
-              <CFormInput v-model.number="assignForm.duration_months" type="number" min="1" step="1" :label="t('memberships.durationMonths') || 'Duration (months)'" />
-            </CCol>
-            <CCol :md="6" class="d-flex align-items-center">
-              <CFormCheck v-model="assignForm.auto_renew" :label="t('memberships.autoRenew') || 'Auto renew'" />
-            </CCol>
-          </CRow>
+            </div>
+            <div class="row">
+              <div class="col-6">
+                <label class="form-label small fw-bold">{{ t('memberships.durationMonths') }}</label>
+                <CFormInput v-model.number="assignForm.duration_months" type="number" class="rounded-3" />
+              </div>
+              <div class="col-6 d-flex align-items-end p-2">
+                <CFormCheck v-model="assignForm.auto_renew" :label="t('memberships.autoRenew')" class="small" />
+              </div>
+            </div>
+          </div>
         </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" @click="closeAssignModal">{{ t('common.cancel') }}</CButton>
-          <CButton color="primary" class="btn-primary-custom" :disabled="assigning" @click="assignMembership">
-            <CIcon icon="cil-check" class="me-2" />
-            {{ assigning ? t('common.saving') : (t('memberships.assign') || 'Assign') }}
+        <CModalFooter class="border-0 pt-0">
+          <CButton color="light" class="rounded-pill px-4" @click="closeAssignModal">{{ t('common.cancel') }}</CButton>
+          <CButton color="primary" class="nano-btn px-4" :disabled="assigning" @click="assignMembership">
+            {{ assigning ? t('common.saving') : t('memberships.assign') }}
           </CButton>
         </CModalFooter>
       </CModal>
 
-      <!-- Renew Membership Modal -->
-      <CModal :visible="showRenewModal" @close="closeRenewModal" size="lg">
-        <CModalHeader>
-          <CModalTitle>
-            <CIcon icon="cil-clock" class="me-2" />
-            {{ t('memberships.renew') || 'Renew' }}
-          </CModalTitle>
+      <CModal :visible="showRenewModal" @close="closeRenewModal" alignment="center">
+        <CModalHeader class="border-0 pb-0">
+          <CModalTitle class="fw-bold">{{ t('memberships.renew') }}</CModalTitle>
         </CModalHeader>
-        <CModalBody>
-          <CRow class="g-3">
-            <CCol :md="6">
-              <CFormInput v-model.number="renewForm.months" type="number" min="1" step="1" :label="t('memberships.monthsToExtend') || 'Months'" />
-            </CCol>
-            <CCol :md="6">
-              <CFormInput v-model.number="renewForm.amount_paid" type="number" min="0" step="0.001" :label="t('memberships.amountPaid') || 'Amount paid'" />
-            </CCol>
-          </CRow>
+        <CModalBody class="p-4">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label small fw-bold">{{ t('memberships.monthsToExtend') }}</label>
+              <CFormInput v-model.number="renewForm.months" type="number" class="rounded-3" />
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-bold">{{ t('memberships.amountPaid') }}</label>
+              <CFormInput v-model.number="renewForm.amount_paid" type="number" step="0.001" class="rounded-3" />
+            </div>
+          </div>
         </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" @click="closeRenewModal">{{ t('common.cancel') }}</CButton>
-          <CButton color="primary" class="btn-primary-custom" :disabled="renewing" @click="renewMembership">
-            <CIcon icon="cil-check" class="me-2" />
-            {{ renewing ? t('common.saving') : (t('memberships.renew') || 'Renew') }}
+        <CModalFooter class="border-0 pt-0">
+          <CButton color="light" class="rounded-pill px-4" @click="closeRenewModal">{{ t('common.cancel') }}</CButton>
+          <CButton color="primary" class="nano-btn px-4" :disabled="renewing" @click="renewMembership">
+            {{ renewing ? t('common.saving') : t('memberships.renew') }}
           </CButton>
         </CModalFooter>
       </CModal>
@@ -282,14 +344,18 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { CButton, CTable, CBadge, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CFormSelect, CFormInput, CFormCheck, CRow, CCol, CSpinner } from '@coreui/vue';
+import { 
+  CButton, CTable, CBadge, CModal, CModalHeader, CModalTitle, 
+  CModalBody, CModalFooter, CFormSelect, CFormInput, CFormCheck, 
+  CRow, CCol, CSpinner, CProgress 
+} from '@coreui/vue';
 import { CIcon } from '@coreui/icons-vue';
 import { useTranslation } from '@/composables/useTranslation';
 import { useToast } from '@/composables/useToast';
 import PageHeader from '@/components/UI/PageHeader.vue';
-import StatCard from '@/components/UI/StatCard.vue';
-import Card from '@/components/UI/Card.vue';
 import LoadingSpinner from '@/components/UI/LoadingSpinner.vue';
+import Card from '@/components/UI/Card.vue';
+import EmptyState from '@/components/UI/EmptyState.vue';
 import api from '@/utils/api';
 
 const { t } = useTranslation();
@@ -297,8 +363,15 @@ const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 
+// State
 const loading = ref(false);
-const profile = ref({ customer: null, today: { orders: [], items: [], total_amount: 0, points_earned: 0 }, membership: { current: null, history: [] }, loyalty: { today_transactions: [] } });
+const activeTab = ref('purchases');
+const profile = ref({ 
+  customer: null, 
+  today: { orders: [], items: [], total_amount: 0, points_earned: 0 }, 
+  membership: { current: null, history: [] }, 
+  loyalty: { today_transactions: [] } 
+});
 
 const plans = ref([]);
 const showAssignModal = ref(false);
@@ -313,33 +386,49 @@ const renewForm = ref({ months: 1, amount_paid: 0 });
 
 const currentMembership = computed(() => profile.value?.membership?.current || null);
 
-const loadPlans = async () => {
-  try {
-    const res = await api.get('/memberships/plans', { noCache: true });
-    plans.value = res.data?.data || [];
-  } catch {
-    plans.value = [];
-  }
-};
-
+// Helpers
 const formatCurrency = (amount) =>
-  new Intl.NumberFormat('en-KW', { style: 'currency', currency: 'KWD', minimumFractionDigits: 3 }).format(amount || 0);
+  new Intl.NumberFormat('en-KW', { 
+    style: 'currency', 
+    currency: 'KWD', 
+    minimumFractionDigits: 3 
+  }).format(amount || 0);
 
 const formatCurrencyShort = (amount) => {
   const value = Number(amount || 0);
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}K KWD`;
-  return `${value.toFixed(0)} KWD`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}K د.ك`;
+  return `${value.toFixed(3)} د.ك`;
 };
 
 const formatDate = (d) => {
   if (!d) return '—';
   try {
-    return new Date(d).toLocaleString();
+    return new Date(d).toLocaleDateString('ar-KW', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   } catch {
     return String(d);
   }
 };
 
+const calculateProgress = (used, limit) => {
+  if (!limit || limit === '∞') return 0;
+  return Math.min(Math.round((used / limit) * 100), 100);
+};
+
+const getRemainingDays = (endDate) => {
+  if (!endDate) return 0;
+  const today = new Date();
+  const end = new Date(endDate);
+  const diffTime = end - today;
+  return Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 0);
+};
+
+// Actions
 const loadProfile = async () => {
   loading.value = true;
   try {
@@ -354,15 +443,22 @@ const loadProfile = async () => {
   }
 };
 
+const loadPlans = async () => {
+  try {
+    const res = await api.get('/memberships/plans', { noCache: true });
+    plans.value = res.data?.data || [];
+  } catch {
+    plans.value = [];
+  }
+};
+
 const refresh = () => loadProfile();
 const goBack = () => router.push('/customers');
 
 const openAssignModal = async () => {
   showAssignModal.value = true;
   assignForm.value = { membership_plan_id: '', duration_months: 1, auto_renew: false };
-  if (plans.value.length === 0) {
-    await loadPlans();
-  }
+  if (plans.value.length === 0) await loadPlans();
 };
 
 const closeAssignModal = () => {
@@ -372,7 +468,7 @@ const closeAssignModal = () => {
 
 const assignMembership = async () => {
   if (!profile.value?.customer?.id || !assignForm.value.membership_plan_id) {
-    toast.error(t('memberships.selectPlan') || 'Select plan');
+    toast.error(t('memberships.selectPlan') || 'اختر الخطة');
     return;
   }
   assigning.value = true;
@@ -383,12 +479,11 @@ const assignMembership = async () => {
       duration_months: Number(assignForm.value.duration_months || 1),
       auto_renew: assignForm.value.auto_renew ? 1 : 0,
     });
-    toast.success(t('memberships.assigned') || 'Assigned');
+    toast.success(t('memberships.assigned') || 'تم التعيين');
     closeAssignModal();
     await loadProfile();
   } catch (e) {
-    console.error('Assign membership error:', e);
-    toast.error(t('memberships.assignError') || t('common.errorLoading'));
+    toast.error(t('common.errorLoading'));
   } finally {
     assigning.value = false;
   }
@@ -412,12 +507,11 @@ const renewMembership = async () => {
       months: Number(renewForm.value.months || 1),
       amount_paid: Number(renewForm.value.amount_paid || 0),
     });
-    toast.success(t('memberships.renewed') || 'Renewed');
+    toast.success(t('memberships.renewed') || 'تم التجديد');
     closeRenewModal();
     await loadProfile();
   } catch (e) {
-    console.error('Renew membership error:', e);
-    toast.error(t('memberships.renewError') || t('common.errorLoading'));
+    toast.error(t('common.errorLoading'));
   } finally {
     renewing.value = false;
   }
@@ -425,10 +519,10 @@ const renewMembership = async () => {
 
 const cancelMembership = async () => {
   if (!currentMembership.value?.id) return;
-  if (!confirm(t('memberships.cancelConfirm') || 'Cancel membership?')) return;
+  if (!confirm(t('memberships.cancelConfirm') || 'هل أنت متأكد من إلغاء العضوية؟')) return;
   try {
     await api.delete(`/memberships/${currentMembership.value.id}`);
-    toast.success(t('memberships.cancelled') || 'Cancelled');
+    toast.success(t('memberships.cancelled') || 'تم الإلغاء');
     await loadProfile();
   } catch (e) {
     toast.error(t('common.errorLoading'));
@@ -437,23 +531,18 @@ const cancelMembership = async () => {
 
 const createTypedPass = async (type) => {
   if (!profile.value?.customer?.id) return;
-  
   creatingPass.value = true;
   activePassType.value = type;
   try {
     const customerId = profile.value.customer.id;
     const response = await api.post(`/apple-wallet/create/${customerId}/${type}`);
     const data = response.data?.data || response.data || {};
-    
     if (data.pass_url) {
       window.open(data.pass_url, '_blank');
-      toast.success(t('loyalty.passCreated') || 'Pass created successfully');
-    } else {
-      toast.error(t('loyalty.passError') || 'Error creating pass');
+      toast.success(t('loyalty.passCreated') || 'تم إنشاء البطاقة بنجاح');
     }
   } catch (error) {
-    console.error('Error creating Apple Wallet pass:', error);
-    toast.error(error.response?.data?.message || t('loyalty.passError') || 'Error creating pass');
+    toast.error(error.response?.data?.message || t('loyalty.passError'));
   } finally {
     creatingPass.value = false;
     activePassType.value = '';
@@ -467,61 +556,258 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.customer-profile-page{display:flex;flex-direction:column;gap:1.5rem;}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem;}
-.section-card{border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.customer-profile-page {
+  font-family: 'Cairo', sans-serif;
+  padding: var(--spacing-lg);
+  background: var(--color-gray-50);
+  min-height: 100vh;
+}
 
-.btn-primary-custom{background:linear-gradient(135deg,var(--asmaa-primary) 0%, rgba(187,160,122,0.9) 100%);border:none;box-shadow:0 4px 12px rgba(187,160,122,0.3);transition:all 0.3s;}
-.btn-primary-custom:hover{background:linear-gradient(135deg, rgba(187,160,122,0.95) 0%, var(--asmaa-primary) 100%);box-shadow:0 6px 16px rgba(187,160,122,0.4);transform:translateY(-2px);}
+/* Nano Header */
+.avatar-circle-nano {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-md);
+}
 
-.today-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;}
-.today-meta{display:flex;gap:0.5rem;flex-wrap:wrap;}
+.text-navy { color: var(--color-navy); }
 
-.details-grid{display:flex;flex-direction:column;gap:0.75rem;}
-.detail-row{display:flex;gap:1rem;padding:0.85rem 1rem;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border-color);}
-.detail-label{min-width:160px;font-weight:800;color:var(--text-secondary);}
-.detail-value{flex:1;color:var(--text-primary);}
-.detail-link{color:var(--asmaa-primary);text-decoration:none;}
-.detail-link:hover{text-decoration:underline;}
+.nano-btn {
+  border-radius: var(--radius-pill);
+  padding: 0.6rem 1.25rem;
+  font-weight: 700;
+  transition: var(--transition-smooth);
+  box-shadow: var(--shadow-sm);
+}
+.nano-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
 
-.membership-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
-.membership-actions{display:flex;flex-wrap:wrap;gap:0.5rem;}
-.membership-badges{display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem;}
+.nano-btn-icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-100);
+}
 
-.table-wrapper{overflow-x:auto;border-radius:12px;border:1px solid var(--border-color);background:var(--bg-primary);}
-.table-header-row{background:linear-gradient(135deg, rgba(187,160,122,0.1) 0%, rgba(187,160,122,0.05) 100%);border-bottom:2px solid var(--asmaa-primary);}
-.table-header-row th{padding:1rem 1.25rem;font-weight:700;color:var(--text-primary);text-transform:uppercase;font-size:0.75rem;letter-spacing:0.5px;border-bottom:none;white-space:nowrap;}
-.table-row td{padding:1rem 1.25rem;vertical-align:middle;border-bottom:1px solid var(--border-color);}
-
-.unified-amount{color:var(--asmaa-primary);font-weight:800;}
-.unified-badge{display:inline-flex;align-items:center;gap:0.375rem;padding:0.5rem 0.75rem;border-radius:8px;font-size:0.8125rem;font-weight:600;background:linear-gradient(135deg, rgba(187,160,122,0.15) 0%, rgba(187,160,122,0.1) 100%);color:var(--asmaa-primary);border:1px solid rgba(187,160,122,0.3);}
-.badge-icon{width:14px;height:14px;color:currentColor;}
-
-.wallet-passes-grid {
+/* Stats Bar */
+.nano-stats-bar {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.stat-card-nano {
+  background: var(--color-white);
+  border-radius: 24px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: var(--shadow-luxury);
+  border: 1px solid var(--color-gray-100);
+  transition: var(--transition-smooth);
+}
+.stat-card-nano:hover {
+  transform: translateY(-5px);
+}
+
+.stat-icon-bg {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: white;
+}
+.stat-icon-bg.points { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.stat-icon-bg.revenue { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.stat-icon-bg.purchases { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); }
+.stat-icon-bg.gift { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+
+.stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 0.8rem; color: var(--color-gray-500); font-weight: 600; margin-top: 4px; }
+
+/* Nano Cards */
+.nano-card-luxury {
+  border: 1px solid var(--color-gray-100);
+  box-shadow: var(--shadow-luxury);
+  border-radius: 24px !important;
+}
+
+.details-list-nano {
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
 }
-.wallet-pass-item {
+
+.detail-item-nano {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--color-gray-50);
+  border-radius: 16px;
+  transition: var(--transition-base);
+}
+
+.icon-wrap-nano {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.content-wrap .label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-gray-500);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.content-wrap .value {
+  font-weight: 700;
+  color: var(--color-navy);
+  font-size: 0.95rem;
+}
+.content-wrap .value.link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* Membership Styles */
+.membership-info-box {
+  background: var(--color-gray-50);
+  padding: 1.5rem;
+  border-radius: 20px;
+  border: 1px solid var(--color-gray-100);
+}
+
+.membership-icon-large {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: var(--color-gray-200);
+  color: var(--color-gray-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+.membership-icon-large.active {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+}
+
+.membership-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+}
+.m-stat .m-label { font-size: 0.75rem; font-weight: 700; color: var(--color-gray-500); margin-bottom: 0.5rem; }
+.m-stat .m-value { font-size: 1.1rem; font-weight: 800; color: var(--color-navy); }
+
+/* Wallet Grid */
+.nano-wallet-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.nano-wallet-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   padding: 1rem;
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  color: white;
+  transition: var(--transition-smooth);
 }
-.pass-info {
+.nano-wallet-item.loyalty { background: linear-gradient(135deg, #4b1a1a 0%, #2a0f0f 100%); }
+.nano-wallet-item.membership { background: linear-gradient(135deg, #1a2a4b 0%, #0f162a 100%); }
+.nano-wallet-item.disabled { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
+
+.wallet-icon { font-size: 1.5rem; opacity: 0.8; }
+.wallet-text .label { font-size: 0.7rem; opacity: 0.7; font-weight: 700; text-transform: uppercase; }
+.wallet-text .desc { font-weight: 700; font-size: 0.9rem; }
+
+/* Tabs Banana Style */
+.tab-banana {
+  padding: 0.75rem 1.5rem;
+  border-radius: 14px;
+  background: var(--color-white);
+  color: var(--color-gray-500);
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  border: 1px solid var(--color-gray-100);
   display: flex;
   align-items: center;
-  color: var(--text-primary);
+}
+.tab-banana.active {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
 }
 
-.badge-product{background:linear-gradient(135deg, var(--asmaa-secondary-soft) 0%, hsla(218, 13%, 28%, 0.10) 100%);color:var(--asmaa-secondary);border-color:var(--asmaa-secondary-soft-border);}
-.badge-service{background:linear-gradient(135deg, var(--asmaa-success-soft) 0%, hsla(142, 71%, 45%, 0.10) 100%);color:var(--asmaa-success);border-color:var(--asmaa-success-soft-border);}
-.badge-earned{background:linear-gradient(135deg, var(--asmaa-success-soft) 0%, hsla(142, 71%, 45%, 0.10) 100%);color:var(--asmaa-success);border-color:var(--asmaa-success-soft-border);}
-.badge-other{background:linear-gradient(135deg, var(--asmaa-secondary-soft) 0%, hsla(218, 13%, 28%, 0.10) 100%);color:var(--asmaa-secondary);border-color:var(--asmaa-secondary-soft-border);}
+.nano-panel {
+  background: var(--color-white);
+  border-radius: 24px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-luxury);
+}
 
-@media (max-width:768px){.stats-grid{grid-template-columns:1fr;}.today-header{flex-direction:column;align-items:flex-start;}}
+.nano-table-wrap {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--color-gray-100);
+}
+
+.nano-table th {
+  background: var(--color-gray-50);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-gray-500);
+  padding: 1rem;
+  border-bottom: 2px solid var(--color-gray-100);
+}
+.nano-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+@media (max-width: 992px) {
+  .nano-stats-bar { grid-template-columns: 1fr 1fr; }
+  .nano-wallet-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 576px) {
+  .nano-stats-bar { grid-template-columns: 1fr; }
+  .membership-stats-row { grid-template-columns: 1fr; }
+}
 </style>
-

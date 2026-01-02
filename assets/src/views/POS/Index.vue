@@ -1163,7 +1163,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, #d4b996 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-light) 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -1258,7 +1258,7 @@ onMounted(() => {
   font-weight: 900;
   font-size: 1.25rem;
   color: var(--asmaa-primary);
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, #8a6d3b 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -1288,7 +1288,7 @@ onMounted(() => {
 }
 
 .checkout-btn {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, #8a6d3b 100%) !important;
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%) !important;
   border: none !important;
   font-weight: 800;
   letter-spacing: 0.5px;

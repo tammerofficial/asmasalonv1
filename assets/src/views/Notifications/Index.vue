@@ -475,9 +475,11 @@ onMounted(() => {
 
 <style scoped>
 .notifications-page {
+  font-family: var(--font-family-body);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding: var(--spacing-lg);
 }
 
 /* Stats Grid */
@@ -490,16 +492,18 @@ onMounted(() => {
 /* Filters Card */
 .filters-card {
   margin-bottom: 0;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
 }
 
 .search-input-group {
-  height: 38px;
+  height: 42px;
 }
 
 .search-icon-wrapper {
-  background: var(--bg-secondary);
-  border-color: var(--border-color);
-  color: var(--text-muted);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
+  border-color: var(--asmaa-primary);
+  color: white;
 }
 
 .filter-input,
@@ -508,13 +512,16 @@ onMounted(() => {
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: all 0.2s;
+  height: 42px;
+  border-radius: var(--border-radius-md);
 }
 
 .filter-input:focus,
 .filter-select:focus {
   border-color: var(--asmaa-primary);
-  box-shadow: 0 0 0 0.2rem rgba(142, 126, 120, 0.25);
+  box-shadow: 0 0 0 3px var(--asmaa-primary-soft);
   background: var(--bg-primary);
+  outline: none;
 }
 
 .search-input {
@@ -524,12 +531,17 @@ onMounted(() => {
 .reset-btn {
   border-color: var(--border-color);
   color: var(--text-primary);
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .reset-btn:hover {
-  background: var(--bg-secondary);
+  background: var(--asmaa-primary);
   border-color: var(--asmaa-primary);
-  color: var(--asmaa-primary);
+  color: white;
+  transform: translateY(-1px);
 }
 
 /* Card Actions */
@@ -542,7 +554,7 @@ onMounted(() => {
 .result-count {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 /* Notifications List */
@@ -557,8 +569,8 @@ onMounted(() => {
   gap: 1rem;
   padding: 1.25rem;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--bg-primary);
+  border-radius: 16px;
+  background: var(--bg-tertiary);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -567,18 +579,18 @@ onMounted(() => {
   background: var(--bg-secondary);
   border-color: var(--asmaa-primary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(142, 126, 120, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .notification-item.unread {
-  background: rgba(142, 126, 120, 0.06);
-  border-color: rgba(142, 126, 120, 0.3);
-  border-left-width: 3px;
+  background: var(--asmaa-primary-soft);
+  border-color: var(--asmaa-primary-soft-border);
+  border-left: 4px solid var(--asmaa-primary);
 }
 
 [dir="rtl"] .notification-item.unread {
-  border-left-width: 1px;
-  border-right-width: 3px;
+  border-left: 1px solid var(--border-color);
+  border-right: 4px solid var(--asmaa-primary);
 }
 
 .notification-icon {
@@ -590,41 +602,37 @@ onMounted(() => {
   justify-content: center;
   border-radius: 12px;
   font-size: 1.25rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .notification-icon-info {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: linear-gradient(135deg, var(--asmaa-info) 0%, #2563eb 100%);
+  color: white;
 }
 
 .notification-icon-warning {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  background: linear-gradient(135deg, var(--asmaa-warning) 0%, #d97706 100%);
+  color: white;
 }
 
 .notification-icon-success {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
+  background: linear-gradient(135deg, var(--asmaa-success) 0%, #059669 100%);
+  color: white;
 }
 
 .notification-icon-primary {
-  background: rgba(142, 126, 120, 0.1);
-  color: var(--asmaa-primary);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
+  color: white;
 }
 
 .notification-icon-secondary {
-  background: rgba(100, 116, 139, 0.1);
-  color: #64748b;
+  background: linear-gradient(135deg, var(--asmaa-secondary) 0%, #111827 100%);
+  color: white;
 }
 
 .notification-icon-danger {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
-.notification-icon-warning {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  background: linear-gradient(135deg, var(--asmaa-danger) 0%, #dc2626 100%);
+  color: white;
 }
 
 .notification-content {
@@ -656,7 +664,7 @@ onMounted(() => {
 }
 
 .notification-message {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.5;
@@ -697,7 +705,7 @@ onMounted(() => {
 .pagination-info {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .pagination {
@@ -710,21 +718,22 @@ onMounted(() => {
 .page-info {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   padding: 0 0.5rem;
 }
 
 /* Button Styles */
 .btn-primary-custom {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   border: none;
-  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
+  box-shadow: var(--shadow-md);
   transition: all 0.3s;
+  color: white;
 }
 
 .btn-primary-custom:hover {
-  background: linear-gradient(135deg, rgba(142, 126, 120, 0.95) 0%, var(--asmaa-primary) 100%);
-  box-shadow: 0 6px 16px rgba(142, 126, 120, 0.4);
+  background: linear-gradient(135deg, var(--asmaa-primary-dark) 0%, var(--asmaa-primary) 100%);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
 
@@ -734,34 +743,16 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .notification-item {
-    flex-direction: column;
-  }
-
-  .notification-actions {
-    align-self: flex-end;
-  }
-
-  .pagination-footer {
-    flex-direction: column;
-  }
-
-  .pagination {
-    width: 100%;
-  }
+  .stats-grid { grid-template-columns: 1fr; }
+  .notification-item { flex-direction: column; }
+  .notification-actions { align-self: flex-end; }
+  .pagination-footer { flex-direction: column; }
+  .pagination { width: 100%; }
 }
 </style>

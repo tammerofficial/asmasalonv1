@@ -157,6 +157,8 @@ const setLocale = (locale) => {
 <style scoped>
 .asmaa-salon-core {
   width: 100%;
+  padding: var(--spacing-lg);
+  font-family: var(--font-family-body);
 }
 
 .core-grid {
@@ -166,9 +168,7 @@ const setLocale = (locale) => {
 }
 
 @media (max-width: 1200px) {
-  .core-grid {
-    grid-template-columns: 1fr;
-  }
+  .core-grid { grid-template-columns: 1fr; }
 }
 
 .info-list {
@@ -186,13 +186,13 @@ const setLocale = (locale) => {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: var(--bg-secondary);
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .info-row:hover {
   background: var(--bg-tertiary);
   border-color: var(--asmaa-primary);
-  transform: translateX(2px);
+  transform: translateX(4px);
 }
 
 .info-left {
@@ -209,7 +209,7 @@ const setLocale = (locale) => {
 }
 
 .info-label {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-weight: 600;
   font-size: 13px;
 }
@@ -225,7 +225,7 @@ const setLocale = (locale) => {
 }
 
 .monospace {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: var(--font-family-body), monospace;
   font-weight: 600;
 }
 
@@ -274,13 +274,13 @@ const setLocale = (locale) => {
   background: var(--bg-tertiary);
   padding: 3px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   position: relative;
 }
 
 .toggle.on {
-  background: rgba(var(--cui-primary-rgb), 0.25);
-  border-color: rgba(var(--cui-primary-rgb), 0.45);
+  background: var(--asmaa-primary-soft);
+  border-color: var(--asmaa-primary-soft-border);
 }
 
 .toggle-knob {
@@ -295,17 +295,9 @@ const setLocale = (locale) => {
   transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
-[dir="rtl"] .toggle-knob {
-  transform: translateX(0);
-}
-
-.toggle.on .toggle-knob {
-  transform: translateX(22px);
-}
-
-[dir="rtl"] .toggle.on .toggle-knob {
-  transform: translateX(-22px);
-}
+[dir="rtl"] .toggle-knob { transform: translateX(0); }
+.toggle.on .toggle-knob { transform: translateX(22px); background: var(--asmaa-primary); border-color: var(--asmaa-primary-dark); }
+[dir="rtl"] .toggle.on .toggle-knob { transform: translateX(-22px); }
 
 .lang-actions {
   display: flex;
@@ -325,8 +317,9 @@ const setLocale = (locale) => {
 }
 
 .chip.active {
-  border-color: rgba(var(--cui-primary-rgb), 0.6);
-  background: rgba(var(--cui-primary-rgb), 0.15);
+  border-color: var(--asmaa-primary);
+  background: var(--asmaa-primary-soft);
+  color: var(--asmaa-primary-dark);
 }
 
 .shortcuts {
@@ -336,9 +329,7 @@ const setLocale = (locale) => {
 }
 
 @media (max-width: 900px) {
-  .shortcuts {
-    grid-template-columns: 1fr;
-  }
+  .shortcuts { grid-template-columns: 1fr; }
 }
 
 .shortcut {
@@ -351,14 +342,13 @@ const setLocale = (locale) => {
   transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
 }
 
-[dir="rtl"] .shortcut {
-  text-align: right;
-}
+[dir="rtl"] .shortcut { text-align: right; }
 
 .shortcut:hover {
-  transform: translateY(-1px);
-  border-color: rgba(var(--cui-primary-rgb), 0.35);
+  transform: translateY(-2px);
+  border-color: var(--asmaa-primary);
   background: var(--bg-tertiary);
+  box-shadow: var(--shadow-sm);
 }
 
 .shortcut-title {
@@ -391,35 +381,33 @@ const setLocale = (locale) => {
   background: var(--bg-secondary);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   text-align: left;
 }
 
-[dir="rtl"] .access-button {
-  text-align: right;
-}
+[dir="rtl"] .access-button { text-align: right; }
 
 .access-button:hover {
   background: var(--bg-tertiary);
   border-color: var(--asmaa-primary);
   transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
 }
 
-[dir="rtl"] .access-button:hover {
-  transform: translateX(-4px);
-}
+[dir="rtl"] .access-button:hover { transform: translateX(-4px); }
 
 .access-icon {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(var(--cui-primary-rgb), 0.1);
+  background: var(--asmaa-primary-soft);
   color: var(--asmaa-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
 }
 
 .access-text {

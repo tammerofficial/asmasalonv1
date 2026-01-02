@@ -1031,8 +1031,8 @@ onMounted(() => {
     font-size: 1.5rem;
     color: white;
 }
-.stat-icon-bg.services { background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); }
-.stat-icon-bg.staff { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
+.stat-icon-bg.services { background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%); }
+.stat-icon-bg.staff { background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%); }
 .stat-icon-bg.approved { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
 .stat-icon-bg.pending { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
 
@@ -1160,7 +1160,7 @@ onMounted(() => {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, #d4b996 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-light) 100%);
     color: white;
     font-size: 2.5rem;
     font-weight: 800;
@@ -1188,7 +1188,7 @@ onMounted(() => {
 
 .appt-date-box {
     width: 90px;
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, #d4b996 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-light) 100%);
     border-radius: 16px;
     padding: 0.75rem;
     color: white;

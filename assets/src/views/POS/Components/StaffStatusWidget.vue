@@ -39,6 +39,7 @@ defineProps({
 <style scoped>
 .staff-status-widget {
   margin-top: 1.5rem;
+  font-family: var(--font-family-body);
 }
 
 .section-title {
@@ -75,12 +76,14 @@ defineProps({
   justify-content: center;
   font-weight: 700;
   position: relative;
-  transition: all 0.2s;
+  transition: all 0.3s;
+  color: var(--text-primary);
 }
 
 .staff-status-card:hover .staff-avatar {
   border-color: var(--asmaa-primary);
   transform: scale(1.1);
+  background: var(--asmaa-primary-soft);
 }
 
 .status-indicator {
@@ -94,13 +97,13 @@ defineProps({
   background: #ccc;
 }
 
-.staff-status-card.available .status-indicator { background: #2eb85c; }
-.staff-status-card.busy .status-indicator { background: #e55353; }
-.staff-status-card.away .status-indicator { background: #f9b115; }
+.staff-status-card.available .status-indicator { background: var(--asmaa-success); }
+.staff-status-card.busy .status-indicator { background: var(--asmaa-danger); }
+.staff-status-card.away .status-indicator { background: var(--asmaa-warning); }
 
 .staff-name {
   font-size: 0.625rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
   text-align: center;
   max-width: 100%;

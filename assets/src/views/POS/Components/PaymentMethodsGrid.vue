@@ -72,7 +72,7 @@ const methods = computed(() => [
 
 .payment-method-card.active {
   border-color: var(--asmaa-primary);
-  background: rgba(142, 126, 120, 0.1);
+  background: var(--asmaa-primary-soft);
 }
 
 .method-icon {

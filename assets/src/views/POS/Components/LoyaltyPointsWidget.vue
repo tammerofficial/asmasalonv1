@@ -57,8 +57,8 @@ function formatCurrency(amount) {
 
 <style scoped>
 .loyalty-widget {
-  background: linear-gradient(135deg, rgba(249, 177, 21, 0.1) 0%, rgba(249, 177, 21, 0.05) 100%);
-  border: 1px solid rgba(249, 177, 21, 0.3);
+  background: var(--asmaa-warning-soft);
+  border: 1px solid var(--asmaa-warning-soft-border);
   border-radius: 12px;
   padding: 1rem;
   margin-top: 1rem;
@@ -75,7 +75,7 @@ function formatCurrency(amount) {
   align-items: center;
   gap: 0.5rem;
   font-weight: 700;
-  color: #856404;
+  color: var(--asmaa-warning);
 }
 
 .points-value {

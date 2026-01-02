@@ -138,19 +138,20 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-family-body);
 }
 
 .rating-container {
-  background: white;
-  border-radius: 20px;
+  background: var(--bg-primary);
+  border-radius: 24px;
   padding: 40px;
   max-width: 500px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   text-align: center;
+  border: 1px solid var(--border-color);
 }
 
 .rating-header {
@@ -158,41 +159,42 @@ onMounted(() => {
 }
 
 .rating-title {
-  font-size: 2rem;
-  color: #333;
+  font-size: 2.25rem;
+  color: var(--text-primary);
   margin-bottom: 10px;
+  font-weight: 800;
 }
 
 .rating-subtitle {
-  font-size: 1.2rem;
-  color: #666;
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .rating-stars {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   margin: 30px 0;
 }
 
 .star-btn {
   background: none;
   border: none;
-  font-size: 3rem;
+  font-size: 3.5rem;
   cursor: pointer;
-  transition: transform 0.2s;
-  filter: grayscale(100%);
-  opacity: 0.5;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--border-color);
 }
 
 .star-btn:hover {
   transform: scale(1.2);
+  color: var(--asmaa-warning);
 }
 
 .star-btn.active,
 .star-btn.hover {
-  filter: grayscale(0%);
-  opacity: 1;
+  color: var(--asmaa-warning);
 }
 
 .rating-comment {
@@ -203,23 +205,27 @@ onMounted(() => {
 .rating-comment label {
   display: block;
   margin-bottom: 10px;
-  color: #333;
-  font-weight: 500;
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .comment-input {
   width: 100%;
-  padding: 12px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  padding: 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
   font-size: 1rem;
   font-family: inherit;
   resize: vertical;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.3s;
 }
 
 .comment-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--asmaa-primary);
+  background: var(--bg-primary);
 }
 
 .rating-actions {
@@ -227,20 +233,22 @@ onMounted(() => {
 }
 
 .submit-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   color: white;
   border: none;
-  padding: 15px 40px;
-  font-size: 1.1rem;
-  border-radius: 25px;
+  padding: 16px 48px;
+  font-size: 1.25rem;
+  border-radius: 30px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  font-weight: 600;
+  transition: all 0.3s;
+  font-weight: 800;
+  box-shadow: var(--shadow-md);
 }
 
 .submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, var(--asmaa-primary-dark) 0%, var(--asmaa-primary) 100%);
 }
 
 .submit-btn:disabled {
@@ -249,16 +257,17 @@ onMounted(() => {
 }
 
 .rating-success {
-  margin-top: 20px;
-  padding: 15px;
-  background: #d4edda;
-  border: 1px solid #c3e6cb;
-  border-radius: 8px;
-  color: #155724;
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--asmaa-success-soft);
+  border: 1px solid var(--asmaa-success-soft-border);
+  border-radius: 16px;
+  color: var(--asmaa-success);
 }
 
 .rating-success p {
   margin: 0;
   font-size: 1.1rem;
+  font-weight: 700;
 }
 </style>

@@ -359,10 +359,10 @@ onMounted(() => {
   font-size: 1.25rem;
   color: white;
 }
-.stat-icon-bg.orders { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
-.stat-icon-bg.pending { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-.stat-icon-bg.completed { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-.stat-icon-bg.revenue { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); }
+.stat-icon-bg.orders { background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%); }
+.stat-icon-bg.pending { background: linear-gradient(135deg, var(--asmaa-warning) 0%, #d97706 100%); }
+.stat-icon-bg.completed { background: linear-gradient(135deg, var(--asmaa-success) 0%, #059669 100%); }
+.stat-icon-bg.revenue { background: linear-gradient(135deg, var(--asmaa-info) 0%, #0284c7 100%); }
 
 .stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; }
 .stat-label { font-size: 0.8125rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }

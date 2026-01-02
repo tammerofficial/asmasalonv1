@@ -265,23 +265,39 @@ onMounted(() => {
 
 <style scoped>
 .reports-page {
-  font-family: 'Cairo', sans-serif;
+  font-family: var(--font-family-body);
   background: var(--bg-primary);
   min-height: 100vh;
 }
 
 .nano-btn {
-  border-radius: 12px;
+  border-radius: var(--border-radius-lg);
   padding: 0.75rem 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
+  border: none;
+  color: white;
 }
+
+.nano-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, var(--asmaa-primary-dark) 0%, var(--asmaa-primary) 100%);
+}
+
 .nano-btn-outline {
-  border-radius: 12px;
+  border-radius: var(--border-radius-lg);
   padding: 0.75rem 1.5rem;
   font-weight: 700;
   border: 2px solid var(--asmaa-primary);
   color: var(--asmaa-primary);
+  background: transparent;
+}
+
+.nano-btn-outline:hover {
+  background: var(--asmaa-primary-soft);
+  color: var(--asmaa-primary-dark);
 }
 
 .nano-tabs {
@@ -289,6 +305,7 @@ onMounted(() => {
   padding: 0.5rem;
   border-radius: 16px;
   gap: 0.5rem;
+  border: 1px solid var(--border-color);
 }
 .nano-tab-link {
   border-radius: 12px !important;
@@ -301,7 +318,7 @@ onMounted(() => {
 .nano-tab-link.active {
   background: var(--asmaa-primary) !important;
   color: white !important;
-  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .nano-stats-bar {
@@ -319,10 +336,12 @@ onMounted(() => {
   gap: 1.25rem;
   box-shadow: var(--shadow-sm);
   transition: all 0.3s;
+  border: 1px solid var(--border-color);
 }
 .stat-card-nano:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow-md);
+  border-color: var(--asmaa-primary-soft-border);
 }
 
 .stat-icon-bg {
@@ -335,14 +354,14 @@ onMounted(() => {
   font-size: 1.25rem;
   color: white;
 }
-.stat-icon-bg.orders { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
-.stat-icon-bg.revenue { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-.stat-icon-bg.commission { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
-.stat-icon-bg.loyalty { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-.stat-icon-bg.total { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); }
-.stat-icon-bg.avg { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+.stat-icon-bg.orders { background: linear-gradient(135deg, var(--asmaa-info) 0%, #0284c7 100%); }
+.stat-icon-bg.revenue { background: linear-gradient(135deg, var(--asmaa-success) 0%, #059669 100%); }
+.stat-icon-bg.commission { background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%); }
+.stat-icon-bg.loyalty { background: linear-gradient(135deg, var(--asmaa-warning) 0%, #d97706 100%); }
+.stat-icon-bg.total { background: linear-gradient(135deg, var(--asmaa-secondary) 0%, #111827 100%); }
+.stat-icon-bg.avg { background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%); }
 
-.stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; color: var(--text-primary); }
 .stat-label { font-size: 0.8125rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
 
 .nano-panel {
@@ -350,6 +369,7 @@ onMounted(() => {
   border-radius: 24px;
   padding: 2rem;
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
 }
 
 .nano-table-container {
@@ -366,7 +386,7 @@ onMounted(() => {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 1px;
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 2px solid var(--asmaa-primary-soft-border);
   text-align: center;
 }
 .nano-table-row {
@@ -377,10 +397,12 @@ onMounted(() => {
   padding: 1.25rem 1rem;
   vertical-align: middle;
   text-align: center;
+  color: var(--text-primary);
 }
 .nano-table-row:hover {
   transform: scale(1.01);
   box-shadow: var(--shadow-sm);
+  background: var(--asmaa-primary-soft);
 }
 .nano-table-row td:first-child { border-radius: 16px 0 0 16px; }
 .nano-table-row td:last-child { border-radius: 0 16px 16px 0; }
@@ -393,6 +415,10 @@ onMounted(() => {
 }
 .chart-card:hover {
   border-color: var(--asmaa-primary) !important;
+}
+
+.nano-filters-panel {
+  border: 1px solid var(--border-color);
 }
 
 @media (max-width: 768px) {

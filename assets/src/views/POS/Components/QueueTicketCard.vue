@@ -76,7 +76,7 @@ function formatTime(dateTime) {
   font-weight: 800;
   font-size: 1.25rem;
   color: var(--asmaa-primary);
-  background: rgba(142, 126, 120, 0.1);
+  background: var(--asmaa-primary-soft);
   width: 50px;
   height: 50px;
   border-radius: 10px;

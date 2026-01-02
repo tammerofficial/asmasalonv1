@@ -300,7 +300,7 @@ const computedSettings = computed(() => formData.value);
 
 const formData = ref({
     primary_color: '#8E7E78',
-    secondary_color: '#764ba2',
+    secondary_color: 'var(--asmaa-primary-dark)',
     text_color: '#1e293b',
     background_color: '#ffffff',
     button_color: '#8E7E78',
@@ -367,18 +367,20 @@ const handleSave = async () => {
 <style scoped>
 .booking-appearance-page {
     min-height: 100vh;
-    background: #f5f7fa;
-    padding: 2rem;
+    background: var(--bg-primary);
+    padding: var(--spacing-lg);
+    font-family: var(--font-family-body);
 }
 
 .appearance-header {
     margin-bottom: 2rem;
-    padding: 2rem;
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
-    border-radius: 12px;
+    padding: 2.5rem;
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
+    border-radius: 20px;
     color: white;
     position: relative;
     overflow: hidden;
+    box-shadow: var(--shadow-md);
 }
 
 .header-logo-bg {
@@ -388,7 +390,7 @@ const handleSave = async () => {
     width: auto;
     height: 70%;
     max-height: 250px;
-    opacity: 0.08;
+    opacity: 0.1;
     pointer-events: none;
     overflow: visible;
     z-index: 0;
@@ -418,32 +420,27 @@ const handleSave = async () => {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    background: rgba(255, 255, 255, 0.2);
+    padding: 0.75rem 1.25rem;
+    background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
     color: white;
     font-size: 0.9375rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s;
     white-space: nowrap;
 }
 
 .back-button:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateX(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateX(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 [dir="rtl"] .back-button:hover {
-    transform: translateX(2px);
-}
-
-.back-button CIcon {
-    width: 18px;
-    height: 18px;
+    transform: translateX(4px);
 }
 
 .header-text-content {
@@ -451,8 +448,8 @@ const handleSave = async () => {
 }
 
 .appearance-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 2.25rem;
+    font-weight: 800;
     color: white;
     display: flex;
     align-items: center;
@@ -461,15 +458,16 @@ const handleSave = async () => {
 }
 
 .header-icon {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     color: white;
 }
 
 .header-subtitle {
     color: rgba(255, 255, 255, 0.9);
-    font-size: 1rem;
+    font-size: 1.1rem;
     margin: 0;
+    font-weight: 500;
 }
 
 .appearance-container {
@@ -482,23 +480,24 @@ const handleSave = async () => {
 
 .editor-panel,
 .preview-panel {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    border: 1px solid var(--border-color);
 }
 
 .panel-header {
     padding: 1.5rem;
-    border-bottom: 2px solid rgba(142, 126, 120, 0.2);
-    background: linear-gradient(135deg, rgba(142, 126, 120, 0.05) 0%, rgba(142, 126, 120, 0.02) 100%);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
 }
 
 .panel-header h2 {
     font-size: 1.25rem;
-    font-weight: 700;
+    font-weight: 800;
     color: var(--text-primary);
     margin: 0;
 }
@@ -515,7 +514,7 @@ const handleSave = async () => {
     flex: 1;
     overflow-y: auto;
     padding: 2rem;
-    background: #f8fafc;
+    background: var(--bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -527,13 +526,13 @@ const handleSave = async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--bg-secondary);
+    opacity: 0.9;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 10;
-    color: #64748b;
 }
 
 .settings-sections {
@@ -548,7 +547,7 @@ const handleSave = async () => {
 .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #e2e8f0;
+    border: 4px solid var(--border-color);
     border-top-color: var(--asmaa-primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -556,26 +555,25 @@ const handleSave = async () => {
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
-
 
 .settings-section {
     padding-bottom: 2rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 2rem;
 }
 
 .settings-section:last-child {
     border-bottom: none;
+    padding-bottom: 0;
 }
 
 .section-title {
     font-size: 1.125rem;
-    font-weight: 600;
-    color: #1e293b;
-    margin: 0 0 1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 1.25rem;
 }
 
 .form-group {
@@ -584,8 +582,8 @@ const handleSave = async () => {
 
 .form-group label {
     display: block;
-    font-weight: 600;
-    color: #475569;
+    font-weight: 700;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
     font-size: 0.9375rem;
 }
@@ -593,82 +591,89 @@ const handleSave = async () => {
 .checkbox-label {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     cursor: pointer;
+    font-weight: 600;
 }
 
 .form-checkbox {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
+    accent-color: var(--asmaa-primary);
 }
 
 .form-control {
     width: 100%;
-    padding: 0.625rem 1rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
     font-size: 0.9375rem;
-    transition: all 0.2s;
+    transition: all 0.3s;
     font-family: inherit;
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 .form-control:focus {
     outline: none;
     border-color: var(--asmaa-primary);
-    box-shadow: 0 0 0 3px rgba(var(--cui-primary-rgb), 0.15);
+    box-shadow: 0 0 0 3px var(--asmaa-primary-soft);
 }
 
 .color-input-group {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     align-items: center;
 }
 
 .color-picker {
     width: 60px;
-    height: 40px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    height: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
     cursor: pointer;
+    padding: 4px;
+    background: var(--bg-primary);
 }
 
 .color-text {
     flex: 1;
     font-family: monospace;
+    font-weight: 600;
 }
 
 .code-textarea {
-    font-family: 'Courier New', monospace;
+    font-family: monospace;
     font-size: 0.875rem;
 }
 
 .form-actions {
     margin-top: 2rem;
     padding-top: 2rem;
-    border-top: 2px solid #e2e8f0;
+    border-top: 2px solid var(--border-color);
 }
 
 .btn {
-    padding: 0.75rem 2rem;
+    padding: 0.875rem 2.5rem;
     border: none;
-    border-radius: 8px;
-    font-size: 0.9375rem;
-    font-weight: 600;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(142, 126, 120, 0.95) 0%, var(--asmaa-primary) 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary-dark) 0%, var(--asmaa-primary) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(142, 126, 120, 0.4);
+    box-shadow: var(--shadow-lg);
 }
 
 .btn:disabled {
@@ -677,13 +682,8 @@ const handleSave = async () => {
 }
 
 @media (max-width: 1200px) {
-    .appearance-container {
-        grid-template-columns: 1fr;
-    }
-
-    .preview-panel {
-        order: -1;
-    }
+    .appearance-container { grid-template-columns: 1fr; }
+    .preview-panel { order: -1; }
 }
 </style>
 

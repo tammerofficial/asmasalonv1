@@ -961,7 +961,7 @@ const servicesAnalyticsTotals = computed(() => {
 }
 
 .booking-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
     padding: 2rem;
     color: white;
 }
@@ -1072,13 +1072,13 @@ const servicesAnalyticsTotals = computed(() => {
 }
 
 .tab-button:hover {
-    color: #667eea;
+    color: var(--asmaa-primary);
     background: rgba(102, 126, 234, 0.05);
 }
 
 .tab-button.active {
-    color: #667eea;
-    border-bottom-color: #667eea;
+    color: var(--asmaa-primary);
+    border-bottom-color: var(--asmaa-primary);
     font-weight: 600;
 }
 
@@ -1088,7 +1088,7 @@ const servicesAnalyticsTotals = computed(() => {
 }
 
 .tab-badge {
-    background: #667eea;
+    background: var(--asmaa-primary);
     color: white;
     font-size: 0.75rem;
     padding: 0.125rem 0.5rem;
@@ -1165,7 +1165,7 @@ const servicesAnalyticsTotals = computed(() => {
 }
 
 .btn-primary {
-    background: #667eea;
+    background: var(--asmaa-primary);
     color: white;
 }
 
@@ -1201,7 +1201,7 @@ const servicesAnalyticsTotals = computed(() => {
     height: 40px;
     margin: 0 auto 1rem;
     border: 4px solid #e2e8f0;
-    border-top-color: #667eea;
+    border-top-color: var(--asmaa-primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -1321,7 +1321,7 @@ const servicesAnalyticsTotals = computed(() => {
 }
 
 .info-value.highlight {
-    color: #667eea;
+    color: var(--asmaa-primary);
     font-weight: 700;
 }
 
@@ -1329,7 +1329,7 @@ const servicesAnalyticsTotals = computed(() => {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1506,7 +1506,7 @@ const servicesAnalyticsTotals = computed(() => {
     min-width: 32px;
     height: 32px;
     padding: 0 0.75rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
     color: #fff;
     font-size: 0.875rem;
     font-weight: 600;
@@ -1539,7 +1539,7 @@ const servicesAnalyticsTotals = computed(() => {
     width: 80px;
     text-align: center;
     padding: 1rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
     border-radius: 12px;
     color: white;
     flex-shrink: 0;
@@ -1708,7 +1708,7 @@ const servicesAnalyticsTotals = computed(() => {
 
 .form-input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--asmaa-primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 

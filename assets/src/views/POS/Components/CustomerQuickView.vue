@@ -230,9 +230,9 @@ function formatDate(dateString) {
   margin-bottom: 0.25rem;
 }
 
-.loyalty .stat-icon { color: #f9b115; }
-.visits .stat-icon { color: #3399ff; }
-.spent .stat-icon { color: #2eb85c; }
+.loyalty .stat-icon { color: var(--asmaa-warning); }
+.visits .stat-icon { color: var(--asmaa-info); }
+.spent .stat-icon { color: var(--asmaa-success); }
 
 .stat-label {
   font-size: 0.6875rem;
@@ -254,14 +254,14 @@ function formatDate(dateString) {
 }
 
 .customer-alerts {
-  background: rgba(229, 83, 83, 0.1);
+  background: var(--asmaa-danger-soft);
   padding: 0.75rem;
   border-radius: 10px;
-  border: 1px solid rgba(229, 83, 83, 0.2);
+  border: 1px solid var(--asmaa-danger-soft-border);
 }
 
 .alert-item {
-  color: #e55353;
+  color: var(--asmaa-danger);
   font-size: 0.875rem;
   font-weight: 600;
   display: flex;
@@ -308,7 +308,7 @@ function formatDate(dateString) {
 }
 
 .total-spent {
-  color: #2eb85c;
+  color: var(--asmaa-success);
   font-weight: 700;
 }
 
@@ -324,8 +324,8 @@ function formatDate(dateString) {
 }
 
 @keyframes birthday-glow {
-  from { box-shadow: 0 0 5px #e55353; transform: scale(1); }
-  to { box-shadow: 0 0 15px #e55353; transform: scale(1.05); }
+  from { box-shadow: 0 0 5px var(--asmaa-danger); transform: scale(1); }
+  to { box-shadow: 0 0 15px var(--asmaa-danger); transform: scale(1.05); }
 }
 </style>
 

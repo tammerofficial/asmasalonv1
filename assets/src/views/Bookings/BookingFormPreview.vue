@@ -210,18 +210,18 @@ const activeSteps = computed(() => [
 ]);
 
 const previewStyles = computed(() => ({
-    '--primary-color': props.settings.primary_color || '#667eea',
-    '--secondary-color': props.settings.secondary_color || '#764ba2',
+    '--primary-color': props.settings.primary_color || 'var(--asmaa-primary)',
+    '--secondary-color': props.settings.secondary_color || 'var(--asmaa-primary-dark)',
     '--text-color': props.settings.text_color || '#1e293b',
     '--background-color': props.settings.background_color || '#ffffff',
-    '--button-color': props.settings.button_color || '#667eea',
+    '--button-color': props.settings.button_color || 'var(--asmaa-primary)',
     backgroundColor: props.settings.background_color || '#ffffff',
     color: props.settings.text_color || '#1e293b',
 }));
 
 const buttonStyles = computed(() => ({
-    backgroundColor: props.settings.button_color || '#667eea',
-    borderColor: props.settings.button_color || '#667eea',
+    backgroundColor: props.settings.button_color || 'var(--asmaa-primary)',
+    borderColor: props.settings.button_color || 'var(--asmaa-primary)',
 }));
 
 const nextStep = () => {

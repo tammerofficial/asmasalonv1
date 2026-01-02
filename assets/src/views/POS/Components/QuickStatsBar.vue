@@ -107,7 +107,7 @@ function formatCurrency(amount) {
 }
 
 .stat-icon.success { background: rgba(46, 184, 92, 0.1); color: #2eb85c; }
-.stat-icon.primary { background: rgba(50, 31, 219, 0.1); color: #321fdb; }
+.stat-icon.primary { background: var(--asmaa-primary-soft); color: var(--asmaa-primary); }
 .stat-icon.info { background: rgba(51, 153, 255, 0.1); color: #3399ff; }
 .stat-icon.warning { background: rgba(249, 177, 21, 0.1); color: #f9b115; }
 

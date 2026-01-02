@@ -70,14 +70,21 @@ function formatCurrency(amount) {
 <style scoped>
 .analytics-card {
   background: var(--bg-secondary);
+  border: 1px solid var(--border-color) !important;
+  border-radius: 16px !important;
   transition: all 0.3s;
 }
 .analytics-card:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow-md);
+  border-color: var(--asmaa-primary) !important;
 }
 .staff-perf-item {
   border-right: 4px solid var(--asmaa-primary);
+  background: var(--bg-tertiary) !important;
+}
+.chart-placeholder {
+  background: var(--bg-tertiary) !important;
 }
 </style>
 

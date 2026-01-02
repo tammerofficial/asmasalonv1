@@ -734,7 +734,7 @@ onMounted(() => {
 }
 
 .search-icon-wrapper {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-800) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   color: white;
   border-color: var(--asmaa-primary);
 }
@@ -769,7 +769,7 @@ onMounted(() => {
 
 /* Primary Button */
 .btn-primary-custom {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-900) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   border: none;
   box-shadow: var(--shadow-md);
   transition: all 0.3s;
@@ -879,7 +879,7 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-800) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   color: white;
   font-weight: 800;
   font-size: var(--font-size-sm);
@@ -1012,7 +1012,7 @@ onMounted(() => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-900) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   color: white;
   box-shadow: var(--shadow-sm);
 }
@@ -1124,7 +1124,7 @@ onMounted(() => {
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s;
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-900) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   color: white;
   box-shadow: var(--shadow-sm);
 }
@@ -1200,7 +1200,7 @@ onMounted(() => {
   width: 80px;
   height: 80px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-800) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;

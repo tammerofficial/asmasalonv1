@@ -246,10 +246,10 @@ onMounted(() => {
   font-size: 1.25rem;
   color: white;
 }
-.stat-icon-bg.available { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-.stat-icon-bg.busy { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-.stat-icon-bg.waiting { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-.stat-icon-bg.total { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
+.stat-icon-bg.available { background: linear-gradient(135deg, var(--asmaa-success) 0%, #059669 100%); }
+.stat-icon-bg.busy { background: linear-gradient(135deg, var(--asmaa-danger) 0%, #dc2626 100%); }
+.stat-icon-bg.waiting { background: linear-gradient(135deg, var(--asmaa-warning) 0%, #d97706 100%); }
+.stat-icon-bg.total { background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-dark) 100%); }
 
 .stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; }
 .stat-label { font-size: 0.8125rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
@@ -294,7 +294,7 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, #d4b996 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, var(--asmaa-primary-light) 100%);
   color: white;
   font-size: 2rem;
   font-weight: 800;

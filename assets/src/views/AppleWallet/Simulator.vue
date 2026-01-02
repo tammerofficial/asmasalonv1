@@ -245,6 +245,7 @@ onMounted(() => {
 <style scoped>
 .apple-wallet-simulator-page {
   padding: var(--spacing-lg);
+  font-family: var(--font-family-body);
 }
 
 .iphone-mockup {
@@ -358,6 +359,32 @@ onMounted(() => {
 
 .pass-controls {
   margin-top: 20px;
+}
+
+:deep(.card) {
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.card-header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 800;
+  padding: 1.25rem;
+}
+
+:deep(.form-control) {
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+:deep(.form-control:focus) {
+  border-color: var(--asmaa-primary);
+  box-shadow: 0 0 0 3px var(--asmaa-primary-soft);
 }
 </style>
 

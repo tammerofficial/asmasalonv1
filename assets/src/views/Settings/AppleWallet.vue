@@ -228,22 +228,55 @@ onMounted(() => {
 <style scoped>
 .apple-wallet-settings-page {
   padding: var(--spacing-lg);
+  font-family: var(--font-family-body);
 }
 
 .alert {
   padding: var(--spacing-md);
-  border-radius: var(--radius-md);
+  border-radius: var(--border-radius-md);
 }
 
 .alert ol {
   padding-left: var(--spacing-lg);
 }
 
+[dir="rtl"] .alert ol {
+  padding-left: 0;
+  padding-right: var(--spacing-lg);
+}
+
 code {
   background: var(--bg-secondary);
   padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--border-radius-sm);
   font-size: 0.875rem;
+  font-family: monospace;
+}
+
+:deep(.card) {
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.card-header) {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 800;
+  padding: 1.25rem;
+}
+
+:deep(.form-control) {
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+:deep(.form-control:focus) {
+  border-color: var(--asmaa-primary);
+  box-shadow: 0 0 0 3px var(--asmaa-primary-soft);
 }
 </style>
 

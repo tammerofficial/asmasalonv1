@@ -252,8 +252,8 @@ const getStatusColor = (status) => {
     pending: '#f59e0b', // Yellow/Orange
     staff_called: '#3b82f6', // Blue
     customer_called: '#10b981', // Green
-    accepted: '#8b5cf6', // Purple
-    serving: '#8b5cf6', // Purple
+    accepted: 'var(--asmaa-primary)', // Purple
+    serving: 'var(--asmaa-primary)', // Purple
   };
   return colorMap[status] || '#8E7E78';
 };
@@ -652,7 +652,7 @@ onUnmounted(() => {
 
 .status-icon-wrapper.accepted .status-icon,
 .status-icon-wrapper.serving .status-icon {
-  color: #8b5cf6;
+  color: var(--asmaa-primary);
 }
 
 .card-body {
@@ -752,7 +752,7 @@ onUnmounted(() => {
 
 .status-badge.accepted,
 .status-badge.serving {
-  background: linear-gradient(135deg, #8b5cf6 0%, rgba(139, 92, 246, 0.8) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(139, 92, 246, 0.8) 100%);
   color: white;
 }
 
