@@ -33,21 +33,21 @@
         <div class="stat-icon-bg visits"><CIcon icon="cil-calendar-check" /></div>
         <div class="stat-info">
           <div class="stat-value text-info">{{ stats.totalVisits || 0 }}</div>
-          <div class="stat-label">Total Visits</div>
+          <div class="stat-label">{{ t('customers.totalVisits') }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg spending"><CIcon icon="cil-money" /></div>
         <div class="stat-info">
           <div class="stat-value text-success">{{ formatCurrencyShort(stats.totalSpending || 0) }}</div>
-          <div class="stat-label">Total Spending</div>
+          <div class="stat-label">{{ t('customers.totalSpending') }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg points"><CIcon icon="cil-star" /></div>
         <div class="stat-info">
           <div class="stat-value text-warning">{{ stats.totalPoints || 0 }}</div>
-          <div class="stat-label">Total Points</div>
+          <div class="stat-label">{{ t('customers.totalPoints') }}</div>
         </div>
       </div>
     </div>
@@ -59,38 +59,38 @@
           <CInputGroup>
             <CInputGroupText class="bg-transparent border-0"><CIcon icon="cil-magnifying-glass" /></CInputGroupText>
             <CFormInput v-model="filters.search" :placeholder="t('customers.searchPlaceholder')" @input="debounceSearch" class="border-0 bg-transparent" />
-          </CInputGroup>
-        </CCol>
+            </CInputGroup>
+          </CCol>
         <CCol md="3">
           <CFormSelect v-model="filters.status" @change="loadCustomers" class="rounded-3">
-            <option value="">{{ t('customers.allStatuses') }}</option>
-            <option value="active">{{ t('status.active') }}</option>
-            <option value="inactive">{{ t('status.inactive') }}</option>
-          </CFormSelect>
-        </CCol>
+              <option value="">{{ t('customers.allStatuses') }}</option>
+              <option value="active">{{ t('status.active') }}</option>
+              <option value="inactive">{{ t('status.inactive') }}</option>
+            </CFormSelect>
+          </CCol>
         <CCol md="3">
           <CFormSelect v-model="filters.gender" @change="loadCustomers" class="rounded-3">
-            <option value="">{{ t('customers.allGenders') }}</option>
-            <option value="male">{{ t('customers.male') }}</option>
-            <option value="female">{{ t('customers.female') }}</option>
-          </CFormSelect>
-        </CCol>
+              <option value="">{{ t('customers.allGenders') }}</option>
+              <option value="male">{{ t('customers.male') }}</option>
+              <option value="female">{{ t('customers.female') }}</option>
+            </CFormSelect>
+          </CCol>
         <CCol md="2">
           <CButton color="primary" variant="ghost" class="w-100" @click="resetFilters">
             <CIcon icon="cil-filter-x" class="me-1" />{{ t('common.reset') }}
-          </CButton>
-        </CCol>
-      </CRow>
-    </div>
+            </CButton>
+          </CCol>
+        </CRow>
+      </div>
 
     <!-- Customers Display -->
     <div class="nano-panel">
       <div v-if="loading" class="text-center p-5">
         <CSpinner color="primary" />
-      </div>
+          </div>
       <div v-else-if="customers.length === 0" class="text-center p-5">
         <EmptyState :title="t('common.noData')" :description="t('customers.title')" />
-      </div>
+        </div>
       <div v-else>
         <div class="nano-grid">
           <div v-for="customer in customers" :key="customer.id" class="customer-nano-card" @click="viewCustomer(customer)">
@@ -98,18 +98,18 @@
             <div class="customer-avatar-main">{{ customer.name?.charAt(0) }}</div>
             <div class="customer-main-info mt-3 text-center">
               <h5 class="fw-bold mb-1">{{ customer.name }}</h5>
-              <p class="text-muted small mb-3">{{ customer.phone || 'No phone' }}</p>
+              <p class="text-muted small mb-3">{{ customer.phone || t('common.noPhone') }}</p>
             </div>
             <div class="customer-stats-row d-flex justify-content-between border-top pt-3">
               <div class="stat">
-                <span class="label">Points</span>
+                <span class="label">{{ t('loyalty.points') }}</span>
                 <span class="value text-warning fw-bold">{{ customer.points || 0 }}</span>
-              </div>
-              <div class="stat">
-                <span class="label">Wallet</span>
-                <span class="value text-success fw-bold">{{ formatCurrencyShort(customer.wallet_balance || 0) }}</span>
-              </div>
             </div>
+              <div class="stat">
+                <span class="label">{{ t('customers.wallet') }}</span>
+                <span class="value text-success fw-bold">{{ formatCurrencyShort(customer.wallet_balance || 0) }}</span>
+          </div>
+              </div>
             <div class="customer-actions-hover mt-3">
               <CButton size="sm" color="info" variant="ghost" @click.stop="editCustomer(customer)">
                 <CIcon icon="cil-pencil" />
@@ -120,16 +120,16 @@
               <CButton size="sm" color="danger" variant="ghost" @click.stop="confirmDelete(customer)">
                 <CIcon icon="cil-trash" />
               </CButton>
+              </div>
             </div>
           </div>
-        </div>
 
         <!-- Pagination -->
         <div v-if="pagination.total_pages > 1" class="d-flex justify-content-center mt-5">
           <CPagination :pages="pagination.total_pages" :active-page="pagination.current_page" @update:active-page="changePage" />
-        </div>
-      </div>
-    </div>
+              </div>
+              </div>
+            </div>
 
     <!-- Modals (Simplified) -->
     <CModal :visible="showCreateModal" @close="showCreateModal = false" size="lg" alignment="center">
@@ -140,23 +140,23 @@
         <!-- Customer Form -->
         <CRow class="g-3">
           <CCol md="6">
-            <label class="form-label fw-bold">Name *</label>
+            <label class="form-label fw-bold">{{ t('customers.fullName') }} *</label>
             <CFormInput v-model="customerForm.name" required />
           </CCol>
           <CCol md="6">
-            <label class="form-label fw-bold">Phone *</label>
+            <label class="form-label fw-bold">{{ t('customers.phone') }} *</label>
             <CFormInput v-model="customerForm.phone" type="tel" required />
           </CCol>
           <CCol md="6">
-            <label class="form-label fw-bold">Email</label>
+            <label class="form-label fw-bold">{{ t('customers.email') }}</label>
             <CFormInput v-model="customerForm.email" type="email" />
           </CCol>
           <CCol md="6">
-            <label class="form-label fw-bold">Status</label>
+            <label class="form-label fw-bold">{{ t('common.status') }}</label>
             <CFormSelect v-model="customerForm.status">
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </CFormSelect>
+              <option value="active">{{ t('status.active') }}</option>
+              <option value="inactive">{{ t('status.inactive') }}</option>
+          </CFormSelect>
           </CCol>
         </CRow>
       </CModalBody>
@@ -174,7 +174,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
+import {
   CButton, CBadge, CRow, CCol, CSpinner, CFormInput, CFormSelect, 
   CInputGroup, CInputGroupText, CPagination, CModal, CModalHeader, 
   CModalTitle, CModalBody, CModalFooter 
@@ -232,8 +232,8 @@ const loadCustomers = async () => {
   try {
     const response = await api.get('/customers', {
       params: {
-        page: pagination.value.current_page,
-        per_page: pagination.value.per_page,
+      page: pagination.value.current_page,
+      per_page: pagination.value.per_page,
         ...filters.value
       }
     });
@@ -255,7 +255,7 @@ const debounceSearch = () => {
   clearTimeout(window.searchTimer);
   window.searchTimer = setTimeout(() => {
     pagination.value.current_page = 1;
-    loadCustomers();
+  loadCustomers();
   }, 500);
 };
 
@@ -266,7 +266,7 @@ const resetFilters = () => {
 
 const changePage = (page) => {
   pagination.value.current_page = page;
-  loadCustomers();
+    loadCustomers();
 };
 
 const editCustomer = (customer) => {
@@ -280,28 +280,28 @@ const saveCustomer = async () => {
   try {
     if (editingCustomer.value) {
       await api.put(`/customers/${editingCustomer.value.id}`, customerForm.value);
-      toast.success('Customer updated');
+      toast.success(t('customers.updated'));
     } else {
       await api.post('/customers', customerForm.value);
-      toast.success('Customer added');
+      toast.success(t('customers.added'));
     }
     showCreateModal.value = false;
     loadCustomers();
   } catch (e) {
-    toast.error('Failed to save customer');
+    toast.error(t('customers.failedToSave'));
   } finally {
     saving.value = false;
   }
 };
 
 const confirmDelete = async (customer) => {
-  if (confirm(`Delete customer ${customer.name}?`)) {
-    try {
-      await api.delete(`/customers/${customer.id}`);
-      toast.success('Customer deleted');
-      loadCustomers();
+  if (confirm(t('customers.confirmDelete', { name: customer.name }))) {
+  try {
+    await api.delete(`/customers/${customer.id}`);
+      toast.success(t('customers.deleted'));
+    loadCustomers();
     } catch (e) {
-      toast.error('Failed to delete customer');
+      toast.error(t('customers.failedToDelete'));
     }
   }
 };
@@ -339,7 +339,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .nano-stats-bar {
@@ -418,7 +418,7 @@ onMounted(() => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-}
+  }
 .customer-badge-status.active { background: #10b981; box-shadow: 0 0 8px #10b981; }
 .customer-badge-status.inactive { background: #ef4444; }
 
@@ -434,7 +434,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  box-shadow: 0 4px 10px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 10px rgba(142, 126, 120, 0.3);
 }
 
 .customer-stats-row .stat {

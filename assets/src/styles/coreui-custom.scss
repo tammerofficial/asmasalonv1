@@ -1,15 +1,16 @@
 // Asmaa Salon CoreUI Customizations
-// Primary color: #BBA07A
+// Primary color (Original Site): #8E7E78
 
-$primary: #BBA07A;
-$primary-dark: #9a8563;
-$primary-light: #d4c4a8;
+$primary: #8E7E78;
+$primary-dark: #6E5E59;
+$primary-light: #AC9E96;
+$secondary: #181B31;
 
 // Override CoreUI variables (global theme mapping)
 :root {
   /* CoreUI palette */
   --cui-primary: var(--asmaa-primary);
-  --cui-primary-rgb: 187, 160, 122;
+  --cui-primary-rgb: 142, 126, 120;
   --cui-secondary: var(--asmaa-secondary);
   --cui-success: var(--asmaa-success);
   --cui-warning: var(--asmaa-warning);

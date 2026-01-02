@@ -6,7 +6,7 @@
         <h2 class="mb-0 fw-bold text-primary">{{ t('reports.title') }}</h2>
         <CBadge color="gold" shape="rounded-pill" class="px-3 py-2 fw-bold text-dark">
           <CIcon icon="cil-chart-line" class="me-1" />
-          Analytics Dashboard
+          {{ t('reports.analyticsDashboard') }}
         </CBadge>
       </div>
       <div class="header-right d-flex gap-2">
@@ -17,7 +17,7 @@
         <CButton color="secondary" variant="ghost" @click="loadAllData" :disabled="loading">
           <CIcon icon="cil-reload" :class="{ 'spinning': loading }" />
         </CButton>
-      </div>
+    </div>
     </div>
 
     <!-- Tabs Navigation (Modern Pills) -->
@@ -31,8 +31,8 @@
           <CIcon :icon="tab.icon" class="me-2" />
           {{ tab.label }}
         </CNavLink>
-      </CNavItem>
-    </CNav>
+          </CNavItem>
+        </CNav>
 
     <!-- Quick Stats Bar (Nano Banana Style - Contextual) -->
     <div class="nano-stats-bar mb-4">
@@ -41,149 +41,149 @@
           <div class="stat-icon-bg orders"><CIcon icon="cil-cart" /></div>
           <div class="stat-info">
             <div class="stat-value text-info">{{ overview?.summary?.orders ?? 0 }}</div>
-            <div class="stat-label">Total Orders</div>
-          </div>
-        </div>
+            <div class="stat-label">{{ t('reports.totalOrders') }}</div>
+                </div>
+              </div>
         <div class="stat-card-nano">
           <div class="stat-icon-bg revenue"><CIcon icon="cil-money" /></div>
           <div class="stat-info">
             <div class="stat-value text-success">{{ formatCurrency(overview?.summary?.revenue ?? 0) }}</div>
-            <div class="stat-label">Gross Revenue</div>
-          </div>
-        </div>
+            <div class="stat-label">{{ t('reports.grossRevenue') }}</div>
+                </div>
+              </div>
         <div class="stat-card-nano">
           <div class="stat-icon-bg commission"><CIcon icon="cil-dollar" /></div>
           <div class="stat-info">
             <div class="stat-value text-primary">{{ formatCurrency(overview?.summary?.commissions_total ?? 0) }}</div>
-            <div class="stat-label">Total Commissions</div>
-          </div>
-        </div>
+            <div class="stat-label">{{ t('reports.totalCommissions') }}</div>
+                </div>
+              </div>
         <div class="stat-card-nano">
           <div class="stat-icon-bg loyalty"><CIcon icon="cil-star" /></div>
           <div class="stat-info">
             <div class="stat-value text-warning">{{ overview?.summary?.loyalty_earned ?? 0 }}</div>
-            <div class="stat-label">Loyalty Points</div>
-          </div>
-        </div>
+            <div class="stat-label">{{ t('loyalty.points') }}</div>
+                </div>
+              </div>
       </template>
       <template v-else-if="activeTab === 'sales'">
         <div class="stat-card-nano">
           <div class="stat-icon-bg total"><CIcon icon="cil-calendar" /></div>
           <div class="stat-info">
             <div class="stat-value">{{ salesSummary.days }}</div>
-            <div class="stat-label">Days tracked</div>
-          </div>
-        </div>
+            <div class="stat-label">{{ t('reports.daysTracked') }}</div>
+                </div>
+              </div>
         <div class="stat-card-nano">
           <div class="stat-icon-bg orders"><CIcon icon="cil-cart" /></div>
           <div class="stat-info">
             <div class="stat-value text-info">{{ salesSummary.totalOrders }}</div>
-            <div class="stat-label">Total Orders</div>
-          </div>
-        </div>
+            <div class="stat-label">{{ t('reports.totalOrders') }}</div>
+                </div>
+              </div>
         <div class="stat-card-nano">
           <div class="stat-icon-bg revenue"><CIcon icon="cil-money" /></div>
           <div class="stat-info">
             <div class="stat-value text-success">{{ formatCurrency(salesSummary.totalRevenue) }}</div>
-            <div class="stat-label">Total Revenue</div>
-          </div>
-        </div>
+            <div class="stat-label">{{ t('reports.totalRevenue') }}</div>
+                </div>
+              </div>
         <div class="stat-card-nano">
           <div class="stat-icon-bg avg"><CIcon icon="cil-chart" /></div>
           <div class="stat-info">
             <div class="stat-value text-primary">{{ formatCurrency(salesSummary.averageOrder) }}</div>
-            <div class="stat-label">Avg. Order Value</div>
-          </div>
-        </div>
+            <div class="stat-label">{{ t('reports.avgOrderValue') }}</div>
+                </div>
+              </div>
       </template>
-    </div>
+              </div>
 
     <!-- Main Content Panel -->
     <div class="nano-panel">
       <div v-if="loading" class="text-center p-5">
         <CSpinner color="primary" />
-      </div>
+                </div>
       <div v-else class="tab-content-wrapper">
         <!-- Overview Tab -->
         <div v-if="activeTab === 'overview'" class="overview-grid">
           <CRow class="g-4">
             <CCol md="8">
               <div class="chart-card p-4 rounded-4 border h-100 shadow-sm bg-tertiary">
-                <h5 class="fw-bold mb-4">Revenue Overview (Last 30 Days)</h5>
+                <h5 class="fw-bold mb-4">{{ t('reports.revenueOverview') }}</h5>
                 <div class="chart-placeholder bg-light rounded-4 d-flex align-items-center justify-content-center" style="height: 350px">
                   <CIcon icon="cil-chart" size="xl" class="text-muted opacity-20" />
-                </div>
               </div>
-            </CCol>
+            </div>
+              </CCol>
             <CCol md="4">
               <div class="p-4 rounded-4 border h-100 shadow-sm bg-tertiary">
-                <h5 class="fw-bold mb-4">Top Services</h5>
+                <h5 class="fw-bold mb-4">{{ t('reports.topServices') }}</h5>
                 <div class="d-flex flex-column gap-3">
                   <div v-for="s in [1,2,3,4,5]" :key="s" class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-secondary">
                     <span class="fw-bold">Service {{ s }}</span>
-                    <CBadge color="primary" shape="rounded-pill">45 Sales</CBadge>
-                  </div>
-                </div>
+                    <CBadge color="primary" shape="rounded-pill">45 {{ t('reports.sales') }}</CBadge>
+            </div>
+        </div>
               </div>
-            </CCol>
-          </CRow>
+              </CCol>
+            </CRow>
         </div>
 
         <!-- Sales Tab -->
         <div v-if="activeTab === 'sales'">
           <div class="nano-table-container">
             <table class="nano-table w-100">
-              <thead>
-                <tr>
-                  <th class="text-start">Date</th>
-                  <th>Orders</th>
-                  <th class="text-end">Revenue</th>
-                  <th class="text-end">Commissions</th>
-                  <th>Growth</th>
-                </tr>
-              </thead>
-              <tbody>
+                <thead>
+                  <tr>
+                  <th class="text-start">{{ t('common.date') }}</th>
+                  <th>{{ t('reports.orders') }}</th>
+                  <th class="text-end">{{ t('reports.revenue') }}</th>
+                  <th class="text-end">{{ t('reports.commissions') }}</th>
+                  <th>{{ t('reports.growth') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
                 <tr v-for="day in [1,2,3,4,5]" :key="day" class="nano-table-row">
                   <td class="text-start fw-bold">2023-10-{{ day }}</td>
                   <td>12</td>
                   <td class="text-end text-success fw-bold">150.000 KWD</td>
                   <td class="text-end">15.000 KWD</td>
                   <td><CBadge color="success">+12%</CBadge></td>
-                </tr>
-              </tbody>
+                  </tr>
+                </tbody>
             </table>
-          </div>
+            </div>
         </div>
-      </div>
-    </div>
+            </div>
+        </div>
 
     <!-- Filters Section (Collapsible) -->
     <div class="nano-filters-panel mt-4 p-4 rounded-4 bg-secondary shadow-sm">
-      <h6 class="fw-bold mb-3"><CIcon icon="cil-filter" class="me-2" />Report Filters</h6>
-      <CRow class="g-3">
+      <h6 class="fw-bold mb-3"><CIcon icon="cil-filter" class="me-2" />{{ t('reports.filters') }}</h6>
+            <CRow class="g-3">
         <CCol md="3">
-          <label class="small text-muted fw-bold mb-1">Date Range</label>
+          <label class="small text-muted fw-bold mb-1">{{ t('reports.dateRange') }}</label>
           <CFormSelect v-model="filters.range">
-            <option value="today">Today</option>
-            <option value="yesterday">Yesterday</option>
-            <option value="this_week">This Week</option>
-            <option value="this_month">This Month</option>
-            <option value="custom">Custom Range</option>
+            <option value="today">{{ t('common.today') }}</option>
+            <option value="yesterday">{{ t('common.yesterday') }}</option>
+            <option value="this_week">{{ t('common.thisWeek') }}</option>
+            <option value="this_month">{{ t('common.thisMonth') }}</option>
+            <option value="custom">{{ t('common.customRange') }}</option>
           </CFormSelect>
-        </CCol>
+              </CCol>
         <CCol md="3" v-if="filters.range === 'custom'">
-          <label class="small text-muted fw-bold mb-1">Start Date</label>
+          <label class="small text-muted fw-bold mb-1">{{ t('common.startDate') }}</label>
           <CFormInput type="date" v-model="filters.start_date" />
-        </CCol>
+              </CCol>
         <CCol md="3" v-if="filters.range === 'custom'">
-          <label class="small text-muted fw-bold mb-1">End Date</label>
+          <label class="small text-muted fw-bold mb-1">{{ t('common.endDate') }}</label>
           <CFormInput type="date" v-model="filters.end_date" />
-        </CCol>
+              </CCol>
         <CCol md="3" class="d-flex align-items-end">
-          <CButton color="primary" class="w-100 nano-btn" @click="loadAllData">Apply Filters</CButton>
-        </CCol>
-      </CRow>
-    </div>
+          <CButton color="primary" class="w-100 nano-btn" @click="loadAllData">{{ t('reports.applyFilters') }}</CButton>
+              </CCol>
+            </CRow>
+        </div>
 
     <HelpSection page-key="reports" />
   </div>
@@ -191,7 +191,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
+import {
   CButton, CBadge, CRow, CCol, CSpinner, CFormInput, CFormSelect, 
   CNav, CNavItem, CNavLink 
 } from '@coreui/vue';
@@ -216,12 +216,12 @@ const filters = ref({
 });
 
 const reportTabs = [
-  { id: 'overview', label: 'Overview', icon: 'cil-chart-line' },
-  { id: 'sales', label: 'Sales', icon: 'cil-cart' },
-  { id: 'commissions', label: 'Commissions', icon: 'cil-dollar' },
-  { id: 'staff', label: 'Staff Performance', icon: 'cil-user' },
-  { id: 'customers', label: 'Customers', icon: 'cil-people' },
-  { id: 'inventory', label: 'Inventory', icon: 'cil-basket' }
+  { id: 'overview', label: t('reports.overview'), icon: 'cil-chart-line' },
+  { id: 'sales', label: t('reports.sales'), icon: 'cil-cart' },
+  { id: 'commissions', label: t('reports.commissions'), icon: 'cil-dollar' },
+  { id: 'staff', label: t('reports.staffPerformance'), icon: 'cil-user' },
+  { id: 'customers', label: t('reports.customers'), icon: 'cil-people' },
+  { id: 'inventory', label: t('reports.inventory'), icon: 'cil-basket' }
 ];
 
 const salesSummary = computed(() => {
@@ -247,7 +247,7 @@ const loadAllData = async () => {
 };
 
 const exportReport = () => {
-  toast.success('Report exported to Excel');
+  toast.success(t('reports.exported'));
 };
 
 const formatCurrency = (amount) => {
@@ -274,7 +274,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 .nano-btn-outline {
   border-radius: 12px;
@@ -301,7 +301,7 @@ onMounted(() => {
 .nano-tab-link.active {
   background: var(--asmaa-primary) !important;
   color: white !important;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .nano-stats-bar {

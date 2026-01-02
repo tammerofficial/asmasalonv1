@@ -468,7 +468,7 @@ onMounted(() => {
 
 .btn-refresh:hover,
 .btn-refresh:focus {
-  background: rgba(187, 160, 122, 0.12) !important;
+  background: rgba(142, 126, 120, 0.12) !important;
   border-color: var(--asmaa-primary) !important;
   color: var(--asmaa-primary) !important;
 }
@@ -481,8 +481,8 @@ onMounted(() => {
 
 .btn-add-user:hover,
 .btn-add-user:focus {
-  background: rgba(187, 160, 122, 0.9) !important;
-  border-color: rgba(187, 160, 122, 0.9) !important;
+  background: rgba(142, 126, 120, 0.9) !important;
+  border-color: rgba(142, 126, 120, 0.9) !important;
   color: #fff !important;
 }
 
@@ -552,7 +552,7 @@ onMounted(() => {
 .search-input:focus {
   outline: none;
   border-color: var(--asmaa-primary);
-  box-shadow: 0 0 0 3px rgba(187, 160, 122, 0.1);
+  box-shadow: 0 0 0 3px rgba(142, 126, 120, 0.1);
 }
 
 .filter-select {

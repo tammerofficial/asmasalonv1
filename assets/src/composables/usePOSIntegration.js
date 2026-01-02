@@ -171,6 +171,7 @@ export function usePOSIntegration() {
         })),
         payment_method: posStore.paymentMethod,
         discount: posStore.discount || 0,
+        discount_reason: posStore.discountReason || '',
         client_side_id: clientSideId,
         // Support for split payments
         is_split_payment: posStore.splitPayments.some(p => p.amount > 0),

@@ -229,7 +229,7 @@ onMounted(loadMembers);
 }
 
 /* Pass Colors */
-.apple-pass-visual.loyalty { background: linear-gradient(135deg, #bba07a 0%, #a18a62 100%); }
+.apple-pass-visual.loyalty { background: linear-gradient(135deg, #8E7E78 0%, #a18a62 100%); }
 .apple-pass-visual.membership { background: linear-gradient(135deg, #8b4513 0%, #5d2e0d 100%); }
 .apple-pass-visual.programs { background: linear-gradient(135deg, #4b0082 0%, #310055 100%); }
 .apple-pass-visual.commissions { background: linear-gradient(135deg, #006400 0%, #004400 100%); }

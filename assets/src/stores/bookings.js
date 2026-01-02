@@ -439,6 +439,17 @@ export const useBookingsStore = defineStore('bookings', {
                 this.settings.loading = false;
             }
         },
+
+        /**
+         * Generic prefetch for Rule #4
+         */
+        async prefetch() {
+            await Promise.all([
+                this.prefetchServices(),
+                this.prefetchStaff(),
+                this.prefetchAppointments(),
+            ]);
+        },
     },
 });
 

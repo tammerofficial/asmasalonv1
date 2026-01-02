@@ -6,7 +6,7 @@
         <h2 class="mb-0 fw-bold text-primary">{{ t('memberships.title') }}</h2>
         <CBadge color="gold" shape="rounded-pill" class="px-3 py-2 fw-bold text-dark">
           <CIcon icon="cil-credit-card" class="me-1" />
-          Premium Access
+          {{ t('memberships.premiumAccess') }}
         </CBadge>
       </div>
       <div class="header-right d-flex gap-2">
@@ -14,7 +14,7 @@
           <CIcon icon="cil-wallet" class="me-2" />{{ t('memberships.addToAppleWallet') }}
         </CButton>
         <CButton color="primary" variant="outline" class="nano-btn-outline" @click="openAssignModal">
-          <CIcon icon="cil-user-follow" class="me-2" />Assign
+          <CIcon icon="cil-user-follow" class="me-2" />{{ t('memberships.assign') }}
         </CButton>
         <CButton color="primary" class="nano-btn" @click="openPlanModal()">
           <CIcon icon="cil-plus" class="me-2" />{{ t('memberships.newPlan') }}
@@ -31,28 +31,28 @@
         <div class="stat-icon-bg plans"><CIcon icon="cil-layers" /></div>
         <div class="stat-info">
           <div class="stat-value">{{ plansStats.total }}</div>
-          <div class="stat-label">Active Plans</div>
+          <div class="stat-label">{{ t('memberships.activePlans') }}</div>
         </div>
       </div>
       <div class="stat-card-nano clickable" @click="activeTab = 'members'">
         <div class="stat-icon-bg members"><CIcon icon="cil-people" /></div>
         <div class="stat-info">
           <div class="stat-value text-info">{{ membersStats.total }}</div>
-          <div class="stat-label">Total Members</div>
+          <div class="stat-label">{{ t('memberships.totalMembers') }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg revenue"><CIcon icon="cil-money" /></div>
         <div class="stat-info">
           <div class="stat-value text-success">1,250</div>
-          <div class="stat-label">Membership Revenue</div>
+          <div class="stat-label">{{ t('memberships.membershipRevenue') }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg expiring"><CIcon icon="cil-clock" /></div>
         <div class="stat-info">
           <div class="stat-value text-warning">12</div>
-          <div class="stat-label">Expiring Soon</div>
+          <div class="stat-label">{{ t('memberships.expiringSoon') }}</div>
         </div>
       </div>
     </div>
@@ -69,28 +69,28 @@
           <CIcon icon="cil-people" class="me-2" />{{ t('memberships.membersTab') }}
         </CNavLink>
       </CNavItem>
-    </CNav>
+        </CNav>
 
     <!-- Main Content Panel -->
     <div class="nano-panel">
       <!-- Plans Grid -->
-      <div v-if="activeTab === 'plans'">
+        <div v-if="activeTab === 'plans'">
         <div v-if="loadingPlans" class="text-center p-5"><CSpinner color="primary" /></div>
         <div v-else class="nano-grid">
           <div v-for="plan in plans" :key="plan.id" class="membership-plan-card" @click="openPlanModal(plan)">
-            <div class="plan-badge">{{ plan.is_active ? 'Active' : 'Inactive' }}</div>
+            <div class="plan-badge">{{ plan.is_active ? t('status.active') : t('status.inactive') }}</div>
             <div class="plan-icon"><CIcon icon="cil-gem" size="xl" /></div>
             <h4 class="fw-bold mb-2">{{ plan.name_ar || plan.name }}</h4>
             <div class="plan-price text-primary h2 fw-bold mb-3">{{ formatCurrency(plan.price || 0) }}</div>
             <div class="plan-features d-flex flex-column gap-2 mb-4">
-              <div class="feature-item"><CIcon icon="cil-check-circle" class="text-success me-2" /> {{ plan.duration_months }} Months</div>
-              <div class="feature-item"><CIcon icon="cil-check-circle" class="text-success me-2" /> {{ plan.discount_percent }}% Off Services</div>
-              <div class="feature-item" v-if="plan.free_services_count > 0"><CIcon icon="cil-check-circle" class="text-success me-2" /> {{ plan.free_services_count }} Free Services</div>
-            </div>
-            <CButton color="primary" variant="ghost" class="w-100 mt-auto">Edit Plan</CButton>
+              <div class="feature-item"><CIcon icon="cil-check-circle" class="text-success me-2" /> {{ plan.duration_months }} {{ t('common.months') }}</div>
+              <div class="feature-item"><CIcon icon="cil-check-circle" class="text-success me-2" /> {{ plan.discount_percent }}% {{ t('memberships.offServices') }}</div>
+              <div class="feature-item" v-if="plan.free_services_count > 0"><CIcon icon="cil-check-circle" class="text-success me-2" /> {{ plan.free_services_count }} {{ t('memberships.freeServices') }}</div>
+                    </div>
+            <CButton color="primary" variant="ghost" class="w-100 mt-auto">{{ t('memberships.editPlan') }}</CButton>
+                    </div>
           </div>
         </div>
-      </div>
 
       <!-- Members Table -->
       <div v-if="activeTab === 'members'">
@@ -99,36 +99,36 @@
             <CCol md="6">
               <CInputGroup>
                 <CInputGroupText class="bg-transparent border-0"><CIcon icon="cil-magnifying-glass" /></CInputGroupText>
-                <CFormInput v-model="memberFilters.search" placeholder="Search members..." @input="debounceMemberSearch" class="border-0 bg-transparent" />
+                <CFormInput v-model="memberFilters.search" :placeholder="t('memberships.searchMembers')" @input="debounceMemberSearch" class="border-0 bg-transparent" />
               </CInputGroup>
             </CCol>
             <CCol md="3">
               <CFormSelect v-model="memberFilters.status" @change="loadMembers" class="rounded-3">
-                <option value="">All Members</option>
-                <option value="active">Active</option>
-                <option value="expired">Expired</option>
-              </CFormSelect>
-            </CCol>
+                <option value="">{{ t('memberships.allMembers') }}</option>
+                <option value="active">{{ t('status.active') }}</option>
+                <option value="expired">{{ t('status.expired') }}</option>
+                </CFormSelect>
+              </CCol>
             <CCol md="3">
-              <CButton color="secondary" variant="ghost" class="w-100" @click="resetMemberFilters">Reset</CButton>
-            </CCol>
-          </CRow>
+              <CButton color="secondary" variant="ghost" class="w-100" @click="resetMemberFilters">{{ t('common.reset') }}</CButton>
+              </CCol>
+            </CRow>
         </div>
 
         <div v-if="loadingMembers" class="text-center p-5"><CSpinner color="primary" /></div>
         <div v-else class="nano-table-container">
           <table class="nano-table w-100">
-            <thead>
+              <thead>
               <tr>
-                <th class="text-start">Customer</th>
-                <th>Plan</th>
-                <th>Start Date</th>
-                <th>Expiry Date</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+                <th class="text-start">{{ t('common.customer') }}</th>
+                <th>{{ t('memberships.plan') }}</th>
+                <th>{{ t('common.startDate') }}</th>
+                <th>{{ t('common.expiryDate') }}</th>
+                <th>{{ t('common.status') }}</th>
+                <th>{{ t('common.actions') }}</th>
+                </tr>
+              </thead>
+              <tbody>
               <tr v-for="member in members" :key="member.id" class="nano-table-row">
                 <td class="text-start fw-bold">{{ member.customer_name }}</td>
                 <td><CBadge color="primary" shape="rounded-pill">{{ member.plan_name }}</CBadge></td>
@@ -137,13 +137,13 @@
                 <td><CBadge :color="member.status === 'active' ? 'success' : 'danger'">{{ member.status?.toUpperCase() }}</CBadge></td>
                 <td>
                   <CButton size="sm" color="info" variant="ghost" @click="viewMember(member)"><CIcon icon="cil-info" /></CButton>
-                </td>
-              </tr>
-            </tbody>
+                  </td>
+                </tr>
+              </tbody>
           </table>
         </div>
       </div>
-    </div>
+            </div>
 
     <HelpSection page-key="memberships" />
   </div>
@@ -151,7 +151,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
+import {
   CButton, CBadge, CRow, CCol, CSpinner, CFormInput, CFormSelect, 
   CInputGroup, CInputGroupText, CPagination, CModal, CModalHeader, 
   CModalTitle, CModalBody, CModalFooter, CNav, CNavItem, CNavLink 
@@ -257,7 +257,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 .nano-btn-outline {
   border-radius: 12px;
@@ -272,7 +272,7 @@ onMounted(() => {
   padding: 0.5rem;
   border-radius: 16px;
   gap: 0.5rem;
-}
+  }
 .nano-tab-link {
   border-radius: 12px !important;
   font-weight: 700 !important;
@@ -284,8 +284,8 @@ onMounted(() => {
 .nano-tab-link.active {
   background: var(--asmaa-primary) !important;
   color: white !important;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
-}
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
+  }
 
 .nano-stats-bar {
   display: grid;
@@ -307,7 +307,7 @@ onMounted(() => {
 .stat-card-nano:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow-md);
-}
+  }
 
 .stat-icon-bg {
   width: 50px;
@@ -362,7 +362,7 @@ onMounted(() => {
   position: absolute;
   top: 20px;
   right: 20px;
-  background: rgba(187, 160, 122, 0.1);
+  background: rgba(142, 126, 120, 0.1);
   color: var(--asmaa-primary);
   padding: 4px 12px;
   border-radius: 10px;

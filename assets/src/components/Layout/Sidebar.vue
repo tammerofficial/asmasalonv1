@@ -334,7 +334,7 @@ defineExpose({
 }
 
 .nav-item.router-link-active {
-  background: rgba(187, 160, 122, 0.1);
+  background: rgba(142, 126, 120, 0.1);
   color: var(--asmaa-primary);
   font-weight: var(--font-weight-semibold);
   opacity: 1;
@@ -363,7 +363,7 @@ defineExpose({
 }
 
 .nav-item.router-link-active .nav-icon {
-  filter: drop-shadow(0 2px 6px rgba(187, 160, 122, 0.6));
+  filter: drop-shadow(0 2px 6px rgba(142, 126, 120, 0.6));
 }
 
 /* Add spacing between indicator bar and icon for active items */

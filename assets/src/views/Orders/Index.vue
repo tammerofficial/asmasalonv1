@@ -6,7 +6,7 @@
         <h2 class="mb-0 fw-bold text-primary">{{ t('orders.title') }}</h2>
         <CBadge color="gold" shape="rounded-pill" class="px-3 py-2 fw-bold text-dark">
           <CIcon icon="cil-cart" class="me-1" />
-          {{ stats.total || 0 }} Total Orders
+          {{ stats.total || 0 }} {{ t('orders.totalOrders') }}
         </CBadge>
       </div>
       <div class="header-right d-flex gap-2">
@@ -25,28 +25,28 @@
         <div class="stat-icon-bg orders"><CIcon icon="cil-cart" /></div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.total || 0 }}</div>
-          <div class="stat-label">Total Orders</div>
+          <div class="stat-label">{{ t('orders.totalOrders') }}</div>
         </div>
       </div>
       <div class="stat-card-nano clickable" @click="filters.status = 'pending'; loadOrders()">
         <div class="stat-icon-bg pending"><CIcon icon="cil-clock" /></div>
         <div class="stat-info">
           <div class="stat-value text-warning">{{ stats.pending || 0 }}</div>
-          <div class="stat-label">Pending Orders</div>
+          <div class="stat-label">{{ t('orders.pendingOrders') }}</div>
         </div>
       </div>
       <div class="stat-card-nano clickable" @click="filters.status = 'completed'; loadOrders()">
         <div class="stat-icon-bg completed"><CIcon icon="cil-check-circle" /></div>
         <div class="stat-info">
           <div class="stat-value text-success">{{ stats.completed || 0 }}</div>
-          <div class="stat-label">Completed</div>
+          <div class="stat-label">{{ t('status.completed') }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg revenue"><CIcon icon="cil-money" /></div>
         <div class="stat-info">
           <div class="stat-value text-info">{{ formatCurrencyShort(stats.totalRevenue || 0) }}</div>
-          <div class="stat-label">Total Revenue</div>
+          <div class="stat-label">{{ t('reports.totalRevenue') }}</div>
         </div>
       </div>
     </div>
@@ -62,11 +62,11 @@
         </CCol>
         <CCol md="3">
           <CFormSelect v-model="filters.status" @change="loadOrders" class="rounded-3">
-            <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="processing">Processing</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="">{{ t('orders.allStatuses') }}</option>
+            <option value="pending">{{ t('status.pending') }}</option>
+            <option value="processing">{{ t('status.processing') }}</option>
+            <option value="completed">{{ t('status.completed') }}</option>
+            <option value="cancelled">{{ t('status.cancelled') }}</option>
           </CFormSelect>
         </CCol>
         <CCol md="3">
@@ -84,53 +84,53 @@
       </div>
       <div v-else-if="orders.length === 0" class="text-center p-5 text-muted opacity-50">
         <CIcon icon="cil-inbox" size="xl" class="mb-3" />
-        <p>No orders found matching your criteria</p>
+        <p>{{ t('orders.noOrders') }}</p>
       </div>
       <div v-else>
         <div class="nano-table-container">
           <table class="nano-table w-100">
-            <thead>
+          <thead>
               <tr>
-                <th class="text-start">Order #</th>
-                <th>Customer</th>
-                <th>Items</th>
-                <th class="text-end">Total</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+                <th class="text-start">{{ t('orders.orderNumber') }}</th>
+                <th>{{ t('common.customer') }}</th>
+                <th>{{ t('common.items') }}</th>
+                <th class="text-end">{{ t('common.total') }}</th>
+                <th>{{ t('common.status') }}</th>
+                <th>{{ t('common.date') }}</th>
+                <th>{{ t('common.actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
               <tr v-for="order in orders" :key="order.id" class="nano-table-row">
                 <td class="text-start"><strong class="text-primary">#{{ order.id }}</strong></td>
                 <td>
-                  <div class="fw-bold">{{ order.customer_name || 'Walk-in' }}</div>
+                  <div class="fw-bold">{{ order.customer_name || t('common.walkIn') }}</div>
                   <div class="small text-muted">{{ order.customer_phone }}</div>
-                </td>
-                <td><CBadge color="secondary" shape="rounded-pill">{{ order.item_count || 0 }} Items</CBadge></td>
+              </td>
+                <td><CBadge color="secondary" shape="rounded-pill">{{ order.item_count || 0 }} {{ t('common.items') }}</CBadge></td>
                 <td class="text-end fw-bold text-success">{{ formatCurrency(order.total || 0) }}</td>
                 <td>
                   <CBadge :color="getStatusColor(order.status)" shape="rounded-pill" class="px-3">
                     {{ order.status?.toUpperCase() }}
-                  </CBadge>
-                </td>
+                </CBadge>
+              </td>
                 <td>{{ new Date(order.created_at).toLocaleString() }}</td>
                 <td>
                   <div class="d-flex gap-2 justify-content-center">
                     <CButton size="sm" color="info" variant="ghost" @click="viewOrder(order)"><CIcon icon="cil-external-link" /></CButton>
                     <CButton size="sm" color="primary" variant="ghost" @click="printOrder(order)"><CIcon icon="cil-print" /></CButton>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+                </div>
+              </td>
+            </tr>
+          </tbody>
           </table>
-        </div>
+      </div>
 
-        <!-- Pagination -->
+      <!-- Pagination -->
         <div v-if="pagination.total_pages > 1" class="d-flex justify-content-center mt-5">
           <CPagination :pages="pagination.total_pages" :active-page="pagination.current_page" @update:active-page="changePage" />
+          </div>
         </div>
-      </div>
     </div>
 
     <!-- Modals -->
@@ -142,49 +142,49 @@
         <!-- Order Details View -->
         <div class="d-flex justify-content-between mb-4">
           <div>
-            <div class="small text-muted fw-bold mb-1">CUSTOMER</div>
-            <h4 class="fw-bold">{{ selectedOrder.customer_name || 'Walk-in' }}</h4>
-          </div>
+            <div class="small text-muted fw-bold mb-1">{{ t('common.customer').toUpperCase() }}</div>
+            <h4 class="fw-bold">{{ selectedOrder.customer_name || t('common.walkIn') }}</h4>
+              </div>
           <div class="text-end">
-            <div class="small text-muted fw-bold mb-1">STATUS</div>
+            <div class="small text-muted fw-bold mb-1">{{ t('common.status').toUpperCase() }}</div>
             <CBadge :color="getStatusColor(selectedOrder.status)" shape="rounded-pill" class="px-3 py-2 fs-6">
               {{ selectedOrder.status?.toUpperCase() }}
-            </CBadge>
+                </CBadge>
+            </div>
           </div>
-        </div>
-        
+
         <div class="items-table-wrapper rounded-4 border bg-tertiary overflow-hidden mb-4">
           <table class="table mb-0">
             <thead class="bg-secondary">
               <tr>
-                <th class="border-0">Item</th>
-                <th class="border-0 text-center">Qty</th>
-                <th class="border-0 text-end">Price</th>
-                <th class="border-0 text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
+                <th class="border-0">{{ t('common.item') }}</th>
+                <th class="border-0 text-center">{{ t('common.qty') }}</th>
+                <th class="border-0 text-end">{{ t('common.price') }}</th>
+                <th class="border-0 text-end">{{ t('common.total') }}</th>
+                </tr>
+              </thead>
+              <tbody>
               <tr v-for="item in selectedOrder.items" :key="item.id">
                 <td>{{ item.name }}</td>
                 <td class="text-center">{{ item.quantity }}</td>
                 <td class="text-end">{{ formatCurrency(item.unit_price) }}</td>
                 <td class="text-end fw-bold">{{ formatCurrency(item.total) }}</td>
-              </tr>
-            </tbody>
+                </tr>
+              </tbody>
           </table>
-        </div>
+          </div>
 
         <div class="order-summary-box p-3 bg-secondary rounded-4">
           <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">Subtotal</span>
+            <span class="text-muted">{{ t('common.subtotal') }}</span>
             <span class="fw-bold">{{ formatCurrency(selectedOrder.subtotal) }}</span>
           </div>
           <div class="d-flex justify-content-between mb-2 text-danger" v-if="selectedOrder.discount > 0">
-            <span>Discount</span>
+            <span>{{ t('common.discount') }}</span>
             <span>-{{ formatCurrency(selectedOrder.discount) }}</span>
           </div>
           <div class="d-flex justify-content-between mt-2 pt-2 border-top">
-            <h4 class="fw-bold mb-0">TOTAL</h4>
+            <h4 class="fw-bold mb-0">{{ t('common.total').toUpperCase() }}</h4>
             <h4 class="fw-bold text-primary mb-0">{{ formatCurrency(selectedOrder.total) }}</h4>
           </div>
         </div>
@@ -192,7 +192,7 @@
       <CModalFooter>
         <CButton color="secondary" variant="ghost" @click="showViewModal = false">{{ t('common.close') }}</CButton>
         <CButton color="primary" class="nano-btn" @click="printOrder(selectedOrder)">
-          <CIcon icon="cil-print" class="me-2" />Print Receipt
+          <CIcon icon="cil-print" class="me-2" />{{ t('orders.printReceipt') }}
         </CButton>
       </CModalFooter>
     </CModal>
@@ -203,7 +203,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
+import {
   CButton, CBadge, CRow, CCol, CSpinner, CFormInput, CFormSelect, 
   CInputGroup, CInputGroupText, CPagination, CModal, CModalHeader, 
   CModalTitle, CModalBody, CModalFooter 
@@ -236,8 +236,8 @@ const loadOrders = async () => {
   try {
     const res = await api.get('/orders', {
       params: {
-        page: pagination.value.current_page,
-        per_page: pagination.value.per_page,
+      page: pagination.value.current_page,
+      per_page: pagination.value.per_page,
         ...filters.value
       }
     });
@@ -267,7 +267,7 @@ const resetFilters = () => {
 
 const changePage = (page) => {
   pagination.value.current_page = page;
-  loadOrders();
+    loadOrders();
 };
 
 const getStatusColor = (status) => {
@@ -303,7 +303,7 @@ const viewOrder = (order) => {
 };
 
 const printOrder = (order) => {
-  toast.info('Sending to printer...');
+  toast.info(t('orders.sendingToPrinter'));
 };
 
 const openCreateModal = () => router.push('/pos');
@@ -324,7 +324,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .nano-stats-bar {

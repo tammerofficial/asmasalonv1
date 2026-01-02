@@ -299,11 +299,11 @@ const goBack = () => {
 const computedSettings = computed(() => formData.value);
 
 const formData = ref({
-    primary_color: '#BBA07A',
+    primary_color: '#8E7E78',
     secondary_color: '#764ba2',
     text_color: '#1e293b',
     background_color: '#ffffff',
-    button_color: '#BBA07A',
+    button_color: '#8E7E78',
     show_progress_tracker: true,
     progress_tracker_position: 'top',
     align_buttons_left: false,
@@ -374,7 +374,7 @@ const handleSave = async () => {
 .appearance-header {
     margin-bottom: 2rem;
     padding: 2rem;
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.9) 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
     border-radius: 12px;
     color: white;
     position: relative;
@@ -492,8 +492,8 @@ const handleSave = async () => {
 
 .panel-header {
     padding: 1.5rem;
-    border-bottom: 2px solid rgba(187, 160, 122, 0.2);
-    background: linear-gradient(135deg, rgba(187, 160, 122, 0.05) 0%, rgba(187, 160, 122, 0.02) 100%);
+    border-bottom: 2px solid rgba(142, 126, 120, 0.2);
+    background: linear-gradient(135deg, rgba(142, 126, 120, 0.05) 0%, rgba(142, 126, 120, 0.02) 100%);
 }
 
 .panel-header h2 {
@@ -660,15 +660,15 @@ const handleSave = async () => {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.9) 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+    box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(187, 160, 122, 0.95) 0%, var(--asmaa-primary) 100%);
+    background: linear-gradient(135deg, rgba(142, 126, 120, 0.95) 0%, var(--asmaa-primary) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(187, 160, 122, 0.4);
+    box-shadow: 0 6px 16px rgba(142, 126, 120, 0.4);
 }
 
 .btn:disabled {

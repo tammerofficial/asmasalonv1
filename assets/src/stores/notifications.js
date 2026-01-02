@@ -109,6 +109,13 @@ export const useNotificationsStore = defineStore('notifications', {
         console.error('Error prefetching notifications:', error);
       }
     },
+
+    /**
+     * Generic prefetch for consistency (Rule #4)
+     */
+    async prefetch() {
+      return await this.prefetchNotifications();
+    },
   },
 });
 

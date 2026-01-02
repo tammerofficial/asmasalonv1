@@ -383,7 +383,7 @@ onMounted(() => {
 
 .btn-refresh:hover,
 .btn-refresh:focus {
-  background: rgba(187, 160, 122, 0.12) !important;
+  background: rgba(142, 126, 120, 0.12) !important;
   border-color: var(--asmaa-primary) !important;
   color: var(--asmaa-primary) !important;
 }
@@ -396,7 +396,7 @@ onMounted(() => {
 
 .btn-view-caps:hover,
 .btn-view-caps:focus {
-  background: rgba(187, 160, 122, 0.12) !important;
+  background: rgba(142, 126, 120, 0.12) !important;
   border-color: var(--asmaa-primary) !important;
   color: var(--asmaa-primary) !important;
 }
@@ -449,7 +449,7 @@ onMounted(() => {
 .search-input:focus {
   outline: none;
   border-color: var(--asmaa-primary);
-  box-shadow: 0 0 0 3px rgba(187, 160, 122, 0.1);
+  box-shadow: 0 0 0 3px rgba(142, 126, 120, 0.1);
 }
 
 .toggle-row {

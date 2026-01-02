@@ -26,28 +26,28 @@
         <div class="stat-icon-bg staff"><CIcon icon="cil-user" /></div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.active || 0 }}</div>
-          <div class="stat-label">Active Staff</div>
+          <div class="stat-label">{{ t('staff.activeCount', { count: '' }).replace('{count}', '').trim() || 'موظفة نشطة' }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg rating"><CIcon icon="cil-star" /></div>
         <div class="stat-info">
           <div class="stat-value text-warning">{{ Number(stats.averageRating || 0).toFixed(1) }}</div>
-          <div class="stat-label">Avg. Rating</div>
+          <div class="stat-label">{{ t('staff.averageRating') || 'متوسط التقييم' }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg revenue"><CIcon icon="cil-money" /></div>
         <div class="stat-info">
           <div class="stat-value text-success">{{ formatCurrencyShort(stats.totalRevenue || 0) }}</div>
-          <div class="stat-label">Total Revenue</div>
+          <div class="stat-label">{{ t('staff.totalRevenue') || 'إجمالي الإيرادات' }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg calls"><CIcon icon="cil-bell" /></div>
         <div class="stat-info">
-          <div class="stat-value text-info">45</div>
-          <div class="stat-label">Today's Calls</div>
+          <div class="stat-value text-info">{{ stats.todayCalls || 0 }}</div>
+          <div class="stat-label">{{ t('workerCalls.todaysBookings') || 'نداءات اليوم' }}</div>
         </div>
       </div>
     </div>
@@ -74,38 +74,38 @@
           </CButton>
         </CCol>
       </CRow>
-    </div>
+      </div>
 
     <!-- Staff Cards Grid -->
     <div class="nano-panel">
       <div v-if="loading" class="text-center p-5">
         <CSpinner color="primary" />
-      </div>
+          </div>
       <div v-else-if="staffList.length === 0" class="text-center p-5">
         <EmptyState :title="t('common.noData')" :description="t('staff.title')" />
-      </div>
+        </div>
       <div v-else class="nano-grid">
         <div v-for="staff in staffList" :key="staff.id" class="staff-nano-card" @click="editStaff(staff)">
           <div class="staff-status-dot" :class="staff.is_active ? 'active' : 'inactive'"></div>
           <div class="staff-avatar-main">{{ staff.name?.charAt(0) }}</div>
           <div class="staff-main-info mt-3 text-center">
             <h5 class="fw-bold mb-1">{{ staff.name }}</h5>
-            <p class="text-muted small mb-2">{{ staff.position || 'Stylist' }}</p>
+            <p class="text-muted small mb-2">{{ staff.position || t('staff.role') }}</p>
             <div class="rating-stars mb-3">
               <CIcon icon="cil-star" v-for="i in 5" :key="i" :class="i <= (staff.average_rating || 0) ? 'text-warning' : 'text-muted'" />
               <span class="small ms-1">({{ staff.total_ratings || 0 }})</span>
             </div>
-          </div>
+            </div>
           <div class="staff-stats-row d-flex justify-content-between border-top pt-3">
             <div class="stat">
-              <span class="label">Comm. %</span>
+              <span class="label">{{ t('staff.commission') }}</span>
               <span class="value text-primary fw-bold">{{ staff.commission_rate }}%</span>
-            </div>
-            <div class="stat">
-              <span class="label">Revenue</span>
-              <span class="value text-success fw-bold">{{ formatCurrencyShort(staff.total_revenue || 0) }}</span>
-            </div>
           </div>
+            <div class="stat">
+              <span class="label">{{ t('staff.revenue') }}</span>
+              <span class="value text-success fw-bold">{{ formatCurrencyShort(staff.total_revenue || 0) }}</span>
+              </div>
+            </div>
           <div class="staff-actions-hover mt-3">
             <CButton size="sm" color="info" variant="ghost" @click.stop="editStaff(staff)">
               <CIcon icon="cil-pencil" />
@@ -116,10 +116,10 @@
             <CButton size="sm" color="danger" variant="ghost" @click.stop="confirmDelete(staff)">
               <CIcon icon="cil-trash" />
             </CButton>
+              </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Modals -->
     <CModal :visible="showModal" @close="showModal = false" size="lg" alignment="center">
@@ -129,25 +129,25 @@
       <CModalBody class="p-4">
         <CRow class="g-3">
           <CCol md="6">
-            <label class="form-label fw-bold">Name *</label>
+            <label class="form-label fw-bold">{{ t('staff.fullName') }} *</label>
             <CFormInput v-model="staffForm.name" required />
-          </CCol>
+            </CCol>
           <CCol md="6">
-            <label class="form-label fw-bold">Position</label>
+            <label class="form-label fw-bold">{{ t('staff.role') }}</label>
             <CFormInput v-model="staffForm.position" />
           </CCol>
           <CCol md="6">
-            <label class="form-label fw-bold">Commission Rate (%)</label>
+            <label class="form-label fw-bold">{{ t('staff.commission') }} (%)</label>
             <CFormInput v-model.number="staffForm.commission_rate" type="number" min="0" max="100" />
           </CCol>
           <CCol md="6">
-            <label class="form-label fw-bold">Status</label>
+            <label class="form-label fw-bold">{{ t('common.status') }}</label>
             <CFormSelect v-model="staffForm.is_active">
-              <option :value="1">Active</option>
-              <option :value="0">Inactive</option>
+              <option :value="1">{{ t('status.active') }}</option>
+              <option :value="0">{{ t('status.inactive') }}</option>
             </CFormSelect>
-          </CCol>
-        </CRow>
+            </CCol>
+          </CRow>
       </CModalBody>
       <CModalFooter>
         <CButton color="secondary" variant="ghost" @click="showModal = false">{{ t('common.cancel') }}</CButton>
@@ -163,7 +163,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
+import {
   CButton, CBadge, CRow, CCol, CSpinner, CFormInput, CFormSelect, 
   CInputGroup, CInputGroupText, CModal, CModalHeader, 
   CModalTitle, CModalBody, CModalFooter 
@@ -271,10 +271,10 @@ const saveStaff = async () => {
 
 const confirmDelete = async (staff) => {
   if (confirm(`Delete staff member ${staff.name}?`)) {
-    try {
-      await api.delete(`/staff/${staff.id}`);
+  try {
+    await api.delete(`/staff/${staff.id}`);
       toast.success('Staff deleted');
-      loadStaff();
+    loadStaff();
     } catch (e) {
       toast.error('Failed to delete staff');
     }
@@ -310,7 +310,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .nano-stats-bar {
@@ -404,7 +404,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  box-shadow: 0 4px 10px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 10px rgba(142, 126, 120, 0.3);
 }
 
 .staff-stats-row .stat {

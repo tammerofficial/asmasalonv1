@@ -229,7 +229,7 @@ const handleSave = async (section, data) => {
 .settings-header {
     margin-bottom: 2rem;
     padding: 2rem;
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.9) 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
     border-radius: 12px;
     color: white;
     position: relative;
@@ -364,7 +364,7 @@ const handleSave = async (section, data) => {
 }
 
 .nav-item:hover {
-    background: rgba(187, 160, 122, 0.1);
+    background: rgba(142, 126, 120, 0.1);
     color: var(--asmaa-primary);
     transform: translateX(-2px);
 }
@@ -374,9 +374,9 @@ const handleSave = async (section, data) => {
 }
 
 .nav-item.active {
-    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.9) 100%);
+    background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
     color: white;
-    box-shadow: 0 2px 8px rgba(187, 160, 122, 0.3);
+    box-shadow: 0 2px 8px rgba(142, 126, 120, 0.3);
 }
 
 .nav-icon {

@@ -6,7 +6,7 @@
         <h2 class="mb-0 fw-bold text-primary">{{ t('loyalty.title') }}</h2>
         <CBadge color="gold" shape="rounded-pill" class="px-3 py-2 fw-bold text-dark">
           <CIcon icon="cil-gift" class="me-1" />
-          Loyalty Rewards
+          {{ t('loyalty.rewards') }}
         </CBadge>
       </div>
       <div class="header-right d-flex gap-2">
@@ -28,28 +28,28 @@
         <div class="stat-icon-bg points-issued"><CIcon icon="cil-star" /></div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.total_points_issued || 0 }}</div>
-          <div class="stat-label">Points Issued</div>
+          <div class="stat-label">{{ t('loyalty.pointsIssued') }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg points-redeemed"><CIcon icon="cil-gift" /></div>
         <div class="stat-info">
           <div class="stat-value text-warning">{{ stats.total_points_redeemed || 0 }}</div>
-          <div class="stat-label">Points Redeemed</div>
+          <div class="stat-label">{{ t('loyalty.pointsRedeemed') }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg points-active"><CIcon icon="cil-check-circle" /></div>
         <div class="stat-info">
           <div class="stat-value text-success">{{ stats.active_points || 0 }}</div>
-          <div class="stat-label">Active Balance</div>
+          <div class="stat-label">{{ t('loyalty.activeBalance') }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg members-active"><CIcon icon="cil-user" /></div>
         <div class="stat-info">
           <div class="stat-value text-info">{{ stats.active_customers || 0 }}</div>
-          <div class="stat-label">Loyalty Members</div>
+          <div class="stat-label">{{ t('loyalty.members') }}</div>
         </div>
       </div>
     </div>
@@ -65,7 +65,7 @@
         </CCol>
         <CCol md="3">
           <CFormSelect v-model="filters.type" @change="loadTransactions" class="rounded-3">
-            <option value="">{{ t('common.all') }} Transactions</option>
+            <option value="">{{ t('loyalty.allTransactions') }}</option>
             <option value="earned">{{ t('loyalty.earned') }}</option>
             <option value="redeemed">{{ t('loyalty.redeemed') }}</option>
             <option value="adjustment">{{ t('loyalty.adjustment') }}</option>
@@ -86,48 +86,48 @@
       </div>
       <div v-else-if="transactions.length === 0" class="text-center p-5 text-muted opacity-50">
         <CIcon icon="cil-gift" size="xl" class="mb-3" />
-        <p>No loyalty transactions found</p>
+        <p>{{ t('loyalty.noTransactions') }}</p>
       </div>
       <div v-else>
         <div class="nano-table-container">
           <table class="nano-table w-100">
-            <thead>
+          <thead>
               <tr>
-                <th class="text-start">Customer</th>
-                <th>Type</th>
-                <th class="text-center">Points</th>
-                <th>Order #</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+                <th class="text-start">{{ t('common.customer') }}</th>
+                <th>{{ t('common.type') }}</th>
+                <th class="text-center">{{ t('loyalty.points') }}</th>
+                <th>{{ t('orders.orderNumber') }}</th>
+                <th>{{ t('common.date') }}</th>
+                <th>{{ t('common.actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
               <tr v-for="tx in transactions" :key="tx.id" class="nano-table-row">
                 <td class="text-start">
-                  <div class="fw-bold">{{ tx.customer_name || 'Anonymous' }}</div>
+                  <div class="fw-bold">{{ tx.customer_name || t('common.anonymous') }}</div>
                   <div class="small text-muted">{{ tx.customer_phone }}</div>
-                </td>
+              </td>
                 <td>
                   <CBadge :color="getTypeColor(tx.type)" shape="rounded-pill" class="px-3">
                     {{ tx.type?.toUpperCase() }}
-                  </CBadge>
-                </td>
+                </CBadge>
+              </td>
                 <td class="text-center fw-bold fs-5" :class="tx.points > 0 ? 'text-success' : 'text-danger'">
                   {{ tx.points > 0 ? '+' : '' }}{{ tx.points }}
-                </td>
+              </td>
                 <td><CBadge color="secondary" variant="outline">#{{ tx.order_id || '—' }}</CBadge></td>
                 <td>{{ new Date(tx.created_at).toLocaleString() }}</td>
                 <td>
                   <CButton size="sm" color="primary" variant="ghost" @click="viewCustomer(tx.customer_id)">
                     <CIcon icon="cil-external-link" />
                   </CButton>
-                </td>
-              </tr>
-            </tbody>
+              </td>
+            </tr>
+          </tbody>
           </table>
-        </div>
+      </div>
 
-        <!-- Pagination -->
+      <!-- Pagination -->
         <div v-if="pagination.total_pages > 1" class="d-flex justify-content-center mt-5">
           <CPagination :pages="pagination.total_pages" :active-page="pagination.current_page" @update:active-page="changePage" />
         </div>
@@ -142,21 +142,21 @@
       <CModalBody class="p-4">
         <!-- Redeem Form -->
         <div class="mb-3">
-          <label class="form-label fw-bold">Select Customer</label>
+          <label class="form-label fw-bold">{{ t('loyalty.selectCustomer') }}</label>
           <CFormSelect v-model="redeemForm.customer_id">
-            <option :value="null">Choose a member...</option>
-            <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }} ({{ c.points }} pts)</option>
-          </CFormSelect>
+            <option :value="null">{{ t('loyalty.chooseMember') }}</option>
+            <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }} ({{ c.points }} {{ t('loyalty.pts') }})</option>
+            </CFormSelect>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-bold">Points to Redeem</label>
+          <label class="form-label fw-bold">{{ t('loyalty.pointsToRedeem') }}</label>
           <CFormInput type="number" v-model.number="redeemForm.points" />
-        </div>
+            </div>
       </CModalBody>
       <CModalFooter>
         <CButton color="secondary" variant="ghost" @click="showRedeemModal = false">{{ t('common.cancel') }}</CButton>
         <CButton color="primary" class="nano-btn" @click="processRedeem" :disabled="!redeemForm.customer_id || !redeemForm.points">
-          Process Redemption
+          {{ t('loyalty.processRedemption') }}
         </CButton>
       </CModalFooter>
     </CModal>
@@ -167,7 +167,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
+import {
   CButton, CBadge, CRow, CCol, CSpinner, CFormInput, CFormSelect, 
   CInputGroup, CInputGroupText, CPagination, CModal, CModalHeader, 
   CModalTitle, CModalBody, CModalFooter 
@@ -217,8 +217,8 @@ const loadTransactions = async () => {
   try {
     const res = await api.get('/loyalty/transactions', {
       params: {
-        page: pagination.value.current_page,
-        per_page: pagination.value.per_page,
+      page: pagination.value.current_page,
+      per_page: pagination.value.per_page,
         ...filters.value
       }
     });
@@ -274,11 +274,11 @@ const openRedeemModal = () => {
 const processRedeem = async () => {
   try {
     await api.post('/loyalty/redeem', redeemForm.value);
-    toast.success('Points redeemed successfully');
+    toast.success(t('loyalty.redeemedSuccessfully'));
     showRedeemModal.value = false;
     loadTransactions();
   } catch (e) {
-    toast.error('Failed to redeem points');
+    toast.error(t('loyalty.failedToRedeem'));
   }
 };
 
@@ -303,7 +303,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 .nano-btn-success {
   border-radius: 12px;

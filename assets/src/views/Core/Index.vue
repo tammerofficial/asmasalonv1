@@ -36,8 +36,8 @@
               <span class="info-label">{{ t('core.primaryColor') }}</span>
             </div>
             <span class="info-value">
-              <span class="color-dot" :style="{ background: config.primaryColor || '#BBA07A' }" />
-              <span class="monospace">{{ config.primaryColor || '#BBA07A' }}</span>
+              <span class="color-dot" :style="{ background: config.primaryColor || '#8E7E78' }" />
+              <span class="monospace">{{ config.primaryColor || '#8E7E78' }}</span>
             </span>
           </div>
           <div class="info-row">

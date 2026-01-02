@@ -420,15 +420,15 @@ onMounted(async () => {
 }
 
 .btn-primary-custom {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.9) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
   border: none;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
   transition: all 0.3s;
 }
 
 .btn-primary-custom:hover {
-  background: linear-gradient(135deg, rgba(187, 160, 122, 0.95) 0%, var(--asmaa-primary) 100%);
-  box-shadow: 0 6px 16px rgba(187, 160, 122, 0.4);
+  background: linear-gradient(135deg, rgba(142, 126, 120, 0.95) 0%, var(--asmaa-primary) 100%);
+  box-shadow: 0 6px 16px rgba(142, 126, 120, 0.4);
   transform: translateY(-2px);
 }
 
@@ -441,15 +441,15 @@ onMounted(async () => {
 .filter-input:focus,
 .filter-select:focus {
   border-color: var(--asmaa-primary);
-  box-shadow: 0 0 0 3px rgba(187, 160, 122, 0.15);
+  box-shadow: 0 0 0 3px rgba(142, 126, 120, 0.15);
   outline: none;
 }
 
 .override-builder {
-  border: 1px dashed rgba(187, 160, 122, 0.45);
+  border: 1px dashed rgba(142, 126, 120, 0.45);
   border-radius: 12px;
   padding: 1rem;
-  background: linear-gradient(135deg, rgba(187, 160, 122, 0.06) 0%, rgba(187, 160, 122, 0.03) 100%);
+  background: linear-gradient(135deg, rgba(142, 126, 120, 0.06) 0%, rgba(142, 126, 120, 0.03) 100%);
 }
 
 .override-builder-title {
@@ -485,15 +485,15 @@ onMounted(async () => {
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.9) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.9) 100%);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 2px 6px rgba(142, 126, 120, 0.3);
 }
 
 .action-btn:hover {
-  background: linear-gradient(135deg, rgba(187, 160, 122, 0.95) 0%, var(--asmaa-primary) 100%);
+  background: linear-gradient(135deg, rgba(142, 126, 120, 0.95) 0%, var(--asmaa-primary) 100%);
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.4);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.4);
 }
 
 .overrides-list {
@@ -515,7 +515,7 @@ onMounted(async () => {
 .override-pill {
   position: relative;
   border-radius: 12px;
-  border: 1px solid rgba(187, 160, 122, 0.25);
+  border: 1px solid rgba(142, 126, 120, 0.25);
   background: #fff;
   padding: 0.9rem 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);

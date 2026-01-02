@@ -12,16 +12,16 @@
             <div class="header-right d-flex gap-3">
                 <CButton color="primary" class="nano-btn" @click="goToAddBooking">
                     <CIcon icon="cil-plus" class="me-2" />
-                    {{ t('booking.addBooking') || t('booking.addAppointment') }}
+                        {{ t('booking.addBooking') || t('booking.addAppointment') }}
                 </CButton>
                 <router-link to="/bookings/settings" class="btn btn-secondary nano-btn-secondary">
                     <CIcon icon="cil-settings" class="me-2" />
-                    {{ t('booking.settingsButton') }}
-                </router-link>
+                        {{ t('booking.settingsButton') }}
+                    </router-link>
                 <router-link to="/bookings/appearance" class="btn btn-secondary nano-btn-secondary">
                     <CIcon icon="cil-paint-roller" class="me-2" />
-                    {{ t('booking.appearanceButton') }}
-                </router-link>
+                        {{ t('booking.appearanceButton') }}
+                    </router-link>
             </div>
         </div>
 
@@ -32,30 +32,30 @@
                 <div class="stat-info">
                     <div class="stat-value">{{ bookingStore.services.items.length }}</div>
                     <div class="stat-label">{{ t('booking.totalServices') }}</div>
-                </div>
             </div>
+        </div>
             <div class="stat-card-nano">
                 <div class="stat-icon-bg staff"><CIcon icon="cil-user" /></div>
                 <div class="stat-info">
                     <div class="stat-value">{{ bookingStore.staff.items.length }}</div>
                     <div class="stat-label">{{ t('booking.totalStaff') }}</div>
+                    </div>
                 </div>
-            </div>
             <div class="stat-card-nano">
                 <div class="stat-icon-bg approved"><CIcon icon="cil-check-circle" /></div>
                 <div class="stat-info">
                     <div class="stat-value text-success">{{ appointmentSummary.approved }}</div>
                     <div class="stat-label">{{ t('booking.approved') }}</div>
                 </div>
-            </div>
+                </div>
             <div class="stat-card-nano">
                 <div class="stat-icon-bg pending"><CIcon icon="cil-clock" /></div>
                 <div class="stat-info">
                     <div class="stat-value text-warning">{{ appointmentSummary.pending }}</div>
                     <div class="stat-label">{{ t('booking.pending') }}</div>
-                </div>
-            </div>
-        </div>
+                            </div>
+                        </div>
+                                            </div>
 
         <!-- Tabs Navigation (Modern Pills) -->
         <CNav variant="pills" class="nano-tabs mb-4">
@@ -69,7 +69,7 @@
                     {{ tab.label }}
                     <CBadge v-if="tab.count !== undefined" color="primary" shape="rounded-pill" class="ms-2">
                         {{ tab.count }}
-                    </CBadge>
+                                            </CBadge>
                 </CNavLink>
             </CNavItem>
         </CNav>
@@ -84,8 +84,8 @@
                         <CIcon icon="cil-plus" class="me-1" />
                         {{ t('booking.addService') }}
                     </CButton>
-                </div>
-                
+                    </div>
+
                 <div v-if="bookingStore.services.loading" class="text-center p-5">
                     <CSpinner color="primary" />
                 </div>
@@ -97,13 +97,13 @@
                         <div class="item-price-tag">{{ formatPrice(service.price) }}</div>
                         <div class="item-actions-hover">
                             <CButton size="sm" color="info" variant="ghost" @click.stop="openServiceModal(service)">
-                                <CIcon icon="cil-pencil" />
+                                        <CIcon icon="cil-pencil" />
                             </CButton>
                             <CButton size="sm" color="danger" variant="ghost" @click.stop="deleteService(service.id)">
-                                <CIcon icon="cil-trash" />
+                                        <CIcon icon="cil-trash" />
                             </CButton>
-                        </div>
-                    </div>
+                                </div>
+                            </div>
                 </div>
             </div>
 
@@ -116,7 +116,7 @@
                         {{ t('booking.addStaff') }}
                     </CButton>
                 </div>
-                
+
                 <div v-if="bookingStore.staff.loading" class="text-center p-5">
                     <CSpinner color="primary" />
                 </div>
@@ -126,8 +126,8 @@
                         <h5 class="item-title mt-3">{{ member.full_name }}</h5>
                         <p class="text-muted small">{{ member.email }}</p>
                         <div class="staff-badges mt-2">
-                            <CBadge color="success" shape="rounded-pill">Available</CBadge>
-                        </div>
+                            <CBadge color="success" shape="rounded-pill">{{ t('workerCalls.available') || 'متاح' }}</CBadge>
+                </div>
                         <div class="item-actions-hover">
                             <CButton size="sm" color="info" variant="ghost" @click.stop="openStaffModal(member)">
                                 <CIcon icon="cil-pencil" />
@@ -158,7 +158,7 @@
                                     :color="appointmentViewMode === 'list' ? 'primary' : 'secondary'" 
                                     variant="outline"
                                     @click="appointmentViewMode = 'list'"
-                                >
+                        >
                                     <CIcon icon="cil-list" class="me-1" />{{ t('booking.listView') }}
                                 </CButton>
                             </CButtonGroup>
@@ -169,47 +169,47 @@
                     <div class="nano-filters-bar p-3 bg-tertiary rounded-4 mb-4">
                         <CRow class="g-3">
                             <CCol md="3">
-                                <label class="small fw-bold text-muted mb-1">From</label>
+                                <label class="small fw-bold text-muted mb-1">{{ t('common.from') || 'من' }}</label>
                                 <CFormInput type="date" v-model="appointmentFilters.date_from" />
                             </CCol>
                             <CCol md="3">
-                                <label class="small fw-bold text-muted mb-1">To</label>
+                                <label class="small fw-bold text-muted mb-1">{{ t('common.to') || 'إلى' }}</label>
                                 <CFormInput type="date" v-model="appointmentFilters.date_to" />
                             </CCol>
                             <CCol md="3">
-                                <label class="small fw-bold text-muted mb-1">Status</label>
+                                <label class="small fw-bold text-muted mb-1">{{ t('common.status') || 'الحالة' }}</label>
                                 <CFormSelect v-model="appointmentFilters.status">
-                                    <option value="">All Statuses</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
+                                    <option value="">{{ t('common.allStatuses') || 'كل الحالات' }}</option>
+                                    <option value="pending">{{ t('booking.pending') }}</option>
+                                    <option value="confirmed">{{ t('booking.confirmed') }}</option>
+                                    <option value="completed">{{ t('booking.completed') }}</option>
+                                    <option value="cancelled">{{ t('booking.cancelled') }}</option>
                                 </CFormSelect>
                             </CCol>
                             <CCol md="3" class="d-flex align-items-end">
                                 <CButton color="primary" class="w-100" @click="loadAppointments">
-                                    <CIcon icon="cil-filter" class="me-1" />Filter
+                                    <CIcon icon="cil-filter" class="me-1" />{{ t('common.filter') || 'تصفية' }}
                                 </CButton>
                             </CCol>
                         </CRow>
-                    </div>
-                </div>
+                            </div>
+                        </div>
 
                 <div v-if="appointmentViewMode === 'calendar'" class="calendar-container">
                     <BookingCalendar />
-                </div>
+                    </div>
 
                 <div v-else class="appointments-list-view">
                     <div v-if="bookingStore.appointments.loading" class="text-center p-5">
                         <CSpinner color="primary" />
-                    </div>
+                            </div>
                     <div v-else class="appointments-list d-flex flex-column gap-3">
                         <div v-for="appointment in bookingStore.appointments.items" :key="appointment.id" class="nano-appointment-card">
                             <div class="appt-date-box">
                                 <div class="appt-day">{{ formatDate(appointment.start_date, 'day') }}</div>
                                 <div class="appt-month">{{ formatDate(appointment.start_date, 'month') }}</div>
                                 <div class="appt-time">{{ formatDate(appointment.start_date, 'time') }}</div>
-                            </div>
+                                </div>
                             <div class="appt-main-info flex-grow-1 ms-3">
                                 <div class="appt-service fw-bold fs-5 text-primary">{{ getServiceName(appointment.service_id) }}</div>
                                 <div class="appt-staff small text-muted">
@@ -242,18 +242,18 @@
                                 <CButton color="danger" variant="ghost" @click="deleteAppointment(appointment.id)">
                                     <CIcon icon="cil-trash" />
                                 </CButton>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
             <!-- Analytics Tab -->
             <div v-show="activeTab === 'analytics'" class="nano-panel">
                 <div class="panel-header mb-4">
                     <h4 class="fw-bold">{{ t('booking.analyticsTab') }}</h4>
-                </div>
-                
+                        </div>
+
                 <div class="nano-table-container">
                     <table class="nano-table w-100">
                         <thead>
@@ -291,9 +291,9 @@
                             </tr>
                         </tbody>
                     </table>
-                </div>
-            </div>
-        </div>
+                                </div>
+                            </div>
+                        </div>
 
         <!-- Modals -->
         <!-- View Service Modal -->
@@ -308,29 +308,29 @@
                         <div>
                             <h3 class="fw-bold mb-1">{{ viewingService.title }}</h3>
                             <CBadge color="gold" shape="rounded-pill" class="px-3">{{ viewingService.category_id || 'General' }}</CBadge>
-                        </div>
-                    </div>
+                                </div>
+                            </div>
                     <div class="row g-3">
                         <CCol md="4">
                             <div class="stat-card-nano mini p-3 border rounded-4 text-center">
                                 <label class="text-muted small">{{ t('booking.duration') }}</label>
                                 <div class="fw-bold fs-5">{{ viewingService.duration }} {{ t('booking.minutes') }}</div>
-                            </div>
+                        </div>
                         </CCol>
                         <CCol md="4">
                             <div class="stat-card-nano mini p-3 border rounded-4 text-center">
                                 <label class="text-muted small">{{ t('booking.price') }}</label>
                                 <div class="fw-bold fs-5 text-success">{{ formatPrice(viewingService.price) }}</div>
-                            </div>
+                    </div>
                         </CCol>
                         <CCol md="4">
                             <div class="stat-card-nano mini p-3 border rounded-4 text-center">
                                 <label class="text-muted small">{{ t('booking.analyticsAppointments') }}</label>
                                 <div class="fw-bold fs-5 text-primary">{{ getServiceAppointmentsCount(viewingService.id) }}</div>
-                            </div>
-                        </CCol>
-                    </div>
                 </div>
+                        </CCol>
+                </div>
+            </div>
             </CModalBody>
             <CModalFooter>
                 <CButton color="secondary" variant="ghost" @click="closeViewServiceModal">{{ t('booking.close') }}</CButton>
@@ -350,7 +350,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">{{ t('booking.serviceName') }} *</label>
                         <CFormInput v-model="serviceForm.title" required />
-                    </div>
+                </div>
                     <CRow class="g-3">
                         <CCol md="6">
                             <label class="form-label fw-bold">{{ t('booking.duration') }} ({{ t('booking.minutes') }}) *</label>
@@ -361,12 +361,12 @@
                             <CFormInput v-model.number="serviceForm.price" type="number" step="0.01" min="0" required />
                         </CCol>
                     </CRow>
-                </div>
+                    </div>
             </CModalBody>
             <CModalFooter>
                 <CButton color="secondary" variant="ghost" @click="closeServiceModal">{{ t('booking.cancel') }}</CButton>
                 <CButton color="primary" class="nano-btn" @click="saveService" :disabled="saving">
-                    {{ saving ? t('booking.saving') : t('booking.save') }}
+                        {{ saving ? t('booking.saving') : t('booking.save') }}
                 </CButton>
             </CModalFooter>
         </CModal>
@@ -381,7 +381,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">{{ t('booking.fullName') }} *</label>
                         <CFormInput v-model="staffForm.full_name" required />
-                    </div>
+                </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">{{ t('booking.email') }} *</label>
                         <CFormInput v-model="staffForm.email" type="email" required />
@@ -390,12 +390,12 @@
                         <label class="form-label fw-bold">{{ t('booking.phone') }}</label>
                         <CFormInput v-model="staffForm.phone" type="tel" />
                     </div>
-                </div>
+                    </div>
             </CModalBody>
             <CModalFooter>
                 <CButton color="secondary" variant="ghost" @click="closeStaffModal">{{ t('booking.cancel') }}</CButton>
                 <CButton color="primary" class="nano-btn" @click="saveStaff" :disabled="saving">
-                    {{ saving ? t('booking.saving') : t('booking.save') }}
+                        {{ saving ? t('booking.saving') : t('booking.save') }}
                 </CButton>
             </CModalFooter>
         </CModal>
@@ -403,7 +403,7 @@
         <!-- Appointment Modal -->
         <CModal :visible="showAppointmentModal" @close="closeAppointmentModal" size="lg" alignment="center">
             <CModalHeader>
-                <CModalTitle>{{ editingAppointment ? 'Edit Booking' : 'Add Booking' }}</CModalTitle>
+                <CModalTitle>{{ editingAppointment ? t('booking.editBooking') || 'تعديل الحجز' : t('booking.addBooking') || 'إضافة حجز' }}</CModalTitle>
             </CModalHeader>
             <CModalBody>
                 <div class="p-3">
@@ -419,7 +419,7 @@
                             />
                             <CFormSelect v-model.number="appointmentForm.customer_id" required>
                                 <option :value="0" disabled>{{ t('common.select') || 'Select...' }}</option>
-                                <option v-if="customersLoading" :value="0" disabled>Loading...</option>
+                                <option v-if="customersLoading" :value="0" disabled>{{ t('common.loading') || 'جاري التحميل...' }}</option>
                                 <option
                                     v-for="c in customersOptions"
                                     :key="c.id"
@@ -430,30 +430,30 @@
                             </CFormSelect>
                         </CCol>
                         <CCol md="4">
-                            <label class="form-label fw-bold">Status</label>
+                            <label class="form-label fw-bold">{{ t('common.status') || 'الحالة' }}</label>
                             <CFormSelect v-model="appointmentForm.status">
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
+                                <option value="pending">{{ t('booking.pending') }}</option>
+                                <option value="confirmed">{{ t('booking.confirmed') }}</option>
+                                <option value="completed">{{ t('booking.completed') }}</option>
+                                <option value="cancelled">{{ t('booking.cancelled') }}</option>
                             </CFormSelect>
                         </CCol>
                     </CRow>
 
                     <CRow class="g-3 mb-3">
                         <CCol md="6">
-                            <label class="form-label fw-bold">Service *</label>
+                            <label class="form-label fw-bold">{{ t('booking.service') || 'الخدمة' }} *</label>
                             <CFormSelect v-model.number="appointmentForm.service_id" required>
-                                <option :value="0" disabled>Select service...</option>
+                                <option :value="0" disabled>{{ t('booking.selectService') || 'اختر الخدمة...' }}</option>
                                 <option v-for="s in bookingStore.services.items" :key="s.id" :value="Number(s.id)">
                                     {{ s.title }}
                                 </option>
                             </CFormSelect>
                         </CCol>
                         <CCol md="6">
-                            <label class="form-label fw-bold">Staff</label>
+                            <label class="form-label fw-bold">{{ t('booking.staff') || 'الموظفة' }}</label>
                             <CFormSelect v-model.number="appointmentForm.staff_id">
-                                <option :value="0">Any</option>
+                                <option :value="0">{{ t('booking.any') || 'أي موظفة' }}</option>
                                 <option v-for="st in bookingStore.staff.items" :key="st.id" :value="Number(st.id)">
                                     {{ st.full_name }}
                                 </option>
@@ -463,25 +463,25 @@
 
                     <CRow class="g-3 mb-3">
                         <CCol md="6">
-                            <label class="form-label fw-bold">Date *</label>
+                            <label class="form-label fw-bold">{{ t('common.date') || 'التاريخ' }} *</label>
                             <CFormInput v-model="appointmentForm.booking_date" type="date" required />
                         </CCol>
                         <CCol md="6">
-                            <label class="form-label fw-bold">Time *</label>
+                            <label class="form-label fw-bold">{{ t('common.time') || 'الوقت' }} *</label>
                             <CFormInput v-model="appointmentForm.booking_time" type="time" required />
                         </CCol>
                     </CRow>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Notes</label>
-                        <CFormTextarea v-model="appointmentForm.notes" rows="3" placeholder="Optional notes..."></CFormTextarea>
+                        <label class="form-label fw-bold">{{ t('common.notes') || 'ملاحظات' }}</label>
+                        <CFormTextarea v-model="appointmentForm.notes" rows="3" :placeholder="t('common.optionalNotes') || 'ملاحظات اختيارية...'"></CFormTextarea>
                     </div>
                 </div>
             </CModalBody>
             <CModalFooter>
                 <CButton color="secondary" variant="ghost" @click="closeAppointmentModal">{{ t('booking.cancel') }}</CButton>
                 <CButton color="primary" class="nano-btn" @click="saveAppointment" :disabled="saving">
-                    {{ saving ? t('booking.saving') : t('booking.save') }}
+                        {{ saving ? t('booking.saving') : t('booking.save') }}
                 </CButton>
             </CModalFooter>
         </CModal>
@@ -819,8 +819,8 @@ const saveService = async () => {
 };
 const deleteService = async (id) => {
     if (!confirm(t('common.confirmDelete'))) return;
-    try {
-        await bookingStore.deleteService(id);
+        try {
+            await bookingStore.deleteService(id);
         toast.success(t('booking.serviceDeleted'));
     } catch (e) {
         toast.error('Failed to delete service');
@@ -844,7 +844,7 @@ const openStaffModal = (member = null) => {
 const closeStaffModal = () => {
     showStaffModal.value = false;
     editingStaff.value = null;
-};
+    };
 const saveStaff = async () => {
     saving.value = true;
     try {
@@ -864,8 +864,8 @@ const saveStaff = async () => {
 };
 const deleteStaff = async (id) => {
     if (!confirm(t('common.confirmDelete'))) return;
-    try {
-        await bookingStore.deleteStaff(id);
+        try {
+            await bookingStore.deleteStaff(id);
         toast.success(t('booking.staffDeleted'));
     } catch (e) {
         toast.error('Failed to delete staff');
@@ -982,11 +982,11 @@ onMounted(() => {
     padding: 0.75rem 1.5rem;
     font-weight: 700;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+    box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 .nano-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(187, 160, 122, 0.4);
+    box-shadow: 0 6px 15px rgba(142, 126, 120, 0.4);
 }
 
 .nano-btn-secondary {
@@ -1065,7 +1065,7 @@ onMounted(() => {
 .nano-tab-link.active {
     background: var(--asmaa-primary) !important;
     color: white !important;
-    box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+    box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .nano-panel {
@@ -1107,7 +1107,7 @@ onMounted(() => {
     position: absolute;
     top: 12px;
     right: 12px;
-    background: rgba(187, 160, 122, 0.1);
+    background: rgba(142, 126, 120, 0.1);
     color: var(--asmaa-primary);
     padding: 4px 10px;
     border-radius: 8px;
@@ -1168,7 +1168,7 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
     margin: 0 auto;
-    box-shadow: 0 8px 16px rgba(187, 160, 122, 0.3);
+    box-shadow: 0 8px 16px rgba(142, 126, 120, 0.3);
 }
 
 .nano-appointment-card {
@@ -1193,7 +1193,7 @@ onMounted(() => {
     padding: 0.75rem;
     color: white;
     text-align: center;
-    box-shadow: 0 4px 10px rgba(187, 160, 122, 0.3);
+    box-shadow: 0 4px 10px rgba(142, 126, 120, 0.3);
 }
 .appt-day { font-size: 1.75rem; font-weight: 800; line-height: 1; }
 .appt-month { font-size: 0.875rem; font-weight: 600; text-transform: uppercase; }

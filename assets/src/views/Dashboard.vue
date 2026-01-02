@@ -1,14 +1,14 @@
 <template>
-  <div class="asmaa-salon-dashboard p-4">
-    <!-- Modern Hub Header -->
-    <div class="dashboard-header-top d-flex justify-content-between align-items-center mb-5">
+  <div class="dashboard-page p-4">
+    <!-- Modern Nano Header -->
+    <div class="pos-header-top d-flex justify-content-between align-items-center mb-4">
       <div class="header-left">
-        <h1 class="fw-bold text-primary mb-1">{{ t('dashboard.title') }}</h1>
-        <p class="text-muted mb-0"><CIcon icon="cil-sun" class="me-2 text-warning" />{{ t('dashboard.subtitle') }} — {{ todayDate }}</p>
+        <h2 class="mb-0 fw-bold text-primary">{{ t('dashboard.title') || 'لوحة التحكم' }}</h2>
+        <p class="text-muted small mb-0">{{ todayDate }}</p>
       </div>
-      <div class="header-right d-flex gap-3">
-        <CButton color="primary" class="nano-btn shadow-lg" @click="$router.push('/pos')">
-          <CIcon icon="cil-basket" class="me-2" />GO TO POS
+      <div class="header-right d-flex gap-2">
+        <CButton color="primary" class="nano-btn" @click="$router.push('/pos')">
+          <CIcon icon="cil-cart" class="me-2" />{{ t('dashboard.goToPOS') || 'انتقل إلى POS' }}
         </CButton>
         <CButton color="secondary" variant="ghost" @click="refreshData">
           <CIcon icon="cil-reload" :class="{ 'spinning': loading }" />
@@ -16,65 +16,69 @@
       </div>
     </div>
 
-    <!-- Main Stats Bar -->
-    <div class="nano-stats-bar mb-5">
-      <div class="stat-card-nano primary shadow-hover" @click="$router.push('/customers')">
+    <!-- Quick Stats Bar (Nano Banana Style) -->
+    <div class="nano-stats-bar mb-4">
+      <div class="stat-card-nano">
         <div class="stat-icon-bg customers"><CIcon icon="cil-people" /></div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.customers || 0 }}</div>
-          <div class="stat-label">Total Customers</div>
+          <div class="stat-label">{{ t('dashboard.totalCustomers') || 'إجمالي العملاء' }}</div>
         </div>
       </div>
-      <div class="stat-card-nano secondary shadow-hover" @click="$router.push('/bookings')">
-        <div class="stat-icon-bg bookings"><CIcon icon="cil-calendar" /></div>
+      <div class="stat-card-nano">
+        <div class="stat-icon-bg bookings"><CIcon icon="cil-calendar-check" /></div>
         <div class="stat-info">
-          <div class="stat-value">{{ stats.bookingsToday || 0 }}</div>
-          <div class="stat-label">Today's Bookings</div>
+          <div class="stat-value text-info">{{ stats.bookingsToday || 0 }}</div>
+          <div class="stat-label">{{ t('dashboard.todaysBookings') || 'حجوزات اليوم' }}</div>
         </div>
       </div>
-      <div class="stat-card-nano success shadow-hover">
+      <div class="stat-card-nano">
         <div class="stat-icon-bg revenue"><CIcon icon="cil-money" /></div>
         <div class="stat-info">
-          <div class="stat-value">{{ formatCurrencyShort(stats.monthlyRevenue || 0) }}</div>
-          <div class="stat-label">Monthly Revenue</div>
+          <div class="stat-value text-success">{{ formatCurrencyShort(stats.monthlyRevenue || 0) }}</div>
+          <div class="stat-label">{{ t('dashboard.monthlyRevenue') || 'إيرادات الشهر' }}</div>
         </div>
       </div>
-      <div class="stat-card-nano info shadow-hover" @click="$router.push('/loyalty')">
-        <div class="stat-icon-bg points"><CIcon icon="cil-star" /></div>
+      <div class="stat-card-nano">
+        <div class="stat-icon-bg loyalty"><CIcon icon="cil-star" /></div>
         <div class="stat-info">
-          <div class="stat-value">{{ stats.loyaltyPoints || '1.2K' }}</div>
-          <div class="stat-label">Loyalty Points</div>
+          <div class="stat-value text-warning">{{ stats.totalPoints || 0 }}</div>
+          <div class="stat-label">{{ t('dashboard.loyaltyPoints') || 'نقاط الولاء' }}</div>
         </div>
       </div>
     </div>
 
-    <!-- Operations Quick Hub -->
-    <div class="ops-hub mb-5">
-      <h4 class="fw-bold mb-4 d-flex align-items-center"><CIcon icon="cil-speedometer" class="me-2 text-primary" />Quick Operations</h4>
-      <div class="ops-grid">
-        <div class="ops-card pos" @click="$router.push('/pos')">
-          <div class="card-glow"></div>
-          <div class="card-icon"><CIcon icon="cil-cart" size="xl" /></div>
-          <h5>Point of Sale</h5>
-          <p>Process orders & payments</p>
+    <!-- Quick Operations Panel -->
+    <div class="nano-panel mb-4">
+      <h4 class="fw-bold mb-4">{{ t('dashboard.quickOperations') || 'عمليات سريعة' }}</h4>
+      <div class="nano-grid-actions">
+        <div class="action-card-nano pos" @click="$router.push('/pos')">
+          <div class="action-icon"><CIcon icon="cil-cart" size="xl" /></div>
+          <div class="action-details">
+            <h6>{{ t('nav.pos') || 'نقطة البيع' }}</h6>
+            <p>{{ t('dashboard.processOrders') || 'معالجة الطلبات والمدفوعات' }}</p>
+          </div>
         </div>
-        <div class="ops-card bookings" @click="$router.push('/bookings')">
-          <div class="card-glow"></div>
-          <div class="card-icon"><CIcon icon="cil-calendar" size="xl" /></div>
-          <h5>Bookings</h5>
-          <p>Manage appointments</p>
+        <div class="action-card-nano bookings" @click="$router.push('/bookings')">
+          <div class="action-icon"><CIcon icon="cil-calendar" size="xl" /></div>
+          <div class="action-details">
+            <h6>{{ t('nav.bookings') || 'الحجوزات' }}</h6>
+            <p>{{ t('dashboard.manageAppointments') || 'إدارة المواعيد' }}</p>
+          </div>
         </div>
-        <div class="ops-card queue" @click="$router.push('/queue')">
-          <div class="card-glow"></div>
-          <div class="card-icon"><CIcon icon="cil-list" size="xl" /></div>
-          <h5>Queue</h5>
-          <p>Live walk-in management</p>
+        <div class="action-card-nano queue" @click="$router.push('/queue')">
+          <div class="action-icon"><CIcon icon="cil-people" size="xl" /></div>
+          <div class="action-details">
+            <h6>{{ t('nav.queue') || 'الطابور' }}</h6>
+            <p>{{ t('dashboard.liveWaitlist') || 'إدارة قائمة الانتظار' }}</p>
+          </div>
         </div>
-        <div class="ops-card staff" @click="$router.push('/worker-calls')">
-          <div class="card-glow"></div>
-          <div class="card-icon"><CIcon icon="cil-bell" size="xl" /></div>
-          <h5>Staff Calls</h5>
-          <p>Worker notifications</p>
+        <div class="action-card-nano calls" @click="$router.push('/worker-calls')">
+          <div class="action-icon"><CIcon icon="cil-bullhorn" size="xl" /></div>
+          <div class="action-details">
+            <h6>{{ t('nav.workerCalls') || 'نداءات الموظفات' }}</h6>
+            <p>{{ t('dashboard.workerNotifications') || 'تنبيهات الموظفات' }}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -85,48 +89,50 @@
       <CCol lg="8">
         <div class="nano-panel h-100 live-monitor">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="fw-bold mb-0">Live Monitoring</h4>
+            <h4 class="fw-bold mb-0">{{ t('dashboard.liveMonitoring') || 'المراقبة المباشرة' }}</h4>
             <CBadge color="danger" class="pulse-red">LIVE</CBadge>
           </div>
           
-          <CTabs active-tab="today-queue">
-            <CNav variant="pills" class="nano-tabs-sm mb-4">
-              <CNavItem><CNavLink href="javascript:void(0)" active>Queue Waitlist</CNavLink></CNavItem>
-              <CNavItem><CNavLink href="javascript:void(0)">Today's Bookings</CNavLink></CNavItem>
-            </CNav>
-            <CTabContent>
-              <div class="d-flex flex-column gap-3">
-                <div v-for="i in [1,2,3]" :key="i" class="live-activity-item p-3 rounded-4 bg-tertiary border d-flex align-items-center">
-                  <div class="activity-time me-3 fw-bold text-primary">10:{{ i }}5</div>
-                  <div class="activity-info flex-grow-1">
-                    <div class="fw-bold">Huda Al-Alawi</div>
-                    <div class="small text-muted">Hair Cut & Styling</div>
-                  </div>
-                  <CBadge color="warning" shape="rounded-pill">WAITING</CBadge>
-                </div>
+          <div v-if="!stats.recentActivity || stats.recentActivity.length === 0" class="text-center py-5 text-muted">
+            <CIcon icon="cil-find-in-page" size="xl" class="mb-3 opacity-25" />
+            <p>{{ t('dashboard.noRecentActivity') || 'لا توجد أنشطة حديثة' }}</p>
+          </div>
+          <div v-else class="d-flex flex-column gap-3">
+            <div v-for="(item, index) in stats.recentActivity" :key="index" class="live-activity-item p-3 rounded-4 bg-tertiary border d-flex align-items-center">
+              <div class="activity-time me-3 fw-bold text-primary">{{ formatTime(item.created_at) }}</div>
+              <div class="activity-info flex-grow-1">
+                <div class="fw-bold">{{ item.name || 'عميلة' }}</div>
+                <div class="small text-muted">{{ item.type === 'booking' ? 'حجز موعد' : 'طلب جديد' }}</div>
               </div>
-            </CTabContent>
-          </CTabs>
+              <CBadge :color="item.type === 'booking' ? 'info' : 'success'" shape="rounded-pill">
+                {{ item.type === 'booking' ? (t('dashboard.bookings') || 'حجوزات') : (t('dashboard.orders') || 'طلبات') }}
+              </CBadge>
+            </div>
+          </div>
         </div>
       </CCol>
 
       <!-- Staff Performance Summary -->
       <CCol lg="4">
         <div class="nano-panel h-100 staff-performance">
-          <h4 class="fw-bold mb-4">Top Stylists</h4>
-          <div class="d-flex flex-column gap-4">
-            <div v-for="s in [1,2,3]" :key="s" class="stylist-item d-flex align-items-center">
-              <div class="stylist-rank me-3 fw-bold fs-4 text-muted">#{{ s }}</div>
-              <div class="stylist-avatar-sm me-3">S{{ s }}</div>
+          <h4 class="fw-bold mb-4">{{ t('dashboard.topStylists') || 'أفضل الموظفات' }}</h4>
+          <div v-if="!stats.topStylists || stats.topStylists.length === 0" class="text-center py-5 text-muted">
+             <p>{{ t('dashboard.noDataYet') || 'لا توجد بيانات بعد' }}</p>
+          </div>
+          <div v-else class="d-flex flex-column gap-4">
+            <div v-for="(s, idx) in stats.topStylists" :key="idx" class="stylist-item d-flex align-items-center">
+              <div class="stylist-rank me-3 fw-bold fs-4 text-muted">#{{ idx + 1 }}</div>
+              <div class="stylist-avatar-sm me-3">{{ s.name.charAt(0) }}</div>
               <div class="stylist-info flex-grow-1">
-                <div class="fw-bold">Stylist Name</div>
-                <div class="small text-success">45 Orders • 150 KWD</div>
+                <div class="fw-bold">{{ s.name }}</div>
+                <div class="small text-success">{{ s.bookings }} {{ t('dashboard.bookings') || 'حجوزات' }}</div>
               </div>
-              <div class="stylist-rating text-warning"><CIcon icon="cil-star" class="me-1" />4.9</div>
             </div>
           </div>
-          <CButton color="primary" variant="ghost" class="w-100 mt-5" @click="$router.push('/staff')">View All Staff</CButton>
-        </div>
+          <CButton color="primary" variant="ghost" class="w-100 mt-5" @click="$router.push('/staff')">
+            {{ t('dashboard.viewAllStaff') || 'مشاهدة جميع الموظفات' }}
+          </CButton>
+      </div>
       </CCol>
     </CRow>
 
@@ -136,7 +142,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
+import {
   CButton, CBadge, CRow, CCol, CSpinner, CNav, CNavItem, CNavLink, 
   CTabContent, CTabs
 } from '@coreui/vue';
@@ -188,173 +194,145 @@ const formatCurrencyShort = (amount) => {
   }).format(amount || 0);
 };
 
+const formatTime = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleTimeString('en-KW', { hour: '2-digit', minute: '2-digit' });
+};
+
 onMounted(() => {
   refreshData();
 });
 </script>
 
 <style scoped>
-.asmaa-salon-dashboard {
+.dashboard-page {
   font-family: 'Cairo', sans-serif;
   background: var(--bg-primary);
   min-height: 100vh;
 }
 
 .nano-btn {
-  border-radius: 16px;
-  padding: 0.875rem 2rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.nano-btn:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 10px 25px rgba(187, 160, 122, 0.4);
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .nano-stats-bar {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
 }
 
 .stat-card-nano {
   background: var(--bg-secondary);
-  border-radius: 28px;
-  padding: 2rem;
+  border-radius: 24px;
+  padding: 1.5rem;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid var(--border-color);
+  gap: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s;
 }
-.stat-card-nano.shadow-hover:hover {
-  transform: translateY(-8px);
-  border-color: var(--asmaa-primary);
-  box-shadow: var(--shadow-lg);
+.stat-card-nano:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-icon-bg {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   color: white;
 }
 .stat-icon-bg.customers { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
-.stat-icon-bg.bookings { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
+.stat-icon-bg.bookings { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); }
 .stat-icon-bg.revenue { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-.stat-icon-bg.points { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.stat-icon-bg.loyalty { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
 
-.stat-value { font-size: 2rem; font-weight: 900; line-height: 1; }
-.stat-label { font-size: 0.875rem; color: var(--text-muted); font-weight: 700; margin-top: 6px; }
+.stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 0.8125rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
 
-.ops-grid {
+.nano-panel {
+  background: var(--bg-secondary);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.nano-grid-actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
 }
 
-.ops-card {
-  background: var(--bg-secondary);
-  border-radius: 24px;
-  padding: 2rem;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  cursor: pointer;
-  transition: all 0.3s;
-}
-.ops-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--asmaa-primary);
-}
-.ops-card.pos { border-bottom: 4px solid #6366f1; }
-.ops-card.bookings { border-bottom: 4px solid #ec4899; }
-.ops-card.queue { border-bottom: 4px solid #10b981; }
-.ops-card.staff { border-bottom: 4px solid #f59e0b; }
-
-.card-icon {
-  width: 60px;
-  height: 60px;
+.action-card-nano {
   background: var(--bg-tertiary);
-  color: var(--asmaa-primary);
-  border-radius: 18px;
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border-color);
+}
+.action-card-nano:hover {
+  transform: scale(1.03);
+  border-color: var(--asmaa-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.action-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1.25rem;
-  transition: all 0.3s;
-}
-.ops-card:hover .card-icon {
-  background: var(--asmaa-primary);
-  color: white;
-  transform: scale(1.1) rotate(5deg);
-}
-
-.ops-card h5 { font-weight: 800; margin-bottom: 0.5rem; }
-.ops-card p { font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0; }
-
-.nano-panel {
-  background: var(--bg-secondary);
-  border-radius: 32px;
-  padding: 2.5rem;
+  background: white;
+  color: var(--asmaa-primary);
   box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
 }
 
-.nano-tabs-sm {
-  background: var(--bg-tertiary);
-  padding: 0.375rem;
-  border-radius: 12px;
-  gap: 0.25rem;
+.action-details h6 { margin-bottom: 2px; font-weight: 800; }
+.action-details p { margin-bottom: 0; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+
+.pulse-red {
+  animation: pulse-red 2s infinite;
 }
-.nano-tabs-sm .nav-link {
-  border-radius: 8px !important;
-  font-weight: 700 !important;
-  padding: 0.5rem 1.25rem !important;
-  color: var(--text-muted) !important;
-  border: none !important;
-}
-.nano-tabs-sm .nav-link.active {
-  background: var(--asmaa-primary) !important;
-  color: white !important;
+
+@keyframes pulse-red {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
 .live-activity-item {
   transition: all 0.3s;
 }
 .live-activity-item:hover {
-  transform: translateX(8px);
-  border-color: var(--asmaa-primary) !important;
+  background: var(--bg-secondary) !important;
+  transform: translateX(5px);
 }
 
 .stylist-avatar-sm {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, #d4b996 100%);
+  background: var(--asmaa-primary);
   color: white;
-  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: bold;
 }
 
-.pulse-red {
-  animation: pulse-red 2s infinite;
-}
-@keyframes pulse-red {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(229, 83, 83, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(229, 83, 83, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(229, 83, 83, 0); }
-}
-
-@media (max-width: 992px) {
+@media (max-width: 768px) {
   .nano-stats-bar { grid-template-columns: 1fr 1fr; }
 }
 </style>

@@ -25,6 +25,7 @@ export const usePOSStore = defineStore('pos', () => {
   const discount = ref(0);
   const paymentMethod = ref('cash');
   const prepaidAmount = ref(0);
+  const discountReason = ref('');
   
   // Advanced Receptionist States
   const splitPayments = ref([
@@ -40,6 +41,8 @@ export const usePOSStore = defineStore('pos', () => {
     total: 0,
     staff_name: ''
   });
+  const popularity = ref({ services: [], products: [] });
+  const lastServices = ref([]);
   
   // Loading States
   const loading = ref({
@@ -102,6 +105,13 @@ export const usePOSStore = defineStore('pos', () => {
     lastVisitDetails.value = details;
   }
 
+  /**
+   * Generic prefetch for Rule #4
+   */
+  async function prefetch() {
+    return await fetchAllData();
+  }
+
   async function fetchAllData() {
     loading.value.products = true;
     loading.value.services = true;
@@ -139,6 +149,7 @@ export const usePOSStore = defineStore('pos', () => {
       activeCustomers.value = posData.active_customers || [];
       bookings.value = posData.bookings || [];
       queueTickets.value = posData.queue_tickets || [];
+      popularity.value = posData.popularity || { services: [], products: [] };
       
       openSession.value = sessionRes.data?.data || sessionRes.data || null;
     } catch (error) {
@@ -183,19 +194,21 @@ export const usePOSStore = defineStore('pos', () => {
   }
 
   function addToCart(item) {
-    // Check if item already exists in cart with same type and id
+    // Check if item already exists in cart with same type, id, staff, AND note
     const existingIndex = cart.value.findIndex(i => 
       i.type === item.type && 
       (item.type === 'product' ? i.product_id === item.product_id : i.service_id === item.service_id) &&
-      i.staff_id === item.staff_id
+      i.staff_id === item.staff_id &&
+      (i.note || '') === (item.note || '')
     );
 
-    if (existingIndex > -1) {
+    if (existingIndex > -1 && !item.is_custom) {
       cart.value[existingIndex].quantity += item.quantity || 1;
     } else {
       cart.value.push({
         ...item,
-        quantity: item.quantity || 1
+        quantity: item.quantity || 1,
+        note: item.note || ''
       });
     }
   }
@@ -207,7 +220,28 @@ export const usePOSStore = defineStore('pos', () => {
   function clearCart() {
     cart.value = [];
     discount.value = 0;
+    discountReason.value = '';
     prepaidAmount.value = 0;
+  }
+
+  function repeatLastVisit() {
+    if (!lastVisitDetails.value || !lastVisitDetails.value.services) return;
+    
+    lastVisitDetails.value.services.forEach(serviceName => {
+      // Find service in catalog by name
+      const service = services.value.find(s => (s.name_ar || s.name) === serviceName);
+      if (service) {
+        addToCart({
+          type: 'service',
+          service_id: service.id,
+          name: service.name_ar || service.name,
+          unit_price: parseFloat(service.price || 0),
+          quantity: 1,
+          staff_id: null, // Receptionist might want to reassign
+          staff_name: ''
+        });
+      }
+    });
   }
 
   return {
@@ -228,9 +262,12 @@ export const usePOSStore = defineStore('pos', () => {
     cart,
     selectedCustomerId,
     discount,
+    discountReason,
     paymentMethod,
     prepaidAmount,
     loading,
+    popularity,
+    lastServices,
     
     // Computed
     subtotal,
@@ -248,6 +285,7 @@ export const usePOSStore = defineStore('pos', () => {
     addToCart,
     removeFromCart,
     clearCart,
+    repeatLastVisit,
     setSplitPaymentAmount,
     clearSplitPayments,
     addCustomerAlert,

@@ -254,7 +254,7 @@ defineEmits(['click']);
 }
 
 .stat-card-gold {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.85) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.85) 100%);
   color: white;
 }
 
@@ -425,7 +425,7 @@ defineEmits(['click']);
 .stat-card-teal,
 .stat-card-indigo,
 .stat-card-orange {
-  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(187, 160, 122, 0.85) 100%);
+  background: linear-gradient(135deg, var(--asmaa-primary) 0%, rgba(142, 126, 120, 0.85) 100%);
   color: white;
 }
 

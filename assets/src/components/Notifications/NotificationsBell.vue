@@ -281,7 +281,7 @@ onBeforeUnmount(() => {
 }
 
 .notif-item.unread {
-  background: rgba(187, 160, 122, 0.08);
+  background: rgba(142, 126, 120, 0.08);
 }
 
 .notif-item-title {

@@ -17,8 +17,8 @@
         <CButton color="secondary" variant="ghost" @click="loadData" :disabled="loading">
           <CIcon icon="cil-reload" :class="{ 'spinning': loading }" />
         </CButton>
-      </div>
     </div>
+          </div>
 
     <!-- Quick Stats Bar (Nano Banana Style) -->
     <div class="nano-stats-bar mb-4">
@@ -27,30 +27,30 @@
         <div class="stat-info">
           <div class="stat-value text-success">{{ availableCount }}</div>
           <div class="stat-label">{{ t('workerCalls.available') }}</div>
-        </div>
-      </div>
+                  </div>
+                  </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg busy"><CIcon icon="cil-user" /></div>
         <div class="stat-info">
           <div class="stat-value text-danger">{{ busyCount }}</div>
           <div class="stat-label">{{ t('workerCalls.busy') }}</div>
-        </div>
-      </div>
+                </div>
+              </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg waiting"><CIcon icon="cil-bell" /></div>
         <div class="stat-info">
           <div class="stat-value text-warning">{{ waitingCalls.length }}</div>
           <div class="stat-label">{{ t('workerCalls.queueWaiting') }}</div>
-        </div>
-      </div>
+                </div>
+                </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg total"><CIcon icon="cil-calendar" /></div>
         <div class="stat-info">
           <div class="stat-value text-primary">{{ bookings.length }}</div>
           <div class="stat-label">{{ t('workerCalls.todaysBookings') }}</div>
-        </div>
-      </div>
-    </div>
+                </div>
+                </div>
+              </div>
 
     <!-- Main Content Layout -->
     <CRow class="g-4">
@@ -62,8 +62,8 @@
             <div class="d-flex gap-2">
               <CBadge color="success" shape="rounded-pill" class="px-2">Available</CBadge>
               <CBadge color="danger" shape="rounded-pill" class="px-2">Busy</CBadge>
-            </div>
-          </div>
+              </div>
+              </div>
 
           <div v-if="loading" class="text-center p-5">
             <CSpinner color="primary" />
@@ -73,17 +73,17 @@
               <div class="staff-avatar-container">
                 <div class="staff-avatar-main">{{ staff.name?.charAt(0) }}</div>
                 <div class="status-indicator" :class="staff.busy ? 'busy' : 'available'"></div>
-              </div>
+                  </div>
               <div class="staff-info mt-3 text-center">
                 <h5 class="fw-bold mb-1">{{ staff.name }}</h5>
                 <p class="text-muted small mb-3">{{ staff.position || 'Staff' }}</p>
                 <CButton :color="staff.busy ? 'secondary' : 'primary'" class="nano-btn-sm w-100" @click="callWorker(staff)" :disabled="staff.busy">
                   {{ staff.busy ? 'Busy' : t('workerCalls.call') }}
-                </CButton>
+                  </CButton>
+                </div>
               </div>
             </div>
           </div>
-        </div>
       </CCol>
 
       <!-- Active Calls Column -->
@@ -94,17 +94,17 @@
           <div v-if="waitingCalls.length === 0" class="text-center p-5 text-muted opacity-50 border-dashed rounded-4">
             <CIcon icon="cil-smile" size="xl" class="mb-3" />
             <p>{{ t('workerCalls.noActiveCalls') || 'لا يوجد نداءات نشطة' }}</p>
-          </div>
+        </div>
           <div v-else class="d-flex flex-column gap-3">
             <div v-for="call in waitingCalls" :key="call.id" class="nano-call-card pulse-warning shadow-sm">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div class="fw-bold text-dark fs-5">#{{ call.ticket_number }}</div>
                 <CBadge color="warning" class="px-2">WAITING</CBadge>
-              </div>
+                  </div>
               <div class="call-details mb-3">
                 <div class="fw-bold">{{ call.customer_name }}</div>
                 <div class="small text-muted">{{ call.service_name }}</div>
-              </div>
+                  </div>
               <div class="d-flex gap-2">
                 <CButton color="success" class="flex-grow-1 nano-btn-sm" @click="assignStaff(call)">
                   <CIcon icon="cil-user-plus" class="me-1" />Assign
@@ -112,9 +112,9 @@
                 <CButton color="danger" variant="ghost" @click="cancelCall(call)">
                   <CIcon icon="cil-trash" />
                 </CButton>
-              </div>
-            </div>
-          </div>
+                  </div>
+                  </div>
+                  </div>
         </div>
       </CCol>
     </CRow>
@@ -126,7 +126,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
+import {
   CButton, CBadge, CRow, CCol, CSpinner, CDropdown, CDropdownToggle, CDropdownMenu, CDropdownItem 
 } from '@coreui/vue';
 import { CIcon } from '@coreui/icons-vue';
@@ -156,7 +156,7 @@ const loadData = async () => {
       api.get('/queue/tickets', { params: { status: 'waiting,called' } }),
       api.get('/bookings', { params: { date: new Date().toISOString().split('T')[0] } })
     ]);
-    
+
     staffCards.value = (staffRes.data?.data?.items || staffRes.data?.items || []).map(s => ({
       ...s,
       busy: s.status === 'busy' || Math.random() > 0.7 // Mocking busy status for demo
@@ -175,7 +175,7 @@ const callWorker = async (staff) => {
   try {
     // In real app, this would trigger a notification to the worker
     toast.success(`${t('workerCalls.calling')}: ${staff.name}`);
-  } catch (e) {
+        } catch (e) {
     toast.error('Failed to call worker');
   }
 };
@@ -212,7 +212,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .nano-stats-bar {
@@ -301,7 +301,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 10px rgba(142, 126, 120, 0.3);
 }
 .status-indicator {
   position: absolute;

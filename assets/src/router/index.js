@@ -20,6 +20,7 @@ const routes = [
     path: '/customers/:id',
     name: 'CustomerProfile',
     component: () => import('../views/Customers/Profile.vue'),
+    alias: '/customers/:id/profile'
   },
   {
     path: '/customers/wallet',

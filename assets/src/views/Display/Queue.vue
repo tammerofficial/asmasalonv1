@@ -291,8 +291,8 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 15% 40%, rgba(187, 160, 122, 0.12) 0%, transparent 50%),
-    radial-gradient(circle at 85% 70%, rgba(187, 160, 122, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 15% 40%, rgba(142, 126, 120, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 85% 70%, rgba(142, 126, 120, 0.08) 0%, transparent 50%),
     linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
   pointer-events: none;
   z-index: 0;
@@ -306,7 +306,7 @@ onUnmounted(() => {
 /* Header */
 .display-header {
   margin-bottom: 2.5rem;
-  border-bottom: 2px solid rgba(187, 160, 122, 0.3);
+  border-bottom: 2px solid rgba(142, 126, 120, 0.3);
   padding-bottom: 2rem;
   animation: fadeInDown 0.6s ease-out;
 }
@@ -329,11 +329,11 @@ onUnmounted(() => {
   width: 80px;
   height: 80px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #BBA07A 0%, rgba(187, 160, 122, 0.8) 100%);
+  background: linear-gradient(135deg, #8E7E78 0%, rgba(142, 126, 120, 0.8) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(187, 160, 122, 0.4);
+  box-shadow: 0 8px 24px rgba(142, 126, 120, 0.4);
   animation: pulse 3s ease-in-out infinite;
 }
 
@@ -353,8 +353,8 @@ onUnmounted(() => {
   font-size: 3.5rem;
   font-weight: 800;
   margin: 0;
-  color: #BBA07A;
-  text-shadow: 0 4px 16px rgba(187, 160, 122, 0.5);
+  color: #8E7E78;
+  text-shadow: 0 4px 16px rgba(142, 126, 120, 0.5);
   letter-spacing: -1px;
   line-height: 1.1;
 }
@@ -394,10 +394,10 @@ onUnmounted(() => {
 
 .display-time {
   font-size: 2.75rem;
-  color: #BBA07A;
+  color: #8E7E78;
   font-weight: 700;
   font-family: 'Courier New', 'SF Mono', monospace;
-  text-shadow: 0 2px 12px rgba(187, 160, 122, 0.4);
+  text-shadow: 0 2px 12px rgba(142, 126, 120, 0.4);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -406,7 +406,7 @@ onUnmounted(() => {
 .info-icon {
   width: 20px;
   height: 20px;
-  color: #BBA07A;
+  color: #8E7E78;
   opacity: 0.8;
 }
 
@@ -428,7 +428,7 @@ onUnmounted(() => {
   border-radius: 24px;
   padding: 2rem;
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(187, 160, 122, 0.2);
+  border: 1px solid rgba(142, 126, 120, 0.2);
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -445,13 +445,13 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, transparent 0%, rgba(187, 160, 122, 0.5) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(142, 126, 120, 0.5) 50%, transparent 100%);
 }
 
 .display-section:hover {
-  border-color: rgba(187, 160, 122, 0.4);
+  border-color: rgba(142, 126, 120, 0.4);
   box-shadow: 
-    0 12px 40px rgba(187, 160, 122, 0.2),
+    0 12px 40px rgba(142, 126, 120, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
 }
@@ -468,7 +468,7 @@ onUnmounted(() => {
 .section-header {
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(187, 160, 122, 0.2);
+  border-bottom: 1px solid rgba(142, 126, 120, 0.2);
 }
 
 .section-title-wrapper {
@@ -499,14 +499,14 @@ onUnmounted(() => {
 }
 
 .waiting-icon {
-  background: linear-gradient(135deg, rgba(187, 160, 122, 0.2) 0%, rgba(187, 160, 122, 0.1) 100%);
-  border: 2px solid rgba(187, 160, 122, 0.3);
+  background: linear-gradient(135deg, rgba(142, 126, 120, 0.2) 0%, rgba(142, 126, 120, 0.1) 100%);
+  border: 2px solid rgba(142, 126, 120, 0.3);
 }
 
 .section-icon {
   width: 28px;
   height: 28px;
-  color: #BBA07A;
+  color: #8E7E78;
 }
 
 .serving-icon .section-icon {
@@ -520,7 +520,7 @@ onUnmounted(() => {
 .section-title {
   font-size: 1.75rem;
   margin: 0;
-  color: #BBA07A;
+  color: #8E7E78;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -543,13 +543,13 @@ onUnmounted(() => {
   min-width: 36px;
   height: 36px;
   padding: 0 0.875rem;
-  background: linear-gradient(135deg, #BBA07A 0%, rgba(187, 160, 122, 0.8) 100%);
+  background: linear-gradient(135deg, #8E7E78 0%, rgba(142, 126, 120, 0.8) 100%);
   color: white;
   border-radius: 18px;
   font-size: 1rem;
   font-weight: 800;
   margin-left: 0.5rem;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.4);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.4);
 }
 
 /* Serving Card Simple */
@@ -871,16 +871,16 @@ onUnmounted(() => {
 }
 
 .waiting-item:hover {
-  background: rgba(187, 160, 122, 0.1);
+  background: rgba(142, 126, 120, 0.1);
   transform: translateX(-8px);
-  border-color: rgba(187, 160, 122, 0.3);
-  box-shadow: 0 4px 16px rgba(187, 160, 122, 0.15);
+  border-color: rgba(142, 126, 120, 0.3);
+  box-shadow: 0 4px 16px rgba(142, 126, 120, 0.15);
 }
 
 .waiting-item.is-you {
-  background: linear-gradient(135deg, rgba(187, 160, 122, 0.25) 0%, rgba(187, 160, 122, 0.15) 100%);
-  border: 2px solid #BBA07A;
-  box-shadow: 0 4px 16px rgba(187, 160, 122, 0.3);
+  background: linear-gradient(135deg, rgba(142, 126, 120, 0.25) 0%, rgba(142, 126, 120, 0.15) 100%);
+  border: 2px solid #8E7E78;
+  box-shadow: 0 4px 16px rgba(142, 126, 120, 0.3);
 }
 
 .waiting-item.is-next {
@@ -907,13 +907,13 @@ onUnmounted(() => {
   min-width: 56px;
   height: 56px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(187, 160, 122, 0.3) 0%, rgba(187, 160, 122, 0.2) 100%);
-  color: #BBA07A;
+  background: linear-gradient(135deg, rgba(142, 126, 120, 0.3) 0%, rgba(142, 126, 120, 0.2) 100%);
+  color: #8E7E78;
   font-weight: 800;
   font-size: 1.5rem;
-  border: 2px solid rgba(187, 160, 122, 0.4);
+  border: 2px solid rgba(142, 126, 120, 0.4);
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.2);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.2);
 }
 
 .waiting-item.is-next .waiting-number-badge {
@@ -930,7 +930,7 @@ onUnmounted(() => {
 
 .waiting-ticket-number {
   font-weight: 800;
-  color: #BBA07A;
+  color: #8E7E78;
   font-size: 1.5rem;
   font-family: 'Courier New', 'SF Mono', monospace;
   margin-bottom: 0.375rem;
@@ -942,7 +942,7 @@ onUnmounted(() => {
 .ticket-icon {
   width: 20px;
   height: 20px;
-  color: #BBA07A;
+  color: #8E7E78;
   opacity: 0.8;
 }
 
@@ -973,12 +973,12 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #BBA07A 0%, rgba(187, 160, 122, 0.8) 100%);
+  background: linear-gradient(135deg, #8E7E78 0%, rgba(142, 126, 120, 0.8) 100%);
   color: white;
   border-radius: 20px;
   font-weight: 700;
   font-size: 0.875rem;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.4);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.4);
 }
 
 .you-badge CIcon {
@@ -1074,13 +1074,13 @@ onUnmounted(() => {
 }
 
 .waiting-list-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #BBA07A 0%, rgba(187, 160, 122, 0.8) 100%);
+  background: linear-gradient(135deg, #8E7E78 0%, rgba(142, 126, 120, 0.8) 100%);
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .waiting-list-container::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, rgba(187, 160, 122, 0.9) 0%, #BBA07A 100%);
+  background: linear-gradient(135deg, rgba(142, 126, 120, 0.9) 0%, #8E7E78 100%);
 }
 
 /* Animations */
@@ -1142,11 +1142,11 @@ onUnmounted(() => {
 @keyframes pulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 8px 24px rgba(187, 160, 122, 0.5);
+    box-shadow: 0 8px 24px rgba(142, 126, 120, 0.5);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 12px 32px rgba(187, 160, 122, 0.6);
+    box-shadow: 0 12px 32px rgba(142, 126, 120, 0.6);
   }
 }
 
@@ -1189,8 +1189,8 @@ onUnmounted(() => {
   width: 60px;
   height: 60px;
   margin: -30px 0 0 -30px;
-  border: 4px solid rgba(187, 160, 122, 0.3);
-  border-top-color: #BBA07A;
+  border: 4px solid rgba(142, 126, 120, 0.3);
+  border-top-color: #8E7E78;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   z-index: 10;

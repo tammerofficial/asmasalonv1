@@ -42,7 +42,11 @@
       </div>
     </div>
 
-    <div class="customer-badges" v-if="hasActiveMembership || customer.apple_wallet_status">
+    <div class="customer-badges" v-if="hasActiveMembership || customer.apple_wallet_status || isBirthday">
+      <CBadge v-if="isBirthday" color="danger" shape="rounded-pill" class="pulse-birthday me-1">
+        <CIcon icon="cil-birthday-cake" class="me-1" />
+        {{ t('customers.birthdayToday') || 'يوم ميلاد سعيد! 🎉' }}
+      </CBadge>
       <CBadge v-if="hasActiveMembership" color="warning" shape="rounded-pill" class="me-1">
         <CIcon icon="cil-gem" class="me-1" />
         {{ t('memberships.active') || 'عضوية نشطة' }}
@@ -62,6 +66,13 @@
         <CIcon icon="cil-send" class="me-1" />
         {{ t('loyalty.sendWalletPass') || 'إرسال بطاقة المحفظة' }}
       </CButton>
+    </div>
+
+    <!-- Advanced Receptionist Features: Preference Tags -->
+    <div class="customer-preferences mt-2 d-flex flex-wrap gap-1" v-if="preferenceTags.length > 0">
+      <CBadge v-for="tag in preferenceTags" :key="tag" color="light" variant="outline" shape="rounded-pill" class="preference-tag">
+        {{ tag }}
+      </CBadge>
     </div>
 
     <!-- Advanced Receptionist Features: Alerts & Last Visit -->
@@ -118,6 +129,26 @@ const totalVisits = computed(() => props.customer?.total_visits || 0);
 const totalSpent = computed(() => props.customer?.total_spent || 0);
 const hasActiveMembership = computed(() => props.customer?.has_active_membership);
 
+const isBirthday = computed(() => {
+  if (!props.customer?.date_of_birth) return false;
+  const today = new Date();
+  const birthDate = new Date(props.customer.date_of_birth);
+  return today.getDate() === birthDate.getDate() && today.getMonth() === birthDate.getMonth();
+});
+
+const preferenceTags = computed(() => {
+  if (!props.customer?.preferences) return [];
+  try {
+    const prefs = props.customer.preferences;
+    if (typeof prefs === 'string') {
+      return prefs.split(',').map(t => t.trim()).filter(Boolean);
+    }
+    return Array.isArray(prefs) ? prefs : [];
+  } catch (e) {
+    return [];
+  }
+});
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-KW', {
     style: 'currency',
@@ -159,7 +190,7 @@ function formatDate(dateString) {
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .customer-main-info {
@@ -279,6 +310,22 @@ function formatDate(dateString) {
 .total-spent {
   color: #2eb85c;
   font-weight: 700;
+}
+
+.preference-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+.pulse-birthday {
+  animation: birthday-glow 1.5s infinite alternate;
+}
+
+@keyframes birthday-glow {
+  from { box-shadow: 0 0 5px #e55353; transform: scale(1); }
+  to { box-shadow: 0 0 15px #e55353; transform: scale(1.05); }
 }
 </style>
 

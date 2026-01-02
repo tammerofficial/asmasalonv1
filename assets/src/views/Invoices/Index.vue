@@ -6,12 +6,12 @@
         <h2 class="mb-0 fw-bold text-primary">{{ t('invoices.title') }}</h2>
         <CBadge color="gold" shape="rounded-pill" class="px-3 py-2 fw-bold text-dark">
           <CIcon icon="cil-file" class="me-1" />
-          {{ stats.total || invoices.length }} Total Invoices
+          {{ stats.total || invoices.length }} {{ t('invoices.totalInvoices') }}
         </CBadge>
       </div>
       <div class="header-right d-flex gap-2">
         <CButton color="primary" class="nano-btn" @click="openCreateModal">
-          <CIcon icon="cil-plus" class="me-2" />New Invoice
+          <CIcon icon="cil-plus" class="me-2" />{{ t('invoices.addNew') }}
         </CButton>
         <CButton color="secondary" variant="ghost" @click="loadInvoices" :disabled="loading">
           <CIcon icon="cil-reload" :class="{ 'spinning': loading }" />
@@ -25,28 +25,28 @@
         <div class="stat-icon-bg total"><CIcon icon="cil-file" /></div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.total || 0 }}</div>
-          <div class="stat-label">Total Invoices</div>
+          <div class="stat-label">{{ t('invoices.totalInvoices') }}</div>
         </div>
       </div>
       <div class="stat-card-nano clickable" @click="filters.status = 'paid'; loadInvoices()">
         <div class="stat-icon-bg paid"><CIcon icon="cil-check-circle" /></div>
         <div class="stat-info">
           <div class="stat-value text-success">{{ stats.paid || 0 }}</div>
-          <div class="stat-label">Paid</div>
+          <div class="stat-label">{{ t('status.paid') }}</div>
         </div>
       </div>
       <div class="stat-card-nano clickable" @click="filters.status = 'unpaid'; loadInvoices()">
         <div class="stat-icon-bg unpaid"><CIcon icon="cil-warning" /></div>
         <div class="stat-info">
           <div class="stat-value text-warning">{{ stats.unpaid || 0 }}</div>
-          <div class="stat-label">Unpaid</div>
+          <div class="stat-label">{{ t('status.unpaid') }}</div>
         </div>
       </div>
       <div class="stat-card-nano">
         <div class="stat-icon-bg amount"><CIcon icon="cil-money" /></div>
         <div class="stat-info">
           <div class="stat-value text-info">{{ formatCurrencyShort(stats.totalAmount || 0) }}</div>
-          <div class="stat-label">Total Amount</div>
+          <div class="stat-label">{{ t('common.totalAmount') }}</div>
         </div>
       </div>
     </div>
@@ -62,11 +62,11 @@
         </CCol>
         <CCol md="3">
           <CFormSelect v-model="filters.status" @change="loadInvoices" class="rounded-3">
-            <option value="">All Statuses</option>
-            <option value="draft">Draft</option>
-            <option value="sent">Sent</option>
-            <option value="paid">Paid</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="">{{ t('invoices.allStatuses') }}</option>
+            <option value="draft">{{ t('status.draft') }}</option>
+            <option value="sent">{{ t('status.sent') }}</option>
+            <option value="paid">{{ t('status.paid') }}</option>
+            <option value="cancelled">{{ t('status.cancelled') }}</option>
           </CFormSelect>
         </CCol>
         <CCol md="3">
@@ -84,52 +84,52 @@
       </div>
       <div v-else-if="invoices.length === 0" class="text-center p-5 text-muted opacity-50">
         <CIcon icon="cil-description" size="xl" class="mb-3" />
-        <p>No invoices found</p>
+        <p>{{ t('invoices.noInvoices') }}</p>
       </div>
       <div v-else>
         <div class="nano-table-container">
           <table class="nano-table w-100">
-            <thead>
+          <thead>
               <tr>
-                <th class="text-start">Invoice #</th>
-                <th>Customer</th>
-                <th class="text-end">Amount</th>
-                <th>Status</th>
-                <th>Due Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+                <th class="text-start">{{ t('invoices.invoiceNumber') }}</th>
+                <th>{{ t('common.customer') }}</th>
+                <th class="text-end">{{ t('common.amount') }}</th>
+                <th>{{ t('common.status') }}</th>
+                <th>{{ t('common.dueDate') }}</th>
+                <th>{{ t('common.actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
               <tr v-for="inv in invoices" :key="inv.id" class="nano-table-row">
                 <td class="text-start fw-bold">#{{ inv.id }}</td>
                 <td>
                   <div class="fw-bold">{{ inv.customer_name }}</div>
                   <div class="small text-muted">{{ inv.customer_phone }}</div>
-                </td>
+              </td>
                 <td class="text-end fw-bold text-success">{{ formatCurrency(inv.total_amount || 0) }}</td>
                 <td>
                   <CBadge :color="getStatusColor(inv.status)" shape="rounded-pill" class="px-3">
                     {{ inv.status?.toUpperCase() }}
-                  </CBadge>
-                </td>
+                </CBadge>
+              </td>
                 <td>{{ new Date(inv.due_date).toLocaleDateString() }}</td>
                 <td>
                   <div class="d-flex gap-2 justify-content-center">
                     <CButton size="sm" color="info" variant="ghost" @click="viewInvoice(inv)"><CIcon icon="cil-external-link" /></CButton>
                     <CButton size="sm" color="primary" variant="ghost" @click="printInvoice(inv)"><CIcon icon="cil-print" /></CButton>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+                </div>
+              </td>
+            </tr>
+          </tbody>
           </table>
-        </div>
+      </div>
 
-        <!-- Pagination -->
+      <!-- Pagination -->
         <div v-if="pagination.total_pages > 1" class="d-flex justify-content-center mt-5">
           <CPagination :pages="pagination.total_pages" :active-page="pagination.current_page" @update:active-page="changePage" />
-        </div>
-      </div>
-    </div>
+          </div>
+            </div>
+          </div>
 
     <HelpSection page-key="invoices" />
   </div>
@@ -137,7 +137,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { 
+import {
   CButton, CBadge, CRow, CCol, CSpinner, CFormInput, CFormSelect, 
   CInputGroup, CInputGroupText, CPagination, CModal, CModalHeader, 
   CModalTitle, CModalBody, CModalFooter 
@@ -166,15 +166,15 @@ const loadInvoices = async () => {
   try {
     const res = await api.get('/invoices', {
       params: {
-        page: pagination.value.current_page,
-        per_page: pagination.value.per_page,
+      page: pagination.value.current_page,
+      per_page: pagination.value.per_page,
         ...filters.value
       }
     });
     const data = res.data?.data || res.data;
     invoices.value = data.items || [];
     pagination.value = data.pagination || pagination.value;
-    
+
     // Stats
     const statsRes = await api.get('/invoices/stats');
     stats.value = statsRes.data?.data || statsRes.data || stats.value;
@@ -197,7 +197,7 @@ const resetFilters = () => {
 
 const changePage = (page) => {
   pagination.value.current_page = page;
-  loadInvoices();
+    loadInvoices();
 };
 
 const getStatusColor = (status) => {
@@ -207,7 +207,7 @@ const getStatusColor = (status) => {
     case 'sent': return 'warning';
     case 'overdue': return 'danger';
     default: return 'secondary';
-  }
+            }
 };
 
 const formatCurrency = (amount) => {
@@ -228,7 +228,7 @@ const formatCurrencyShort = (amount) => {
 };
 
 const viewInvoice = (inv) => router.push(`/invoices/${inv.id}`);
-const printInvoice = (inv) => toast.info('Sending to printer...');
+const printInvoice = (inv) => toast.info(t('orders.sendingToPrinter'));
 const openCreateModal = () => router.push('/pos');
 
 onMounted(() => {
@@ -247,7 +247,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .nano-stats-bar {

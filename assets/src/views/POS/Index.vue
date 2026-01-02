@@ -39,120 +39,122 @@
             </div>
           </template>
 
-          <CNav variant="pills" class="flex-column operations-nav">
-            <!-- Arrived Hub (The Arrival Button) -->
-            <div class="operation-section mb-3">
-              <div class="section-title d-flex justify-content-between align-items-center mb-2">
-                <span>
-                  <CIcon icon="cil-room" class="me-2 text-primary" />
-                  {{ t('pos.arrivedToday') || 'وصلوا الآن' }}
-                </span>
-                <CBadge color="primary" shape="rounded-pill">{{ posStore.bookings.filter(b => b.status === 'confirmed').length }}</CBadge>
-              </div>
-              <div class="arrived-hub bg-tertiary rounded-4 p-2 border-dashed border-primary">
-                <div v-if="posStore.bookings.filter(b => b.status === 'confirmed').length === 0" class="small text-muted text-center py-2">
-                  {{ t('pos.noArrivals') || 'لا يوجد حجوزات منتظرة' }}
+          <div class="operations-scroll-area flex-grow-1 overflow-auto p-3">
+            <CNav variant="pills" class="flex-column operations-nav">
+              <!-- Arrived Hub (The Arrival Button) -->
+              <div class="operation-section mb-4">
+                <div class="section-title d-flex justify-content-between align-items-center mb-2">
+                  <span>
+                    <CIcon icon="cil-room" class="me-2 text-primary" />
+                    {{ t('pos.arrivedToday') || 'وصلوا الآن' }}
+                  </span>
+                  <CBadge color="primary" shape="rounded-pill">{{ posStore.bookings.filter(b => b.status === 'confirmed').length }}</CBadge>
                 </div>
-                <div v-else class="d-flex flex-column gap-2">
-                  <div v-for="b in posStore.bookings.filter(b => b.status === 'confirmed').slice(0,3)" :key="b.id" 
-                       class="arrival-quick-card d-flex justify-content-between align-items-center p-2 bg-secondary rounded-3 shadow-sm border-start border-4 border-success"
-                       style="cursor: pointer;"
-                       @click="handleQuickArrive(b)">
-                    <div class="d-flex align-items-center gap-2">
-                      <div class="mini-avatar-box">{{ b.customer_name?.charAt(0) }}</div>
-                      <div class="info">
-                        <div class="name fw-bold small truncate" style="max-width: 80px;">{{ b.customer_name }}</div>
-                        <div class="time tiny text-muted">{{ b.booking_time }}</div>
+                <div class="arrived-hub bg-tertiary rounded-4 p-2 border-dashed border-primary">
+                  <div v-if="posStore.bookings.filter(b => b.status === 'confirmed').length === 0" class="small text-muted text-center py-2">
+                    {{ t('pos.noArrivals') || 'لا يوجد حجوزات منتظرة' }}
+                  </div>
+                  <div v-else class="d-flex flex-column gap-2">
+                    <div v-for="b in posStore.bookings.filter(b => b.status === 'confirmed').slice(0,3)" :key="b.id" 
+                         class="arrival-quick-card d-flex justify-content-between align-items-center p-2 bg-secondary rounded-3 shadow-sm border-start border-4 border-success"
+                         style="cursor: pointer;"
+                         @click="handleBookingArrive(b)">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="mini-avatar-box">{{ b.customer_name?.charAt(0) }}</div>
+                        <div class="info">
+                          <div class="name fw-bold small truncate" style="max-width: 80px;">{{ b.customer_name }}</div>
+                          <div class="time tiny text-muted">{{ b.booking_time }}</div>
+                        </div>
+                      </div>
+                      <CButton color="success" size="sm" variant="ghost" class="p-1">
+                        <CIcon icon="cil-check-circle" />
+                      </CButton>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active Customers Section -->
+              <div class="operation-section mb-4">
+                <div class="section-title d-flex justify-content-between align-items-center">
+                  <span>
+                    <CIcon icon="cil-people" class="me-2" />
+                    {{ t('pos.activeCustomers') }}
+                  </span>
+                  <CButton size="sm" color="success" variant="ghost" @click="showAddCustomerModal = true">
+                    <CIcon icon="cil-plus" />
+                  </CButton>
+                </div>
+                <div class="operation-list">
+                  <div 
+                    v-for="customer in posStore.activeCustomers" 
+                    :key="customer.id"
+                    class="operation-item"
+                    :class="{ 'selected': Number(posStore.selectedCustomerId) === Number(customer.id) }"
+                    @click="selectActiveCustomer(customer)"
+                  >
+                    <div class="item-avatar">{{ customer.name?.charAt(0) || 'C' }}</div>
+                    <div class="item-info">
+                      <div class="item-name">{{ customer.name }}</div>
+                      <div class="item-meta">
+                        <CBadge :color="customer.type === 'queue' ? 'info' : 'primary'" size="sm">
+                          {{ customer.type === 'queue' ? '#' + customer.ticket_number : t('bookings.title') }}
+                        </CBadge>
+                        <span class="ms-2 small text-muted">{{ customer.current_service || 'N/A' }}</span>
                       </div>
                     </div>
-                    <CButton color="success" size="sm" variant="ghost" class="p-1">
-                      <CIcon icon="cil-check-circle" />
-                    </CButton>
+                  </div>
+                  <div v-if="posStore.activeCustomers.length === 0" class="empty-state-mini text-center p-3 opacity-50">
+                    {{ t('pos.noActiveCustomers') }}
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Active Customers Section -->
-            <div class="operation-section">
-              <div class="section-title d-flex justify-content-between align-items-center">
-                <span>
-                  <CIcon icon="cil-people" class="me-2" />
-                  {{ t('pos.activeCustomers') }}
-                </span>
-                <CButton size="sm" color="success" variant="ghost" @click="showAddCustomerModal = true">
-                  <CIcon icon="cil-plus" />
-                </CButton>
-              </div>
-              <div class="operation-list">
-                <div 
-                  v-for="customer in posStore.activeCustomers" 
-                  :key="customer.id"
-                  class="operation-item"
-                  :class="{ 'selected': Number(posStore.selectedCustomerId) === Number(customer.id) }"
-                  @click="selectActiveCustomer(customer)"
-                >
-                  <div class="item-avatar">{{ customer.name?.charAt(0) || 'C' }}</div>
-                  <div class="item-info">
-                    <div class="item-name">{{ customer.name }}</div>
-                    <div class="item-meta">
-                      <CBadge :color="customer.type === 'queue' ? 'info' : 'primary'" size="sm">
-                        {{ customer.type === 'queue' ? '#' + customer.ticket_number : t('bookings.title') }}
-                      </CBadge>
-                      <span class="ms-2">{{ customer.current_service || 'N/A' }}</span>
-                    </div>
-                  </div>
+              <!-- Bookings Section -->
+              <div class="operation-section mb-4">
+                <div class="section-title d-flex justify-content-between">
+                  <span>
+                    <CIcon icon="cil-calendar" class="me-2" />
+                    {{ t('bookings.title') }}
+                  </span>
+                  <router-link to="/bookings" class="text-primary text-decoration-none small">{{ t('common.viewAll') }}</router-link>
                 </div>
-                <div v-if="posStore.activeCustomers.length === 0" class="empty-state-mini">
-                  {{ t('pos.noActiveCustomers') }}
+                <div class="operation-list">
+                  <BookingCard 
+                    v-for="booking in posStore.bookings.slice(0, 3)" 
+                    :key="booking.id" 
+                    :booking="booking"
+                    @process="handleBookingArrive"
+                    @arrive="handleBookingArrive"
+                  />
                 </div>
               </div>
-            </div>
 
-            <!-- Bookings Section -->
-            <div class="operation-section mt-3">
-              <div class="section-title d-flex justify-content-between">
-                <span>
-                  <CIcon icon="cil-calendar" class="me-2" />
-                  {{ t('bookings.title') }}
-                </span>
-                <router-link to="/bookings" class="text-primary text-decoration-none small">{{ t('common.viewAll') }}</router-link>
+              <!-- Queue Section -->
+              <div class="operation-section mb-4">
+                <div class="section-title d-flex justify-content-between">
+                  <span>
+                    <CIcon icon="cil-list" class="me-2" />
+                    {{ t('queue.title') }}
+                  </span>
+                  <CButton size="sm" color="primary" variant="ghost" @click="callNext">{{ t('queue.next') }}</CButton>
+                </div>
+                <div class="operation-list">
+                  <QueueTicketCard 
+                    v-for="ticket in posStore.queueTickets.filter(t => t.status !== 'completed').slice(0, 3)" 
+                    :key="ticket.id" 
+                    :ticket="ticket"
+                    @call="handleCallTicket"
+                    @serve="handleServeTicket"
+                    @arrive="handleQueueArrive"
+                  />
+                </div>
               </div>
-              <div class="operation-list">
-                <BookingCard 
-                  v-for="booking in posStore.bookings.slice(0, 3)" 
-                  :key="booking.id" 
-                  :booking="booking"
-                  @process="handleBookingArrive"
-                  @arrive="handleBookingArrive"
-                />
-              </div>
-            </div>
 
-            <!-- Queue Section -->
-            <div class="operation-section mt-3">
-              <div class="section-title d-flex justify-content-between">
-                <span>
-                  <CIcon icon="cil-list" class="me-2" />
-                  {{ t('queue.title') }}
-                </span>
-                <CButton size="sm" color="primary" variant="ghost" @click="callNext">{{ t('queue.next') }}</CButton>
-              </div>
-              <div class="operation-list">
-                <QueueTicketCard 
-                  v-for="ticket in posStore.queueTickets.filter(t => t.status !== 'completed').slice(0, 3)" 
-                  :key="ticket.id" 
-                  :ticket="ticket"
-                  @call="handleCallTicket"
-                  @serve="handleServeTicket"
-                  @arrive="handleQueueArrive"
-                />
-              </div>
-            </div>
-
-            <!-- Staff Status Section -->
-            <StaffStatusWidget :staff="posStore.staff" @call="handleCallStaff" />
-          </CNav>
+              <!-- Staff Status Section -->
+              <StaffStatusWidget :staff="posStore.staff" @call="handleCallStaff" />
+            </CNav>
+          </div>
         </Card>
       </div>
 
@@ -170,14 +172,19 @@
             </div>
 
             <div class="catalog-header-actions w-100">
-              <CInputGroup>
-                <CInputGroupText><CIcon icon="cil-magnifying-glass" /></CInputGroupText>
-                <CFormInput 
-                  v-model="searchQuery" 
-                  :placeholder="t('common.search') + '...'"
-                  class="border-start-0"
-                />
-              </CInputGroup>
+              <div class="d-flex gap-2">
+                <CInputGroup class="flex-grow-1">
+                  <CInputGroupText><CIcon icon="cil-magnifying-glass" /></CInputGroupText>
+                  <CFormInput 
+                    v-model="searchQuery" 
+                    :placeholder="t('common.search') + '...'"
+                    class="border-start-0"
+                  />
+                </CInputGroup>
+                <CButton color="primary" variant="outline" @click="handleAddCustomItem">
+                  <CIcon icon="cil-pencil" />
+                </CButton>
+              </div>
               
               <CNav variant="pills" class="catalog-tabs mt-3">
                 <CNavItem>
@@ -223,14 +230,14 @@
               >
                 + {{ item.name_ar || item.name }}
               </CBadge>
+              </div>
             </div>
-          </div>
 
           <div class="catalog-grid-wrapper">
             <LoadingSpinner v-if="posStore.loading.products || posStore.loading.services" />
-            
+
             <div v-else class="catalog-grid">
-              <div 
+            <div 
                 v-for="item in filteredItems" 
                 :key="item.id"
                 class="catalog-item-card"
@@ -242,11 +249,11 @@
                 <div class="item-price">{{ formatCurrency(item.price || item.selling_price || 0) }}</div>
                 <div class="item-stock" v-if="activeTab === 'products'">
                   {{ t('products.stock') }}: {{ item.stock_quantity || 0 }}
-                </div>
+              </div>
                 <div class="quick-add">
                   <CIcon icon="cil-plus" />
-                </div>
               </div>
+            </div>
             </div>
 
             <EmptyState 
@@ -282,14 +289,19 @@
                 <option :value="null">{{ t('pos.walkInCustomer') }}</option>
                 <option v-for="c in posStore.customers" :key="c.id" :value="c.id">
                   {{ c.name }} - {{ c.phone }}
-                </option>
-              </CFormSelect>
+              </option>
+            </CFormSelect>
             </div>
 
             <!-- Last Visited Services (Insight for Receptionist) -->
             <div v-if="posStore.selectedCustomer && posStore.lastServices.length > 0" class="last-services-box mt-3 p-3 bg-tertiary rounded-4 border">
-              <div class="small fw-bold text-muted mb-2 d-flex align-items-center">
-                <CIcon icon="cil-history" class="me-2" /> {{ t('pos.lastVisited') || 'آخر خدمات' }}
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="small fw-bold text-muted d-flex align-items-center">
+                  <CIcon icon="cil-history" class="me-2" /> {{ t('pos.lastVisited') || 'آخر خدمات' }}
+                </div>
+                <CButton size="sm" color="primary" variant="ghost" class="p-0 tiny fw-bold" @click="posStore.repeatLastVisit">
+                  {{ t('pos.repeatAll') || 'تكرار الكل' }}
+                </CButton>
               </div>
               <div class="d-flex flex-wrap gap-2">
                 <CBadge v-for="s in posStore.lastServices" :key="s.id" color="secondary" shape="rounded-pill" class="fw-normal" style="cursor: pointer;" @click="handleItemClick(s)">
@@ -305,7 +317,7 @@
               <CIcon icon="cil-cart" class="mb-2" size="xl" />
               <div>{{ t('pos.emptyCartDesc') }}</div>
             </div>
-            
+
             <div v-else class="cart-list">
               <div v-for="(item, index) in posStore.cart" :key="index" class="cart-item-wrapper">
                 <div class="cart-item">
@@ -313,18 +325,18 @@
                     <div class="item-name">{{ item.name }}</div>
                     <div class="item-staff" v-if="item.staff_name">
                       <CIcon icon="cil-user" class="me-1" />{{ item.staff_name }}
-                    </div>
                   </div>
+                </div>
                   <div class="item-controls">
                     <div class="quantity-picker">
                       <button @click="updateQty(index, -1)">-</button>
                       <span>{{ item.quantity }}</span>
                       <button @click="updateQty(index, 1)">+</button>
-                    </div>
+                  </div>
                     <div class="item-total">{{ formatCurrency(item.unit_price * item.quantity) }}</div>
                     <CButton size="sm" color="danger" variant="ghost" @click="posStore.removeFromCart(index)">
-                      <CIcon icon="cil-trash" />
-                    </CButton>
+                    <CIcon icon="cil-trash" />
+                  </CButton>
                   </div>
                 </div>
                 <!-- Cart Item Note (Receptionist Secret) -->
@@ -346,14 +358,23 @@
               <div class="summary-line">
                 <span>{{ t('pos.subtotal') }}</span>
                 <span>{{ formatCurrency(posStore.subtotal) }}</span>
-              </div>
+            </div>
               <div class="summary-line" v-if="posStore.prepaidAmount > 0">
                 <span>{{ t('pos.prepaid') }}</span>
                 <span class="text-success">-{{ formatCurrency(posStore.prepaidAmount) }}</span>
-              </div>
+            </div>
               <div class="summary-line discount-line">
                 <span>{{ t('pos.discount') }}</span>
-                <CFormInput v-model.number="posStore.discount" type="number" step="0.5" size="sm" class="summary-input" />
+                <div class="d-flex flex-column align-items-end gap-1">
+                  <CFormInput v-model.number="posStore.discount" type="number" step="0.5" size="sm" class="summary-input" />
+                  <CFormInput 
+                    v-if="posStore.discount > 0" 
+                    v-model="posStore.discountReason" 
+                    size="sm" 
+                    class="summary-input tiny" 
+                    :placeholder="t('pos.discountReason') || 'سبب الخصم...'" 
+                  />
+                </div>
               </div>
               <div class="summary-line total-line">
                 <span>{{ t('pos.total') }}</span>
@@ -386,14 +407,18 @@
                     size="sm" 
                     :placeholder="t(`pos.payment_${pay.method}`) || pay.method" 
                   />
+                  <CButton size="sm" color="primary" variant="ghost" @click="handleFillFull(pay.method)" :disabled="remainingSplitBalance <= 0">
+                    {{ t('common.all') || 'الكل' }}
+                  </CButton>
                 </div>
-                <div class="remaining-balance tiny text-center fw-bold" :class="remainingSplitBalance === 0 ? 'text-success' : 'text-danger'">
-                  {{ t('pos.remaining') || 'المتبقي' }}: {{ formatCurrency(remainingSplitBalance) }}
+                <div class="remaining-balance tiny text-center fw-bold" :class="remainingSplitBalance <= 0 ? 'text-success' : 'text-danger'">
+                  {{ remainingSplitBalance > 0 ? (t('pos.remaining') || 'المتبقي') : (t('pos.change') || 'الباقي للعميلة') }}: 
+                  {{ formatCurrency(Math.abs(remainingSplitBalance)) }}
                 </div>
               </div>
 
               <PaymentMethodsGrid v-else v-model="posStore.paymentMethod" />
-            </div>
+          </div>
 
             <!-- Final Actions -->
             <div class="checkout-actions">
@@ -403,8 +428,8 @@
                 {{ isProcessing ? t('pos.processing') : t('pos.processOrder') }}
               </CButton>
               <CButton color="secondary" variant="ghost" class="w-100 mt-2" @click="posStore.clearCart">
-                {{ t('pos.clearCart') }}
-              </CButton>
+              {{ t('pos.clearCart') }}
+            </CButton>
             </div>
           </div>
         </Card>
@@ -437,11 +462,11 @@
             <div class="d-flex justify-content-between">
               <span class="fw-bold">#{{ order.order_number }}</span>
               <span class="text-primary fw-bold">{{ formatCurrency(order.total) }}</span>
-            </div>
+          </div>
             <div class="d-flex justify-content-between mt-1">
               <span class="small text-muted">{{ order.created_at }}</span>
               <CBadge :color="order.status === 'completed' ? 'success' : 'warning'">{{ order.status }}</CBadge>
-            </div>
+          </div>
           </div>
           <EmptyState v-if="!posStore.orders.length" :title="t('orders.noOrders')" icon="cil-cart" />
         </div>
@@ -487,28 +512,28 @@
               <div class="item-name h4">{{ selectedItem.name_ar || selectedItem.name }}</div>
               <div class="item-price h3 text-primary">{{ formatCurrency(selectedItem.price || selectedItem.selling_price || 0) }}</div>
               <hr />
-              <div class="mb-3">
+          <div class="mb-3">
                 <label class="form-label small fw-bold text-muted">{{ t('pos.staff') }}</label>
-                <CFormSelect v-model="selectedStaffId">
-                  <option value="">{{ t('pos.selectStaff') }}</option>
+            <CFormSelect v-model="selectedStaffId">
+              <option value="">{{ t('pos.selectStaff') }}</option>
                   <option v-for="s in posStore.staff" :key="s.id" :value="s.id">
                     {{ s.name }} ({{ getStaffCurrentLoad(s.id) }} {{ t('pos.activeCustomers') }})
                     {{ Number(s.id) === Number(bestStaffId) ? ' ✨ ' + (t('pos.bestStaffMatch') || 'الأكثر توافراً') : '' }}
-                  </option>
-                </CFormSelect>
+              </option>
+            </CFormSelect>
                 <div v-if="estimatedCommission > 0" class="mt-2 small text-success fw-bold">
                   <CIcon icon="cil-money" class="me-1" />
                   {{ t('commissions.estimated') || 'العمولة المقدرة' }}: {{ formatCurrency(estimatedCommission) }}
                 </div>
-              </div>
-              <div class="mb-3">
+          </div>
+          <div class="mb-3">
                 <label class="form-label small fw-bold text-muted">{{ t('pos.quantity') }}</label>
                 <div class="quantity-input-large">
                   <CButton color="secondary" variant="outline" @click="modalQty > 1 ? modalQty-- : null">-</CButton>
                   <CFormInput v-model.number="modalQty" type="number" min="1" class="text-center" />
                   <CButton color="secondary" variant="outline" @click="modalQty++">+</CButton>
-                </div>
-              </div>
+          </div>
+        </div>
             </div>
           </CCol>
           <CCol md="6">
@@ -525,6 +550,43 @@
       <CModalFooter>
         <CButton color="secondary" variant="ghost" @click="showItemModal = false">{{ t('common.cancel') }}</CButton>
         <CButton color="primary" @click="confirmAddItem">{{ t('pos.addToCart') }}</CButton>
+      </CModalFooter>
+    </CModal>
+
+    <!-- Custom Item Modal -->
+    <CModal :visible="showCustomItemModal" @close="showCustomItemModal = false" alignment="center">
+      <CModalHeader>
+        <CModalTitle>{{ t('pos.addCustom') || 'إضافة بند مخصص' }}</CModalTitle>
+      </CModalHeader>
+      <CModalBody>
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">{{ t('common.name') }}</label>
+          <CFormInput v-model="customItem.name" :placeholder="t('pos.customNamePlaceholder') || 'اسم الخدمة/المنتج'" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">{{ t('pos.price') }}</label>
+          <CFormInput v-model.number="customItem.price" type="number" step="0.5" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">{{ t('common.type') }}</label>
+          <CFormSelect v-model="customItem.type">
+            <option value="service">{{ t('pos.service') }}</option>
+            <option value="product">{{ t('pos.product') }}</option>
+          </CFormSelect>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">{{ t('pos.staff') }}</label>
+          <CFormSelect v-model="selectedStaffId">
+            <option value="">{{ t('pos.selectStaff') }}</option>
+            <option v-for="s in posStore.staff" :key="s.id" :value="s.id">
+              {{ s.name }} ({{ getStaffCurrentLoad(s.id) }})
+            </option>
+          </CFormSelect>
+        </div>
+      </CModalBody>
+      <CModalFooter>
+        <CButton color="secondary" variant="ghost" @click="showCustomItemModal = false">{{ t('common.cancel') }}</CButton>
+        <CButton color="primary" @click="confirmAddCustomItem">{{ t('pos.addToCart') }}</CButton>
       </CModalFooter>
     </CModal>
 
@@ -572,8 +634,8 @@
             <div v-for="item in lastProcessedOrder.items" :key="item.id" class="d-flex justify-content-between mb-2">
               <span>{{ item.name }} x {{ item.quantity }}</span>
               <span>{{ formatCurrency(item.total) }}</span>
-            </div>
           </div>
+        </div>
           <hr />
           <div class="invoice-summary">
             <div class="d-flex justify-content-between">
@@ -614,14 +676,14 @@
             <div>
               <div class="fw-bold">{{ t('pos.autoPrint') || 'طباعة تلقائية' }}</div>
               <div class="small text-muted">{{ t('pos.autoPrintDesc') || 'طباعة الفاتورة فور إتمام الطلب' }}</div>
-            </div>
+          </div>
             <CFormSwitch />
           </div>
           <div class="setting-item d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
             <div>
               <div class="fw-bold">{{ t('pos.soundNotifications') || 'تنبيهات صوتية' }}</div>
               <div class="small text-muted">{{ t('pos.soundNotificationsDesc') || 'تفعيل الصوت عند استدعاء الطابور' }}</div>
-            </div>
+          </div>
             <CFormSwitch :checked="true" />
           </div>
           <hr />
@@ -638,7 +700,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { 
+import {
   CButton, CBadge, CFormInput, CFormSelect, CInputGroup, CInputGroupText, 
   CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter,
   CNav, CNavItem, CNavLink, CRow, CCol 
@@ -683,6 +745,7 @@ const {
 const activeTab = ref('services');
 const searchQuery = ref('');
 const showItemModal = ref(false);
+const showCustomItemModal = ref(false);
 const showHistoryModal = ref(false);
 const showAddCustomerModal = ref(false);
 const showQuickSettings = ref(false);
@@ -692,6 +755,7 @@ const showSplitPayment = ref(false); // New receptionist feature
 const lastProcessedOrder = ref(null);
 const isSavingCustomer = ref(false);
 const newCustomer = ref({ name: '', phone: '', email: '' });
+const customItem = ref({ name: '', price: 0, type: 'service' });
 const historyTab = ref('orders');
 const selectedItem = ref(null);
 const selectedStaffId = ref('');
@@ -734,7 +798,7 @@ const estimatedCommission = computed(() => {
   if (!selectedStaffId.value || !selectedItem.value) return 0;
   const staffMember = posStore.staff.find(s => Number(s.id) === Number(selectedStaffId.value));
   if (!staffMember) return 0;
-  
+
   const price = parseFloat(selectedItem.value.price || selectedItem.value.selling_price || 0);
   const rate = parseFloat(staffMember.commission_rate || 10); // Default 10%
   return (price * modalQty.value) * (rate / 100);
@@ -759,14 +823,54 @@ const filteredItems = computed(() => {
 const upsellRecommendations = computed(() => {
   if (posStore.cart.length === 0) return [];
   
-  // Logic: Find items not in cart that are 'popular' or complementary
   const inCartIds = posStore.cart.map(i => i.service_id || i.product_id);
   const pool = activeTab.value === 'services' ? posStore.services : posStore.products;
   
+  // Find items from same categories as in cart
+  const categoriesInCart = posStore.cart
+    .map(i => {
+      const item = pool.find(p => p.id === (i.service_id || i.product_id));
+      return item?.category;
+    })
+    .filter(Boolean);
+
   return pool
     .filter(item => !inCartIds.includes(item.id))
-    .slice(0, 3); // Just pick first 3 available for now
+    .filter(item => categoriesInCart.includes(item.category) || Math.random() > 0.7)
+    .slice(0, 4);
 });
+
+const handleFillFull = (method) => {
+  const remaining = remainingSplitBalance.value;
+  const current = posStore.splitPayments.find(p => p.method === method)?.amount || 0;
+  posStore.setSplitPaymentAmount(method, current + remaining);
+};
+
+const handleAddCustomItem = () => {
+  customItem.value = { name: '', price: 0, type: 'service' };
+  selectedStaffId.value = '';
+  modalQty.value = 1;
+  showCustomItemModal.value = true;
+};
+
+const confirmAddCustomItem = () => {
+  if (!customItem.value.name || customItem.value.price < 0) return;
+  
+  const staffMember = posStore.staff.find(s => Number(s.id) === Number(selectedStaffId.value));
+  const itemToAdd = {
+    type: customItem.value.type,
+    name: customItem.value.name,
+    quantity: modalQty.value,
+    unit_price: parseFloat(customItem.value.price),
+    staff_id: selectedStaffId.value || null,
+    staff_name: staffMember ? staffMember.name : '',
+    is_custom: true
+  };
+  
+  posStore.addToCart(itemToAdd);
+  showCustomItemModal.value = false;
+  toast.success(t('pos.addedToCart') || 'تمت الإضافة للسلة');
+};
 
 const handleItemClick = (item) => {
   if (activeTab.value === 'products' && (item.stock_quantity || 0) <= 0) {
@@ -808,7 +912,7 @@ const fetchCustomerReceptionistData = async (customerId) => {
     if (customer?.notes) {
       posStore.clearCustomerAlerts();
       posStore.addCustomerAlert(customer.notes);
-    }
+  }
 
     // 2. Fetch Last Visit
     const lastVisitRes = await api.get(`/customers/${customerId}/last-visit`);
@@ -872,12 +976,12 @@ const goToCustomerProfile = (id) => {
 };
 
 const handleSendWalletPass = async (id) => {
-  try {
+    try {
     const response = await api.post(`/loyalty/apple-wallet/send/${id}`);
-    if (response.data?.success) {
+      if (response.data?.success) {
       toast.success(t('loyalty.passSent') || 'تم إرسال بطاقة المحفظة بنجاح');
-    }
-  } catch (error) {
+      }
+    } catch (error) {
     console.error('Error sending wallet pass:', error);
     toast.error(t('loyalty.errorSendingPass') || 'خطأ في إرسال بطاقة المحفظة');
   }
@@ -1003,6 +1107,15 @@ onMounted(() => {
   background: var(--bg-secondary);
 }
 
+.operations-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.operations-scroll-area::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
 .operation-section .section-title {
   font-size: 0.8125rem;
   font-weight: 800;
@@ -1042,8 +1155,8 @@ onMounted(() => {
 
 .operation-item.selected {
   border-color: var(--asmaa-primary);
-  background: linear-gradient(135deg, rgba(187, 160, 122, 0.15) 0%, rgba(187, 160, 122, 0.05) 100%);
-  box-shadow: 0 4px 15px rgba(187, 160, 122, 0.1);
+  background: linear-gradient(135deg, rgba(142, 126, 120, 0.15) 0%, rgba(142, 126, 120, 0.05) 100%);
+  box-shadow: 0 4px 15px rgba(142, 126, 120, 0.1);
 }
 
 .item-avatar {
@@ -1056,7 +1169,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  box-shadow: 0 4px 10px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 10px rgba(142, 126, 120, 0.3);
 }
 
 /* Catalog Column */
@@ -1077,7 +1190,7 @@ onMounted(() => {
 .catalog-header-actions .nav-pills .nav-link.active {
   background: var(--asmaa-primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(187, 160, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(142, 126, 120, 0.3);
 }
 
 .catalog-grid {
@@ -1101,6 +1214,17 @@ onMounted(() => {
   align-items: center;
   text-align: center;
   min-height: 160px;
+  user-select: none;
+}
+
+.catalog-item-card:active {
+  transform: scale(0.95);
+}
+
+.catalog-item-card.out-of-stock {
+  opacity: 0.5;
+  filter: grayscale(1);
+  cursor: not-allowed;
 }
 
 .catalog-item-card:hover {
@@ -1175,7 +1299,7 @@ onMounted(() => {
 
 .checkout-btn:hover:not(:disabled) {
   transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(187, 160, 122, 0.4) !important;
+  box-shadow: 0 10px 25px rgba(142, 126, 120, 0.4) !important;
 }
 
 /* Receptionist Features CSS */
@@ -1213,7 +1337,7 @@ onMounted(() => {
 }
 
 .split-payment-grid {
-  background: rgba(187, 160, 122, 0.05);
+  background: rgba(142, 126, 120, 0.05);
 }
 .remaining-balance {
   letter-spacing: 1px;
@@ -1265,7 +1389,7 @@ onMounted(() => {
   .pos-layout {
     grid-template-columns: 300px 1fr 380px;
     gap: 1rem;
-  }
+}
 }
 
 @media (max-width: 1200px) {
@@ -1292,29 +1416,29 @@ onMounted(() => {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto 1fr;
     overflow-y: auto;
-  }
+}
   .pos-page {
     height: auto;
     overflow-y: auto;
-  }
+}
   .pos-operations, .pos-catalog, .pos-checkout {
     grid-column: 1 / 2;
     grid-row: auto;
     height: auto;
     max-height: none;
-  }
+}
   .checkout-card {
     position: sticky;
     bottom: 0;
     z-index: 100;
     border-radius: 24px 24px 0 0;
-  }
+}
 }
 
 @media (max-width: 576px) {
   .pos-page {
     padding: 0.5rem;
-  }
+}
   .catalog-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
@@ -1330,6 +1454,26 @@ onMounted(() => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.pulse-red {
+  animation: pulse-red-border 2s infinite;
+}
+
+@keyframes pulse-red-border {
+  0% { box-shadow: 0 0 0 0 rgba(229, 83, 83, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(229, 83, 83, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 83, 83, 0); }
+}
+
+.pulse-gold {
+  animation: pulse-gold-border 2s infinite;
+}
+
+@keyframes pulse-gold-border {
+  0% { box-shadow: 0 0 0 0 rgba(249, 177, 21, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(249, 177, 21, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 177, 21, 0); }
 }
 
 /* Receptionist Superpowers CSS */
@@ -1351,27 +1495,27 @@ onMounted(() => {
 .cart-item-note {
   border-top: 1px dashed var(--border-color);
   padding: 0.25rem 0.5rem;
-  background: rgba(187, 160, 122, 0.05);
-}
-
+  background: rgba(142, 126, 120, 0.05);
+  }
+  
 .cart-item-note .tiny {
   font-size: 0.7rem;
 }
 
 .loyalty-preview-banner {
-  background: linear-gradient(135deg, rgba(249, 177, 21, 0.1), rgba(187, 160, 122, 0.1));
+  background: linear-gradient(135deg, rgba(249, 177, 21, 0.1), rgba(142, 126, 120, 0.1));
   color: var(--asmaa-primary);
   border: 1px solid rgba(249, 177, 21, 0.2);
-}
-
+  }
+  
 .smart-upsell-bar {
   scrollbar-width: none;
-}
+  }
 
 .smart-upsell-bar::-webkit-scrollbar {
   display: none;
-}
-
+  }
+  
 .upsell-badge:hover {
   background-color: var(--asmaa-primary) !important;
   color: white !important;
