@@ -51,13 +51,30 @@ class Staff_Controller extends Base_Controller
             $total_staff += $user_counts['avail_roles'][$role] ?? 0;
         }
         
-        $stats = $wpdb->get_row(
-            "SELECT 
-                COUNT(*) as active_staff,
-                AVG(rating) as avg_rating,
-                SUM(total_revenue) as total_revenue
-             FROM {$extended_table}
-             WHERE is_active = 1"
+        // Get active staff count from extended table
+        $active_staff_count = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$extended_table} WHERE is_active = 1"
+        );
+        
+        // If extended table is empty or doesn't have all staff, use total count
+        // (assuming staff without extended data are active by default)
+        $extended_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$extended_table}");
+        if ($extended_count < $total_staff) {
+            // Some staff don't have extended data, assume they're active
+            $active_count = $total_staff - ($extended_count - $active_staff_count);
+        } else {
+            $active_count = $active_staff_count;
+        }
+        
+        // Get average rating (only from rated staff)
+        $avg_rating_row = $wpdb->get_row(
+            "SELECT AVG(NULLIF(rating, 0)) as avg_rating FROM {$extended_table} WHERE rating > 0"
+        );
+        $avg_rating = round((float) ($avg_rating_row->avg_rating ?? 0.0), 1);
+        
+        // Get total revenue
+        $total_revenue = (float) $wpdb->get_var(
+            "SELECT COALESCE(SUM(total_revenue), 0) FROM {$extended_table}"
         );
         
         // Today's staff calls/movements if applicable
@@ -69,9 +86,9 @@ class Staff_Controller extends Base_Controller
 
         return $this->success_response([
             'total' => $total_staff,
-            'active' => (int) ($stats->active_staff ?? 0),
-            'avgRating' => round((float) ($stats->avg_rating ?? 0.0), 1),
-            'totalRevenue' => (float) ($stats->total_revenue ?? 0.0),
+            'active' => $active_count,
+            'avgRating' => $avg_rating,
+            'totalRevenue' => $total_revenue,
             'todayCalls' => $today_calls
         ]);
     }
@@ -131,12 +148,13 @@ class Staff_Controller extends Base_Controller
         }
 
         // Filter by is_active if requested
-        $is_active = $request->get_param('is_active');
-        if ($is_active !== null) {
+        $is_active_param = $request->get_param('is_active');
+        if ($is_active_param !== null && $is_active_param !== '') {
+            $is_active = (bool) $is_active_param;
             $users = array_filter($users, function($user) use ($extended_data_map, $is_active) {
                 $extended = $extended_data_map[$user->ID] ?? null;
                 $active = $extended ? (bool) $extended->is_active : true;
-                return $active === (bool) $is_active;
+                return $active === $is_active;
             });
         }
 
